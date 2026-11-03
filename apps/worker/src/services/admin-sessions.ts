@@ -3,6 +3,7 @@ import { secureEqual } from "@gapura/shared/hmac";
 import type { AdminSession, AdminSessionRepository, AdminUser } from "../types";
 
 const SESSION_TTL_MS = 24 * 60 * 60 * 1000;
+export const REAUTH_WINDOW_MS = 15 * 60_000;
 
 export interface IssuedSession {
   token: string;

@@ -11,5 +11,7 @@ Keputusan yang sudah tercatat tidak diperdebatkan ulang kecuali ada informasi ba
 - `docs/adr/0004-kontrak-integrasi-duitku-v2-dan-webhook-keluar.md` - Kontrak integrasi Duitku v2 dan webhook keluar
 - `docs/adr/0005-retry-webhook-dan-sinkronisasi-status-via-cron.md` - Retry webhook dan sinkronisasi status via Cron
 - `docs/adr/0006-admin-api-dan-panel-dilindungi-cloudflare-access-j.md` - Admin API dan panel dilindungi Cloudflare Access JWT
-- `docs/adr/0007-admin-memakai-token-bearer-tanpa-zero-trust.md` - Admin memakai token Bearer tanpa Zero Trust
+- `docs/adr/0007-admin-memakai-token-bearer-tanpa-zero-trust.md` - Admin memakai token Bearer tanpa Zero Trust (digantikan ADR-0010)
 - `docs/adr/0008-kredensial-duitku-dikelola-dari-panel-terenkripsi.md` - Kredensial Duitku dikelola dari panel, terenkripsi di D1
+- `docs/adr/0009-route-environment-dengan-d1-terpisah.md` - Route environment dengan D1 terpisah
+- `docs/adr/0010-admin-auth-sesi-opaque-totp-step-up.md` - Auth admin: sesi opaque, TOTP wajib, RBAC, step-up

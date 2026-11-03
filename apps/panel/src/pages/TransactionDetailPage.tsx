@@ -4,7 +4,7 @@ import { paymentChannelByCode } from "@gapura/shared/payment-methods";
 import { apiGet, apiPost, type TransactionDetail, type WebhookLog } from "../api";
 import { ErrorNote, formatRupiah, formatTime } from "../components";
 
-export function TransactionDetailPage() {
+export function TransactionDetailPage({ canWrite }: { canWrite: boolean }) {
   const { merchantOrderId } = useParams();
   const queryClient = useQueryClient();
 
@@ -117,7 +117,9 @@ export function TransactionDetailPage() {
                     <td>{webhook.nextAttemptAt ? formatTime(webhook.nextAttemptAt) : "-"}</td>
                     <td>{formatTime(webhook.createdAt)}</td>
                     <td>
-                      {webhook.status === "FAILED" || webhook.status === "DEAD" ? (
+                      {!canWrite ? (
+                        <span className="muted">-</span>
+                      ) : webhook.status === "FAILED" || webhook.status === "DEAD" ? (
                         <button
                           type="button"
                           className="ghost"

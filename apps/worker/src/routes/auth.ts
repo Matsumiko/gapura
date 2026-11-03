@@ -1,13 +1,14 @@
 import type { Hono } from "hono";
 import { deleteCookie, getCookie, setCookie } from "hono/cookie";
-import { secureEqual } from "@gapura/shared/hmac";
 import { jsonError } from "../http";
 import { AdminAuthError, type AdminAuthService } from "../services/admin-auth";
-import type { AdminSessionService } from "../services/admin-sessions";
+import { REAUTH_WINDOW_MS, type AdminSessionService } from "../services/admin-sessions";
 import type { AppEnv } from "../types";
 
 export const SESSION_COOKIE = "__Host-gapura_admin";
+export const REAUTH_WINDOW_MINUTES = REAUTH_WINDOW_MS / 60_000;
 const COOKIE_MAX_AGE = 60 * 60 * 24;
+const CSRF_HEADER = "X-CSRF-Token";
 
 export interface AuthRouteDeps {
   auth: AdminAuthService;
@@ -42,6 +43,7 @@ export function registerAuthRoutes(app: Hono<AppEnv>, deps: AuthRouteDeps): void
     const found = token ? await deps.sessions.authenticate(token) : null;
     return c.json({
       ...(await deps.auth.status()),
+      reauthWindowMinutes: REAUTH_WINDOW_MINUTES,
       authenticated: Boolean(found),
       admin: found
         ? { id: found.admin.id, email: found.admin.email, role: found.admin.role }
@@ -113,7 +115,14 @@ export function registerAuthRoutes(app: Hono<AppEnv>, deps: AuthRouteDeps): void
   app.post("/admin/auth/logout", async (c) => {
     const token = getCookie(c, SESSION_COOKIE);
     if (token) {
-      await deps.sessions.revoke(token);
+      const found = await deps.sessions.authenticate(token);
+      if (found) {
+        const csrf = c.req.header(CSRF_HEADER);
+        if (!csrf || !(await deps.sessions.verifyCsrf(found.session, csrf))) {
+          return jsonError(c, 403, "CSRF_INVALID", "CSRF token tidak valid.");
+        }
+        await deps.sessions.revoke(token);
+      }
     }
     deleteCookie(c, SESSION_COOKIE, { path: "/", secure: true, sameSite: "Strict" });
     return c.json({ ok: true });
@@ -137,6 +146,10 @@ export function registerAuthRoutes(app: Hono<AppEnv>, deps: AuthRouteDeps): void
     if (!found) {
       return jsonError(c, 401, "UNAUTHORIZED", "Sesi admin tidak valid.");
     }
+    const csrf = c.req.header(CSRF_HEADER);
+    if (!csrf || !(await deps.sessions.verifyCsrf(found.session, csrf))) {
+      return jsonError(c, 403, "CSRF_INVALID", "CSRF token tidak valid.");
+    }
     const body = (await c.req.json().catch(() => null)) as { totpCode?: unknown } | null;
     if (typeof body?.totpCode !== "string") {
       return jsonError(c, 400, "INVALID_REQUEST", "totpCode wajib.");
@@ -152,14 +165,4 @@ export function registerAuthRoutes(app: Hono<AppEnv>, deps: AuthRouteDeps): void
       return authError(c, error);
     }
   });
-}
-
-export function legacyTokenMatches(header: string | undefined, token: string | undefined): boolean {
-  if (!header || !token) {
-    return false;
-  }
-  const [scheme, value] = header.split(" ");
-  return (
-    scheme?.toLowerCase() === "bearer" && typeof value === "string" && secureEqual(value, token)
-  );
 }

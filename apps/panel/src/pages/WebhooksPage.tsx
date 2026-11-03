@@ -4,7 +4,7 @@ import { Link } from "react-router-dom";
 import { apiGet, apiPost, type WebhookLog } from "../api";
 import { ErrorNote, formatTime } from "../components";
 
-export function WebhooksPage() {
+export function WebhooksPage({ canWrite }: { canWrite: boolean }) {
   const queryClient = useQueryClient();
   const [status, setStatus] = useState<"FAILED" | "DEAD">("FAILED");
 
@@ -71,14 +71,18 @@ export function WebhooksPage() {
                         {webhook.nextAttemptAt ? formatTime(webhook.nextAttemptAt) : "-"}
                       </td>
                       <td>
-                        <button
-                          type="button"
-                          className="ghost"
-                          onClick={() => retry.mutate(webhook)}
-                          disabled={retry.isPending}
-                        >
-                          Kirim ulang
-                        </button>
+                        {canWrite ? (
+                          <button
+                            type="button"
+                            className="ghost"
+                            onClick={() => retry.mutate(webhook)}
+                            disabled={retry.isPending}
+                          >
+                            Kirim ulang
+                          </button>
+                        ) : (
+                          <span className="muted">-</span>
+                        )}
                       </td>
                     </tr>
                   ))}

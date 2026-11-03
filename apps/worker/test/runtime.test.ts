@@ -5,13 +5,14 @@ import schema1 from "../migrations/0001_init.sql?raw";
 import schema2 from "../migrations/0002_payment_artifacts.sql?raw";
 import schema3 from "../migrations/0003_admin_audit.sql?raw";
 import schema4 from "../migrations/0004_merchant_settings.sql?raw";
+import schema5 from "../migrations/0005_admin_auth.sql?raw";
 import type { Env } from "../src/types";
+import { adminHeaders, seedAdminSession, type SeededAdminSession } from "./support/admin-session";
 import { createTestDatabase } from "./support/d1";
 
 const KEY = btoa(String.fromCharCode(...new Uint8Array(32).fill(3)));
 const SANDBOX_KEY = "gpk_sandbox_runtime";
 const PRODUCTION_KEY = "gpk_production_runtime";
-const ADMIN = { Authorization: "Bearer test-token" };
 
 async function seedProject(db: D1Database, id: string, name: string, prefix: string, key: string) {
   await db
@@ -24,10 +25,16 @@ async function seedProject(db: D1Database, id: string, name: string, prefix: str
 }
 
 async function setup() {
-  const sandboxDb = createTestDatabase(`${schema1}\n${schema2}\n${schema3}\n${schema4}`);
-  const productionDb = createTestDatabase(`${schema1}\n${schema2}\n${schema3}\n${schema4}`);
+  const sandboxDb = createTestDatabase(
+    `${schema1}\n${schema2}\n${schema3}\n${schema4}\n${schema5}`,
+  );
+  const productionDb = createTestDatabase(
+    `${schema1}\n${schema2}\n${schema3}\n${schema4}\n${schema5}`,
+  );
   await seedProject(sandboxDb, "proja", "Sandbox A", "SND", SANDBOX_KEY);
   await seedProject(productionDb, "proja", "Production A", "PRD", PRODUCTION_KEY);
+  const sandboxSession = await seedAdminSession(sandboxDb);
+  const productionSession = await seedAdminSession(productionDb);
 
   const env = {
     DB_SANDBOX: sandboxDb,
@@ -35,11 +42,14 @@ async function setup() {
     ENVIRONMENT: "test",
     PUBLIC_BASE_URL: "https://gapura.test",
     PANEL_ORIGIN: "http://localhost:5173",
-    ADMIN_TOKEN: "test-token",
     CREDENTIALS_KEY: KEY,
   } as Env;
 
-  return { env, runtime: runtimeFor(env) };
+  return { env, runtime: runtimeFor(env), sandboxSession, productionSession };
+}
+
+function readHeaders(session: SeededAdminSession): Record<string, string> {
+  return { Cookie: session.cookie };
 }
 
 describe("pemisahan route environment", () => {
@@ -83,13 +93,17 @@ describe("pemisahan route environment", () => {
     expect(((await legacy.json()) as { project: { name: string } }).project.name).toBe("Sandbox A");
   });
 
-  it("memisahkan admin project per environment", async () => {
-    const { env, runtime } = await setup();
+  it("memisahkan admin project per environment dengan sesi", async () => {
+    const { env, runtime, sandboxSession, productionSession } = await setup();
 
-    const sandbox = await runtime.root.request("/sandbox/admin/projects", { headers: ADMIN }, env);
+    const sandbox = await runtime.root.request(
+      "/sandbox/admin/projects",
+      { headers: readHeaders(sandboxSession) },
+      env,
+    );
     const production = await runtime.root.request(
       "/production/admin/projects",
-      { headers: ADMIN },
+      { headers: readHeaders(productionSession) },
       env,
     );
 
@@ -101,12 +115,24 @@ describe("pemisahan route environment", () => {
     );
   });
 
-  it("membatasi pengaturan ke environment milik route", async () => {
+  it("menolak Bearer token lama pada admin", async () => {
     const { env, runtime } = await setup();
+
+    const response = await runtime.root.request(
+      "/sandbox/admin/projects",
+      { headers: { Authorization: "Bearer test-token" } },
+      env,
+    );
+
+    expect(response.status).toBe(401);
+  });
+
+  it("membatasi pengaturan ke environment milik route", async () => {
+    const { env, runtime, sandboxSession } = await setup();
 
     const sandboxSettings = await runtime.root.request(
       "/sandbox/admin/settings",
-      { headers: ADMIN },
+      { headers: readHeaders(sandboxSession) },
       env,
     );
     const overview = (await sandboxSettings.json()) as {
@@ -121,7 +147,7 @@ describe("pemisahan route environment", () => {
       "/sandbox/admin/settings/production",
       {
         method: "PUT",
-        headers: { ...ADMIN, "Content-Type": "application/json" },
+        headers: adminHeaders(sandboxSession, { "Content-Type": "application/json" }),
         body: JSON.stringify({ merchantCode: "X" }),
       },
       env,

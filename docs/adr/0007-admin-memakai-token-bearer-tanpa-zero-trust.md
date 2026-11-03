@@ -1,6 +1,8 @@
 # 0007. Admin memakai token Bearer tanpa Zero Trust
 
-- Status: diterima
+> Status: digantikan [ADR-0010](0010-admin-auth-sesi-opaque-totp-step-up.md). Token statis sudah dihapus dari Worker dan panel.
+
+- Status: digantikan ADR-0010
 - Tanggal: 2026-11-03
 - Menggantikan: ADR-0006 (Cloudflare Access)
 
@@ -15,7 +17,7 @@ Owner meminta panel admin tetap di Cloudflare Pages dan backend di Workers, teta
 ## Keputusan
 Pakai opsi 3.
 
-- Secret Worker `ADMIN_TOKEN` (64 hex acak). Bila kosong, semua `/admin/*` menjawab `503 ADMIN_NOT_CONFIGURED` (fail closed).
+- Secret Worker token statis (64 hex acak). Bila kosong, semua `/admin/*` menjawab `503 ADMIN_NOT_CONFIGURED` (fail closed).
 - Middleware membandingkan header `Authorization: Bearer <token>` dengan `secureEqual`; gagal → `401 ADMIN_UNAUTHORIZED`.
 - CORS hanya mengizinkan origin panel (`PANEL_ORIGIN`, daftar dipisah koma): `https://admin.example.com` dan `https://your-project.pages.dev`; header `Authorization` diizinkan, kredensial cookie tidak dipakai.
 - Panel menampilkan layar token; token disimpan di `sessionStorage` tab (hilang saat tab ditutup), tombol Keluar menghapusnya, dan setiap request API membawa Bearer. Tidak ada token di URL atau `localStorage`.
@@ -28,4 +30,4 @@ Pakai opsi 3.
 - Negatif: satu token dibagi untuk semua admin; tidak ada identitas/atribusi per orang, tidak ada pencabutan per pengguna, dan tidak ada sesi kedaluwarsa selain menutup tab/mengganti token.
 - Negatif: belum ada rate limit pada percobaan token; token 64 hex membuat brute force tidak praktis, tetapi WAF/rate limit tetap disarankan sebelum produksi.
 - Negatif: `your-project.pages.dev` tetap bisa dibuka publik sebagai halaman login; isi panel dan API tidak bisa diakses tanpa token.
-- Yang harus dijaga: `ADMIN_TOKEN` hanya di secret Worker, jangan pernah masuk repo/log; rotasi dengan `wrangler secret put ADMIN_TOKEN` lalu login ulang di panel; audit aktor tetap `admin-token` sampai ada identitas nyata.
+- Yang harus dijaga: token statis hanya di secret Worker, jangan pernah masuk repo/log; rotasi lewat `wrangler secret put` lalu login ulang di panel; audit aktor tetap `admin-token` sampai ada identitas nyata.

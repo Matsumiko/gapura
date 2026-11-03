@@ -1,6 +1,6 @@
 # Checklist keamanan & threat model ringkas
 
-Diperbarui: 2026-11-03. Berlaku untuk Worker staging `gapura-sandbox`.
+Diperbarui: 2026-11-04. Berlaku untuk Worker staging `gapura-sandbox`.
 
 ## Ancaman dan mitigasi saat ini
 
@@ -15,7 +15,7 @@ Diperbarui: 2026-11-03. Berlaku untuk Worker staging `gapura-sandbox`.
 | SQL injection | Baca/ubah data | Semua query D1 memakai `.bind()` parameter | Ada |
 | SSRF lewat `webhook_url` | Worker memanggil host internal | URL hanya diisi owner lewat admin (Fase 6); belum ada validasi host khusus | Tertunda (belum ada input eksternal) |
 | Data pribadi di log | Kebocoran nama/email | Log hanya memuat merchant order id, kode error, dan ringkasan cron | Ada |
-| Panel admin terekspos | Aksi admin tanpa izin | `/admin/*` wajib Bearer `ADMIN_TOKEN` (dibandingkan waktu-konstan, fail closed bila kosong); panel login token di sessionStorage | Ada + test; live |
+| Panel admin terekspos | Aksi admin tanpa izin | `/admin/*` wajib sesi opaque (cookie HttpOnly), password Argon2id + TOTP, RBAC owner/admin/viewer, CSRF untuk write, dan reauth 15 menit untuk aksi sensitif; token sesi hanya hash di D1 | Ada + test; live |
 | Dependency rentan | RCE/data leak | `pnpm audit` bersih per 2026-11-03; jalankan sebelum rilis | Ada (manual) |
 | Kredensial Duitku disimpan di D1 | Bocor bila D1/master key bocor | API key dienkripsi AES-GCM; master key 32 byte hanya di Worker secret `CREDENTIALS_KEY`; panel tidak pernah menampilkan kembali API key | Ada + test |
 | Secret masuk repo | Kredensial bocor | `.dev.vars`/`.env` di-.gitignore; secret produksi lewat `wrangler secret put`; config gitleaks tersedia | Ada + config |
@@ -33,10 +33,13 @@ Diperbarui: 2026-11-03. Berlaku untuk Worker staging `gapura-sandbox`.
 - [x] Test jalur gagal (signature salah, nominal salah, akses ditolak, order tak dikenal, retry DEAD).
 - [x] `pnpm audit` bersih sebelum deploy staging (2026-11-03).
 - [ ] Rate limit per project (FR-10, P1) — belum; andalkan Cloudflare/WAF sebelum produksi.
-- [x] Endpoint `/admin/*` dilindungi token Bearer; panel tidak menyimpan token di localStorage/URL.
-- [ ] Rate limit percobaan token admin — belum; token 64 hex + WAF disarankan.
+- [x] Endpoint `/admin/*` dilindungi sesi cookie HttpOnly + TOTP; panel hanya menyimpan CSRF token di sessionStorage (bukan token sesi).
+- [x] Rate limit login/TOTP admin per akun + IP (5 kegagalan / 15 menit) — ada; WAF tetap disarankan.
+- [x] RBAC owner/admin/viewer dan step-up reauth 15 menit untuk aksi sensitif.
 - [x] Rotasi API key dan webhook secret lewat panel; kredensial tampil sekali.
 - [x] Aksi admin dicatat di `admin_audit` (email pelaku, aksi, target).
+- [ ] Recovery code TOTP — belum; kehilangan authenticator butuh pemulihan manual.
+- [ ] Biaya CPU Argon2id di Workers free tier — belum diukur; turunkan parameter atau pindah skema bila melebihi batas.
 - [ ] Pemindaian secret otomatis di CI — config ada, CI belum dipasang.
 
 ## Catatan operasional

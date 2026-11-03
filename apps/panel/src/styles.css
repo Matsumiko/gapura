@@ -410,3 +410,20 @@ button.ghost {
 .env-select select {
   padding: 0.2rem 0.45rem;
 }
+
+.modal-backdrop {
+  align-items: center;
+  background: color-mix(in srgb, var(--bg) 70%, transparent);
+  display: flex;
+  inset: 0;
+  justify-content: center;
+  padding: 1.25rem;
+  position: fixed;
+  z-index: 20;
+}
+
+.modal {
+  box-shadow: 0 20px 45px color-mix(in srgb, var(--text) 25%, transparent);
+  max-width: 28rem;
+  width: 100%;
+}

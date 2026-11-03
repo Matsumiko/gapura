@@ -13,9 +13,11 @@ import { ErrorNote, formatTime } from "../components";
 
 function EnvCard({
   view,
+  canWrite,
   onChanged,
 }: {
   view: MerchantSettingsView;
+  canWrite: boolean;
   onChanged: () => Promise<void>;
 }) {
   const [merchantCode, setMerchantCode] = useState(view.merchantCode);
@@ -74,6 +76,7 @@ function EnvCard({
             value={merchantCode}
             onChange={(event) => setMerchantCode(event.target.value)}
             maxLength={50}
+            disabled={!canWrite}
             required
           />
         </label>
@@ -85,18 +88,19 @@ function EnvCard({
             value={apiKey}
             onChange={(event) => setApiKey(event.target.value)}
             autoComplete="new-password"
+            disabled={!canWrite}
             placeholder={view.apiKeySet ? "•••••••• (tidak berubah)" : "API key Duitku"}
           />
         </label>
         <div className="wide actions">
-          <button type="submit" disabled={save.isPending}>
+          <button type="submit" disabled={!canWrite || save.isPending}>
             {save.isPending ? "Menyimpan..." : "Simpan"}
           </button>
           <button
             type="button"
             className="ghost"
             onClick={() => test.mutate()}
-            disabled={test.isPending || !view.apiKeySet}
+            disabled={!canWrite || test.isPending || !view.apiKeySet}
           >
             {test.isPending ? "Menguji..." : "Uji kredensial"}
           </button>
@@ -119,7 +123,7 @@ function EnvCard({
   );
 }
 
-export function SettingsPage() {
+export function SettingsPage({ canWrite }: { canWrite: boolean }) {
   const queryClient = useQueryClient();
   const settings = useQuery({
     queryKey: ["admin", "settings"],
@@ -148,6 +152,7 @@ export function SettingsPage() {
           tersebut dan disimpan terenkripsi AES-GCM di database environment itu. Callback memverifikasi
           dengan kredensial yang sama.
         </p>
+        {canWrite ? null : <p className="muted">Role viewer hanya bisa melihat pengaturan.</p>}
         <dl className="details">
           <dt>Callback URL</dt>
           <dd>
@@ -171,7 +176,7 @@ export function SettingsPage() {
       </article>
 
       {data.items.map((view) => (
-        <EnvCard key={view.environment} view={view} onChanged={refresh} />
+        <EnvCard key={view.environment} view={view} canWrite={canWrite} onChanged={refresh} />
       ))}
     </section>
   );

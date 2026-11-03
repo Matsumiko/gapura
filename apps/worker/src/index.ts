@@ -116,7 +116,6 @@ function buildEnvironmentRuntime(
       generateWebhookSecret,
       sha256Hex,
     }),
-    adminToken: env.ADMIN_TOKEN,
     adminAuth,
     adminSessions,
     paymentMethods: createPaymentMethodsService({ provider }),

@@ -7,7 +7,6 @@ export interface Env {
   DUITKU_BASE_URL?: string;
   DUITKU_MERCHANT_CODE?: string;
   DUITKU_API_KEY?: string;
-  ADMIN_TOKEN?: string;
   ADMIN_SETUP_TOKEN?: string;
   CREDENTIALS_KEY?: string;
 }
@@ -311,7 +310,15 @@ export interface AdminRepository {
   listAudit(limit: number): Promise<AuditEntry[]>;
 }
 
+export type AdminRole = AdminUser["role"];
+
 export type AppEnv = {
   Bindings: Env;
-  Variables: { project: ProjectRecord; adminActor: string; adminSessionId?: string };
+  Variables: {
+    project: ProjectRecord;
+    adminActor: string;
+    adminRole: AdminRole;
+    adminSessionId: string;
+    adminReauthenticatedAt: string | null;
+  };
 };

@@ -71,6 +71,23 @@ describe("admin auth service", () => {
     ).rejects.toMatchObject({ code: "setup_closed" });
   });
 
+  it("menolak setup token yang salah", async () => {
+    const { service } = await setup();
+
+    await expect(
+      service.startBootstrap({ setupToken: "salah", email: EMAIL }),
+    ).rejects.toMatchObject({ code: "invalid_setup_token" });
+    await expect(
+      service.finishBootstrap({
+        setupToken: "salah",
+        email: EMAIL,
+        password: PASSWORD,
+        secret: "JBSWY3DPEHPK3PXP",
+        totpCode: "123456",
+      }),
+    ).rejects.toMatchObject({ code: "invalid_setup_token" });
+  });
+
   it("login butuh password dan TOTP, lalu dapat sesi", async () => {
     const { service } = await setup();
     const secret = await bootstrap(service);

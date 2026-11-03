@@ -68,9 +68,14 @@ wrangler d1 execute gapura-sandbox --remote --json --command \
 
 ## Panel admin
 
-- `503 ADMIN_NOT_CONFIGURED`: secret `ADMIN_TOKEN` kosong. Set lewat `wrangler secret put ADMIN_TOKEN`.
-- `401 ADMIN_UNAUTHORIZED`: token di sessionStorage kosong/salah. Klik Keluar lalu masukkan token lagi.
-- Lupa token: rotasi dengan `wrangler secret put ADMIN_TOKEN`, lalu login ulang di panel (semua tab lama harus logout).
+- `401 ADMIN_UNAUTHORIZED`: sesi kedaluwarsa (TTL 24 jam) atau sudah dicabut. Login lagi dengan email + password + TOTP.
+- `403 CSRF_INVALID`: request write tanpa header `X-CSRF-Token` yang cocok. Muat ulang panel lalu login lagi bila token tab hilang.
+- `403 FORBIDDEN`: role `viewer` mencoba write. Minta owner/admin melakukan perubahan.
+- `403 REAUTH_REQUIRED`: aksi sensitif butuh TOTP ulang; panel membuka modal verifikasi. Berlaku 15 menit sejak `reauthenticated_at`.
+- `503 ADMIN_NOT_CONFIGURED`: Worker tidak punya service auth sesi (deploy lama/konfigurasi salah). Deploy versi terbaru; auth sesi selalu aktif.
+- `SETUP_CLOSED`: `admin_users` sudah terisi. Bootstrap hanya sekali; hapus `ADMIN_SETUP_TOKEN` dengan `wrangler secret delete ADMIN_SETUP_TOKEN`.
+- Authenticator hilang: belum ada recovery code. Pulihkan manual di D1 (ganti secret TOTP user lewat prosedur internal) atau buat deployment baru dengan D1 kosong untuk bootstrap ulang.
+- Mencabut semua perangkat: `DELETE FROM admin_sessions WHERE admin_id = '<id>';` lewat D1, atau nonaktifkan user (`UPDATE admin_users SET is_active = 0`).
 - Tombol kirim ulang webhook mengubah baris `DEAD`/`FAILED` menjadi jadwal baru (attempt 1, jatuh tempo sekarang); Cron berikutnya mengirim.
 
 ## Eskalasi

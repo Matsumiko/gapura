@@ -16,7 +16,7 @@ interface RevealedCredential {
 
 const INITIAL_FORM = { name: "", prefix: "", webhookUrl: "" };
 
-export function ProjectsPage() {
+export function ProjectsPage({ canWrite }: { canWrite: boolean }) {
   const queryClient = useQueryClient();
   const [form, setForm] = useState(INITIAL_FORM);
   const [revealed, setRevealed] = useState<RevealedCredential[] | null>(null);
@@ -107,9 +107,10 @@ export function ProjectsPage() {
         </div>
       ) : null}
 
-      <article className="card">
-        <h2>Tambah project</h2>
-        <form className="form" onSubmit={submit}>
+      {canWrite ? (
+        <article className="card">
+          <h2>Tambah project</h2>
+          <form className="form" onSubmit={submit}>
           <label>
             Nama
             <input
@@ -145,14 +146,19 @@ export function ProjectsPage() {
               placeholder="https://project.example/callback"
             />
           </label>
-          <div className="wide">
-            <button type="submit" disabled={createProject.isPending}>
-              {createProject.isPending ? "Menyimpan..." : "Tambah project"}
-            </button>
-          </div>
-        </form>
-        <ErrorNote error={createProject.error} />
-      </article>
+            <div className="wide">
+              <button type="submit" disabled={createProject.isPending}>
+                {createProject.isPending ? "Menyimpan..." : "Tambah project"}
+              </button>
+            </div>
+          </form>
+          <ErrorNote error={createProject.error} />
+        </article>
+      ) : (
+        <article className="card">
+          <p className="muted">Role viewer hanya bisa membaca data.</p>
+        </article>
+      )}
 
       <article className="card">
         <h2>Daftar project</h2>
@@ -214,7 +220,9 @@ export function ProjectsPage() {
                       </td>
                       <td>{formatTime(project.createdAt)}</td>
                       <td className="actions">
-                        {isEditing ? (
+                        {!canWrite ? (
+                          <span className="muted">-</span>
+                        ) : isEditing ? (
                           <>
                             <button
                               type="button"

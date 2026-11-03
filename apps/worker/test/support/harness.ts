@@ -160,7 +160,6 @@ export async function createTestApp(
     callbacks: unusedCallbacks,
     forwarder: unusedForwarder,
     admin: unusedAdmin,
-    adminToken: undefined as string | undefined,
     paymentMethods: unusedPaymentMethods,
     settings: unusedSettings,
     ...overrides,

@@ -8,13 +8,16 @@ Tambahkan komentar pakem:ignore di baris yang sengaja menyebut path hipotetis. -
 
 Worker (Cloudflare):
 - `apps/worker/src/index.ts` — entry point: membangun runtime `/sandbox` (DB_SANDBOX) dan `/production` (DB_PRODUCTION), mount route, jalankan Cron keduanya, merangkai repository, provider, service, dan `ctx.waitUntil`. Tanpa logika bisnis.
-- `apps/worker/src/app.ts` — merangkai Hono: CORS panel, `/health`, `/v1/*` dengan auth, callback Duitku, 404/500.
+- `apps/worker/src/app.ts` — merangkai Hono: CORS panel, `/health`, `/v1/*` dengan auth, callback Duitku, route auth admin, middleware origin+sesi `/admin/*`, 404/500.
 - `apps/worker/src/middleware/auth.ts` — membaca `X-Gapura-Key`, mencocokkan hash, menolak project nonaktif.
 - `apps/worker/src/routes/payments.ts` — `POST /v1/payments` dan `GET /v1/payments/:orderId`, menerjemahkan error domain ke status HTTP.
 - `apps/worker/src/routes/payment-methods.ts` — `GET /v1/payment-methods`: validasi nominal, ambil channel aktif dari provider, petakan error.
 - `apps/worker/src/routes/callback.ts` — `POST /callback/duitku`: parse form, verifikasi lewat service, jadwalkan forward asinkron.
 - `apps/worker/src/routes/admin.ts` — endpoint `/admin/*`: ringkasan, project, transaksi, webhook retry; menerjemahkan error domain ke HTTP.
-- `apps/worker/src/middleware/admin-auth.ts` — wajib Bearer `ADMIN_TOKEN` (waktu-konstan); fail closed bila secret kosong.
+- `apps/worker/src/middleware/admin-auth.ts` — origin panel + sesi cookie `__Host-gapura_admin`, CSRF untuk write, RBAC viewer read-only, step-up `REAUTH_REQUIRED` 15 menit untuk aksi sensitif.
+- `apps/worker/src/routes/auth.ts` — status, bootstrap/start, bootstrap, login, logout, session, reauth; menulis cookie sesi + CSRF.
+- `apps/worker/src/services/admin-auth.ts` — bootstrap owner, login password+TOTP, reauth TOTP, rate limit, audit auth.
+- `apps/worker/src/repositories/admin-users.ts` — SQL admin_users dan admin_login_attempts.
 - `apps/worker/src/repositories/admin.ts` — SQL khusus admin: daftar/mutasi project (termasuk edit profil), daftar transaksi + filter, riwayat webhook, ringkasan, audit.
 - `apps/worker/src/services/admin.ts` — operasi admin (buat project, rotasi kredensial, ringkasan, retry webhook) + penulisan audit.
 - `apps/worker/src/services/payment-methods.ts` — membungkus channel aktif + menggabungkan katalog (nama resmi, sistem).
@@ -48,7 +51,7 @@ Worker (Cloudflare):
 - `apps/worker/migrations/0002_payment_artifacts.sql` — kolom `va_number` dan `qr_string`.
 - `apps/worker/migrations/0003_admin_audit.sql` — tabel `admin_audit` untuk jejak aksi admin.
 - `apps/worker/migrations/0004_merchant_settings.sql` — kredensial per environment.
-- `apps/worker/migrations/0005_admin_auth.sql` — admin_users, admin_sessions, admin_login_attempts (auth baru, belum aktif).
+- `apps/worker/migrations/0005_admin_auth.sql` — admin_users, admin_sessions, admin_login_attempts (auth sesi + TOTP aktif).
 
 Shared (dipakai Worker dan panel):
 - `packages/shared/src/crypto.ts` — sha256Hex, generator API key dan webhook secret.
@@ -61,10 +64,9 @@ Shared (dipakai Worker dan panel):
 
 Panel:
 - `apps/panel/src/main.tsx` — bootstrap React + QueryClient.
-- `apps/panel/src/App.tsx` — halaman status API.
-- `apps/panel/src/api.ts` — base URL `VITE_API_URL`, tipe admin, token di sessionStorage, fetch dengan header Authorization.
-- `apps/panel/src/App.tsx` — gate login token + layout React Router.
-- `apps/panel/src/pages/LoginPage.tsx` — layar token admin (verifikasi lewat `/admin/summary`).
+- `apps/panel/src/App.tsx` — cek sesi, gate bootstrap/login, layout React Router, role-aware write, modal reauth TOTP, env selector, logout.
+- `apps/panel/src/api.ts` — base URL `VITE_API_URL`, tipe admin, fetch `credentials: include`, CSRF di sessionStorage, retry otomatis setelah reauth, handler 401.
+- `apps/panel/src/pages/LoginPage.tsx` — form bootstrap owner (setup token + email/password + secret/otpauth TOTP) dan login email/password/TOTP.
 - `apps/panel/src/pages/SummaryPage.tsx` — total PAID hari/bulan per project.
 - `apps/panel/src/pages/ProjectsPage.tsx` — buat project, edit nama/webhook (prefix tetap), aktif/nonaktif, rotasi key/secret (tampil sekali).
 - `apps/panel/src/pages/TransactionsPage.tsx` — daftar transaksi dengan filter dan paging.
@@ -93,9 +95,11 @@ Test:
 - `apps/worker/test/settings-routes.test.ts` — otorisasi dan endpoint pengaturan.
 - `apps/worker/test/managed-provider.test.ts` — pemilihan environment dan rotasi kredensial.
 - `apps/worker/test/retention.test.ts` — pemangkasan hanya untuk baris terminal lama.
-- `apps/worker/test/admin.test.ts` — otorisasi token, CRUD project, rotasi kredensial, ringkasan, filter transaksi, retry webhook, audit.
+- `apps/worker/test/admin.test.ts` — otorisasi sesi, RBAC viewer, CSRF, step-up, CRUD project, rotasi kredensial, ringkasan, filter transaksi, retry webhook, audit.
+- `apps/worker/test/auth-routes.test.ts` — bootstrap sekali, login password+TOTP, logout+CSRF, reauth, penolakan Bearer.
+- `apps/worker/test/support/admin-session.ts` — seed admin (Argon2id/TOTP) + sesi cookie/CSRF untuk test; bukan test.
 - `apps/worker/test/schema.test.ts` — constraint dan index migrasi.
-- `apps/worker/test/support/` — harness HTTP, repository in-memory, adapter D1→SQLite. Bukan test.
+- `apps/worker/test/support/` — harness HTTP, seed sesi admin, repository in-memory, adapter D1→SQLite. Bukan test.
 - `packages/shared/test/` — unit test crypto, hmac, order id, status, dan skema payment.
 
 ## Pola yang dipakai

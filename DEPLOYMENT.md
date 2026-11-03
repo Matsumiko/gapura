@@ -29,6 +29,8 @@ wrangler deploy                            # https://pay.example.com (custom dom
 # 5. Secret
 printf '%s' '<merchant-code>' | wrangler secret put DUITKU_MERCHANT_CODE
 printf '%s' '<api-key>'       | wrangler secret put DUITKU_API_KEY
+openssl rand -base64 32       | wrangler secret put CREDENTIALS_KEY
+openssl rand -hex 32          | wrangler secret put ADMIN_SETUP_TOKEN
 
 # 6. Project pertama
 #    API key dibuat acak (gpk_...), hanya hash SHA-256 yang disimpan.
@@ -71,32 +73,36 @@ Migrasi D1 bersifat maju saja; rollback kode tidak membatalkan migrasi. Untuk pe
 ## Kredensial Duitku dari panel
 
 1. Set master key: `openssl rand -base64 32 | wrangler secret put CREDENTIALS_KEY`.
-2. Terapkan migrasi `0004_merchant_settings.sql` (`wrangler d1 migrations apply gapura-sandbox --remote`).
-3. Di panel → Pengaturan: isi merchant code + API key sandbox, Simpan, Uji kredensial, lalu Aktifkan.
-4. Production: isi kartu Production dan aktifkan hanya setelah Fase 0 disetujui; sebaiknya deployment + D1 terpisah.
-5. Tanpa `CREDENTIALS_KEY`, penyimpanan dinonaktifkan dan Worker memakai fallback secret `DUITKU_*`.
+2. Terapkan migrasi `0001`–`0005` (`wrangler d1 migrations apply gapura-sandbox --remote`); `0005_admin_auth.sql` membuat `admin_users`, `admin_sessions`, dan `admin_login_attempts`.
+3. Buat owner pertama lewat panel: `ADMIN_SETUP_TOKEN` + email + password (min. 12 karakter), daftarkan secret TOTP dari URI `otpauth://`, lalu masukkan kode 6 digit.
+4. Di panel → Pengaturan: isi merchant code + API key sandbox, Simpan, Uji kredensial, lalu Aktifkan.
+5. Production: isi kartu Production dan aktifkan hanya setelah Fase 0 disetujui; sebaiknya deployment + D1 terpisah.
+6. Tanpa `CREDENTIALS_KEY`, penyimpanan dinonaktifkan dan Worker memakai fallback secret `DUITKU_*`. Secret TOTP admin juga butuh `CREDENTIALS_KEY`, jadi bootstrap gagal tanpanya.
 
-## Panel admin (Pages + token)
+## Panel admin (Pages + sesi)
 
 | Item | Nilai |
 |---|---|
 | API Worker | `https://pay.example.com` |
 | Panel Pages | `https://admin.example.com` (project `gapura-admin`) |
-| Alias Pages | `https://your-project.pages.dev` (hanya halaman login) |
-| Auth | `Authorization: Bearer <ADMIN_TOKEN>`; token disimpan di sessionStorage |
+| Alias Pages | `https://your-project.pages.dev` (redirect ke domain kanonik; cookie `SameSite=Strict`) |
+| Auth | Sesi opaque cookie `__Host-gapura_admin` (`HttpOnly`, `Secure`, `SameSite=Strict`) + TOTP; CSRF token di sessionStorage |
 
 Langkah yang sudah dijalankan:
 
 1. Worker custom domain `pay.example.com`; `workers_dev = false` sehingga hanya host itu yang melayani.
-2. Secret admin: `printf '%s' '<token-64-hex>' | wrangler secret put ADMIN_TOKEN`.
-3. Build panel: `VITE_API_URL=https://pay.example.com pnpm --filter @gapura/panel build`.
-4. Deploy Pages: `wrangler pages deploy apps/panel/dist --project-name gapura-admin --branch main`.
-5. Custom domain Pages `admin-pay.example.com` + CNAME proxied ke `your-project.pages.dev`.
-6. `PANEL_ORIGIN` di `wrangler.toml` memuat origin panel (`admin-pay.example.com` dan `your-project.pages.dev`); CORS mengizinkan header `Authorization`.
+2. Migrasi `0005_admin_auth.sql` diterapkan ke `gapura-sandbox` dan `gapura-production`.
+3. Secret `CREDENTIALS_KEY` (32 byte base64) dan `ADMIN_SETUP_TOKEN` (sementara) dipasang lewat `wrangler secret put`.
+4. Build panel: `VITE_API_URL=https://pay.example.com pnpm --filter @gapura/panel build`.
+5. Deploy Pages: `wrangler pages deploy apps/panel/dist --project-name gapura-admin --branch main`.
+6. Custom domain Pages `admin-pay.example.com` + CNAME proxied ke `your-project.pages.dev`.
+7. `PANEL_ORIGIN` di `wrangler.toml` memuat origin panel (`admin-pay.example.com` dan `your-project.pages.dev`); CORS mengizinkan header `X-CSRF-Token` dan mengirim kredensial.
 
-Verifikasi: `/health` 200; `/admin/summary` tanpa token 401 dan dengan Bearer 200; panel menampilkan layar token, dan setelah login menampilkan ringkasan/project/transaksi dari D1.
+Bootstrap owner (sekali per environment/D1): buka panel → isi `ADMIN_SETUP_TOKEN`, email, password → simpan secret `otpauth://` di authenticator → masukkan kode TOTP. Setelah `admin_users` terisi, bootstrap menolak (`SETUP_CLOSED`); hapus secret `ADMIN_SETUP_TOKEN` dengan `wrangler secret delete ADMIN_SETUP_TOKEN`.
 
-Rotasi token: `wrangler secret put ADMIN_TOKEN` dengan nilai baru; semua tab lama akan menerima 401 dan harus login ulang. Jangan menaruh token di repo, URL, atau `localStorage`.
+Verifikasi: `/health` 200; `/admin/summary` tanpa sesi 401; login panel berhasil dan menampilkan ringkasan/project/transaksi dari D1. Write tanpa `X-CSRF-Token` ditolak 403; aksi sensitif tanpa reauth segar ditolak 403 `REAUTH_REQUIRED`.
+
+Mencabut akses: logout dari panel (menghapus baris sesi itu), atau `DELETE FROM admin_sessions WHERE admin_id = '<id>'` lewat D1 untuk semua perangkat. Tidak ada token statis yang perlu dirotasi. Bila authenticator hilang, pemulihan manual di D1 (recovery codes belum diimplementasikan). CPU Argon2id di Workers free tier belum diukur.
 
 ## Produksi (belum dilakukan)
 

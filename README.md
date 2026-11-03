@@ -6,7 +6,7 @@ Spesifikasi produk: [PRD.md](PRD.md). Keputusan arsitektur: [docs/adr](docs/adr)
 
 ## Status
 
-Fase 1-3 berjalan dan **staging live** di `https://pay.example.com` dengan dua environment terpisah (`/sandbox` dan `/production`, masing-masing D1 sendiri) (D1 `gapura-sandbox`, Cron aktif, kredensial sandbox asli). Panel admin live di `https://admin.example.com` dan API `/admin/*` di `https://pay.example.com/admin/*`, dilindungi token admin (Bearer). Total 206 test. Kredensial sandbox asli sudah dipakai; pembayaran sandbox lewat demo Duitku berhasil dan callback asli membuat transaksi PAID.
+Fase 1-3 berjalan dan **staging live** di `https://pay.example.com` dengan dua environment terpisah (`/sandbox` dan `/production`, masing-masing D1 sendiri) (D1 `gapura-sandbox`, Cron aktif, kredensial sandbox asli). Panel admin live di `https://admin.example.com` dan API `/admin/*` di `https://pay.example.com/admin/*`, dilindungi sesi opaque + TOTP + RBAC + step-up. Total 243 test. Kredensial sandbox asli sudah dipakai; pembayaran sandbox lewat demo Duitku berhasil dan callback asli membuat transaksi PAID.
 
 ## Struktur
 
@@ -52,7 +52,7 @@ pnpm --filter @gapura/panel dev                 # http://127.0.0.1:5173
 | `GET /{env}/v1/payments/:orderId` | status transaksi milik project sendiri |
 | `GET /{env}/v1/payment-methods?amount=` | channel aktif + biaya dari Duitku (cache 5 menit per nominal) |
 | `POST /{env}/callback/duitku` | callback Duitku; verifikasi HMAC-SHA256 + nominal, forward asinkron |
-| `GET /admin/*`, `POST /admin/*`, `PATCH /admin/*`, `PUT /admin/*` | panel admin; wajib `Authorization: Bearer <ADMIN_TOKEN>` |
+| `GET /admin/*`, `POST /admin/*`, `PATCH /admin/*`, `PUT /admin/*` | panel admin; wajib sesi cookie `__Host-gapura_admin` (HttpOnly) + `X-CSRF-Token` untuk write |
 | `GET /admin/settings`, `PUT /admin/settings/:env`, `POST /admin/settings/:env/activate`, `POST /admin/settings/:env/test` | kredensial Duitku per environment (terenkripsi) |
 | `GET /admin/audit` | jejak aksi admin |
 
@@ -77,15 +77,15 @@ curl -X POST http://127.0.0.1:8787/v1/payments \
 
 ## Panel admin
 
-SPA React di `apps/panel` + endpoint `/admin/*` di Worker. Endpoint admin membandingkan token Bearer dengan secret `ADMIN_TOKEN` secara waktu-konstan; bila secret kosong endpoint menjawab `503 ADMIN_NOT_CONFIGURED` (fail closed). Panel meminta token sekali dan menyimpannya di `sessionStorage` tab; tombol Keluar menghapusnya.
+SPA React di `apps/panel` + endpoint `/admin/*` di Worker. Login memakai email + password Argon2id + kode TOTP. Worker mengirim token sesi 32 byte lewat cookie `__Host-gapura_admin` (`HttpOnly`, `Secure`, `SameSite=Strict`); D1 hanya menyimpan hash token dan hash CSRF. Panel tidak menyimpan token sesi di JavaScript: hanya CSRF token untuk header `X-CSRF-Token` yang disimpan di `sessionStorage`. Request baca boleh untuk semua role (`owner`/`admin`/`viewer`); write butuh `owner`/`admin`; aksi sensitif butuh TOTP ulang dalam 15 menit (`reauthenticated_at`). Bootstrap owner pertama memakai `ADMIN_SETUP_TOKEN` dan hanya bisa sekali.
 
 ```sh
 pnpm --filter @gapura/panel dev   # http://127.0.0.1:5173
 ```
 
-Halaman: Ringkasan, Project (buat/edit/aktif/nonaktif/rotasi), Transaksi, Webhook gagal, **Pengaturan** (merchant code + API key sandbox/production, terenkripsi AES-GCM; aktivasi environment; uji kredensial; callback URL), **Audit** (100 aksi terakhir), dan Dokumentasi in-app. Setiap aksi admin dicatat di tabel `admin_audit` dengan email pelaku dari JWT.
+Halaman: Ringkasan, Project (buat/edit/aktif/nonaktif/rotasi), Transaksi, Webhook gagal, **Pengaturan** (merchant code + API key sandbox/production, terenkripsi AES-GCM; aktivasi environment; uji kredensial; callback URL), **Audit** (100 aksi terakhir), dan Dokumentasi in-app. Panel menampilkan email + role sesi; role `viewer` melihat data tanpa tombol write. Setiap aksi admin dicatat di tabel `admin_audit` dengan email aktor sesi.
 
-Panel sudah dideploy di `https://admin.example.com` (Pages) dengan layar login token; alias `your-project.pages.dev` menampilkan login yang sama. API admin memakai Bearer `ADMIN_TOKEN`; request tanpa token ditolak 401. Langkah lengkap ada di `DEPLOYMENT.md`. Detail keputusan: [ADR-0007](docs/adr/0007-admin-memakai-token-bearer-tanpa-zero-trust.md).
+Panel sudah dideploy di `https://admin.example.com` (Pages) dengan login email + password + TOTP; alias `your-project.pages.dev` hanya untuk redirect ke domain kanonik karena cookie `SameSite=Strict`. Request admin tanpa sesi ditolak 401; write tanpa CSRF ditolak 403 `CSRF_INVALID`; aksi sensitif dengan reauth kedaluwarsa ditolak 403 `REAUTH_REQUIRED`. Langkah lengkap ada di `DEPLOYMENT.md`. Detail keputusan: [ADR-0010](docs/adr/0010-admin-auth-sesi-opaque-totp-step-up.md).
 
 ## Referensi Duitku
 

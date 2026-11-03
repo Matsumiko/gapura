@@ -25,7 +25,7 @@ reason.modular:
 Backend gerbang pembayaran di Cloudflare Workers: banyak project memakai satu akun merchant Duitku tanpa berbagi kredensial. Spesifikasi produk ada di `PRD.md`; keputusan arsitektur di `docs/adr/`.
 
 ## Ringkasan
-Gapura membuat transaksi Duitku atas nama project pemanggil, menerima callback Duitku (verifikasi signature + nominal), menyimpan status di D1, lalu meneruskan status ke webhook project dengan HMAC. Panel admin (SPA React di Cloudflare Pages) dipakai owner untuk mengelola project dan memantau transaksi. Fase 1-3 berjalan dan staging live; Fase 6 (admin API + panel) live dengan token admin. Total 230 test.
+Gapura membuat transaksi Duitku atas nama project pemanggil, menerima callback Duitku (verifikasi signature + nominal), menyimpan status di D1, lalu meneruskan status ke webhook project dengan HMAC. Panel admin (SPA React di Cloudflare Pages) dipakai owner untuk mengelola project dan memantau transaksi. Fase 1-3 berjalan dan staging live; Fase 6 (admin API + panel) live dengan sesi opaque + TOTP + RBAC + step-up. Total 243 test.
 
 ## Stack
 - Runtime API: Cloudflare Workers, TypeScript, Hono 4.
@@ -38,8 +38,8 @@ Gapura membuat transaksi Duitku atas nama project pemanggil, menerima callback D
 - Monorepo: pnpm workspaces — `apps/worker`, `apps/panel`, `packages/shared`.
 - Toolchain lokal: Node >= 22 (dikembangkan di 22.22), pnpm 12 lewat corepack.
 - Biaya: hanya layanan Cloudflare free tier. Queues, R2, dan layanan berbayar tidak dipakai; Durable Objects/KV hanya bila ADR baru membuktikan kebutuhannya.
-- Auth admin sedang migrasi ke sesi opaque + TOTP + RBAC + step-up (ADR-0010); fase fondasi (skema 0005, Argon2id, TOTP) selesai, `ADMIN_TOKEN` masih dipakai sampai fase 2 selesai.
-- Secret: Worker secrets `DUITKU_MERCHANT_CODE`, `DUITKU_API_KEY`, `ADMIN_TOKEN`, dan `CREDENTIALS_KEY`; kredensial Duitku dari panel disimpan terenkripsi di D1 (ADR-0008); API key project disimpan sebagai hash SHA-256.
+- Auth admin memakai sesi opaque + TOTP + RBAC + step-up (ADR-0010): password Argon2id, cookie `__Host-gapura_admin` HttpOnly, CSRF per sesi, role owner/admin/viewer, reauth 15 menit untuk aksi sensitif. Token statis sudah dihapus dari Worker dan panel.
+- Secret: Worker secrets `DUITKU_MERCHANT_CODE`, `DUITKU_API_KEY`, `CREDENTIALS_KEY`, dan `ADMIN_SETUP_TOKEN` (sementara, untuk bootstrap owner); kredensial Duitku dan secret TOTP admin disimpan terenkripsi di D1 (ADR-0008); API key project disimpan sebagai hash SHA-256.
 
 ## Perintah
 - Setup: `pnpm install` (Node >= 22; `corepack enable pnpm` bila pnpm belum ada).
@@ -80,15 +80,15 @@ Checklist keamanan (aktif karena `sensitive: true`):
 - Ada test untuk jalur gagal (signature salah, nominal tidak cocok, akses ditolak, order tak dikenal).
 
 ## Status & artefak yang ditunda
-Fase sekarang: Fase 6 selesai di kode, staging live untuk API pembayaran. Worker `https://pay.example.com` (satu-satunya host; workers.dev dimatikan) melayani `/sandbox` (D1 `gapura-sandbox`) dan `/production` (D1 `gapura-production`), keduanya sudah dimigrasi dan live, migrasi 0001-0003 remote, Cron aktif, retensi 30 hari, dan kredensial sandbox asli. Pembayaran sandbox nyata lewat demo Duitku berhasil: callback asli membuat transaksi PAID dan webhook project DELIVERED. Admin API live di `https://pay.example.com/admin/*` dengan Bearer `ADMIN_TOKEN` (fail closed bila kosong), dan panel live di `https://admin.example.com` (Pages) dengan layar login token; `your-project.pages.dev` menampilkan login yang sama. Request tanpa token ke `/admin/*` ditolak 401. Access apps sudah dihapus dan `ACCESS_*` dilepas (ADR-0007). Production D1 ada dan terisolasi, tetapi kredensial production belum diset (create payment production 503, tidak memakai fallback sandbox). Deploy produksi (rilis nyata) belum.
+Fase sekarang: Fase 6 selesai di kode, staging live untuk API pembayaran. Worker `https://pay.example.com` (satu-satunya host; workers.dev dimatikan) melayani `/sandbox` (D1 `gapura-sandbox`) dan `/production` (D1 `gapura-production`), keduanya sudah dimigrasi dan live, migrasi 0001-0005 remote, Cron aktif, retensi 30 hari, dan kredensial sandbox asli. Pembayaran sandbox nyata lewat demo Duitku berhasil: callback asli membuat transaksi PAID dan webhook project DELIVERED. Admin API live di `https://pay.example.com/admin/*` dengan sesi opaque + TOTP, dan panel live di `https://admin.example.com` (Pages) dengan login email/password/TOTP; `your-project.pages.dev` hanya untuk redirect ke domain kanonik (`SameSite=Strict`). Request tanpa sesi ke `/admin/*` ditolak 401, write tanpa CSRF 403, dan aksi sensitif tanpa reauth segar 403 `REAUTH_REQUIRED`. Access apps sudah dihapus dan `ACCESS_*` dilepas (ADR-0007). Production D1 ada dan terisolasi, tetapi kredensial production belum diset (create payment production 503, tidak memakai fallback sandbox). Deploy produksi (rilis nyata) belum.
 
 Ditunda (pemicunya belum ada):
 - Deploy produksi: butuh D1 produksi terpisah dan kredensial Duitku asli setelah Fase 0 disetujui.
 - CI, `DEPLOYMENT.md`, `RUNBOOK.md`: dibuat saat deploy staging pertama; flag `deploy` dinaikkan saat itu.
 - CI (`pakem ci`/GitHub Actions): belum ada remote GitHub; workflow dibuat saat repo punya remote.
-- Rate limit per project dan admin (FR-10): ditunda; andalkan Cloudflare/WAF sebelum produksi (lihat `docs/SECURITY_CHECKLIST.md`).
+- Rate limit per project (FR-10): ditunda; andalkan Cloudflare/WAF sebelum produksi (lihat `docs/SECURITY_CHECKLIST.md`). Rate limit login/TOTP admin sudah ada (5 gagal / 15 menit per akun + IP).
 - Retensi `webhook_logs`: selesai (30 hari untuk DELIVERED/DEAD, lihat ADR-0005 dan `apps/worker/src/services/retention.ts`).
-- Panel dan API admin dideploy dengan token admin (tanpa Zero Trust). Rate limit/WAF dan D1 produksi masih tertunda.
+- Panel dan API admin dideploy dengan sesi + TOTP (tanpa Zero Trust). WAF dan D1 produksi masih tertunda. Recovery code TOTP belum ada; CPU Argon2id di Workers free tier belum diukur.
 - Transaksi sandbox Duitku sungguhan: butuh kredensial merchant sandbox dan jawaban Fase 0.
 - Makefile/justfile: perintah sudah pendek lewat `pnpm` dan tercatat di README; dibuat bila perintah harian mulai berulang.
 - Fase 0 (konfirmasi tertulis Duitku) masih terbuka dan wajib sebelum kredensial produksi dipakai.

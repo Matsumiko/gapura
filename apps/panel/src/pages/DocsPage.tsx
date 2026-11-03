@@ -543,8 +543,24 @@ if (!hash_equals($expected, $parts["v1"])) {
 
         <Section id="panel" title="Panduan panel">
           <p>
-            Panel meminta token admin sekali per tab (disimpan di <code>sessionStorage</code>).
-            Tombol <strong>Keluar</strong> menghapusnya.
+            Panel login dengan email, password, dan kode TOTP. Sesi dikirim Worker sebagai cookie{" "}
+            <code>__Host-gapura_admin</code> yang <code>HttpOnly</code>; token sesi tidak pernah
+            disimpan di JavaScript. CSRF token untuk header write disimpan di{" "}
+            <code>sessionStorage</code> tab, dan tombol <strong>Keluar</strong> mencabut sesi di
+            server.
+          </p>
+          <p>
+            Saat belum ada admin, panel menampilkan form setup. Isi setup token (
+            <code>ADMIN_SETUP_TOKEN</code>), email, dan password; panel menampilkan secret +{" "}
+            <code>otpauth://</code> untuk didaftarkan ke authenticator, lalu kode TOTP mengaktifkan
+            owner. Bootstrap hanya bisa sekali.
+          </p>
+          <p>
+            Role <code>owner</code> dan <code>admin</code> boleh menulis; <code>viewer</code> hanya
+            membaca dan tombol write disembunyikan. Aksi sensitif—buat/edit/status project, rotasi
+            API key/webhook secret, simpan/aktifkan kredensial, dan kirim ulang webhook—butuh TOTP
+            ulang dalam 15 menit. Bila sudah kedaluwarsa, panel membuka modal verifikasi lalu
+            mengulang aksi yang tadi.
           </p>
           <ul>
             <li>
@@ -573,16 +589,23 @@ if (!hash_equals($expected, $parts["v1"])) {
             </li>
           </ul>
           <p>
-            Setiap aksi admin dicatat di <code>admin_audit</code>. Tanpa Zero Trust, aktor dicatat
-            sebagai <code>admin-token</code>.
+            Setiap aksi admin dicatat di <code>admin_audit</code> dengan email aktor sesi.
           </p>
         </Section>
 
         <Section id="admin-api" title="Admin API">
           <p>
-            Semua endpoint admin memakai{" "}
-            <code>Authorization: Bearer &lt;ADMIN_TOKEN&gt;</code>. Bila secret kosong, semuanya
-            menjawab 503. Token tidak boleh ditaruh di repo atau URL.
+            Semua endpoint admin memakai sesi cookie <code>__Host-gapura_admin</code> (
+            <code>HttpOnly</code>, <code>Secure</code>, <code>SameSite=Strict</code>). Token sesi
+            tidak dikirim lewat header <code>Authorization</code>. Request tulis juga wajib
+            mengirim <code>X-CSRF-Token</code> dan berasal dari origin panel yang terdaftar.
+          </p>
+          <p>
+            Endpoint auth: <code>GET /admin/auth/status</code>,{" "}
+            <code>POST /admin/auth/bootstrap/start</code>, <code>POST /admin/auth/bootstrap</code>,{" "}
+            <code>POST /admin/auth/login</code>, <code>POST /admin/auth/logout</code>,{" "}
+            <code>GET /admin/auth/session</code>, dan <code>POST /admin/auth/reauth</code>. Login
+            butuh password + TOTP; reauth memperbarui <code>reauthenticated_at</code> sesi.
           </p>
           <table>
             <thead>
@@ -703,8 +726,10 @@ if (!hash_equals($expected, $parts["v1"])) {
             <li>Data pembeli minim: nama dan email; tidak dicatat di log.</li>
             <li>Semua trafik HTTPS. Kredensial Duitku hanya di Worker secrets.</li>
             <li>
-              Admin memakai satu token bersama; belum ada identitas per orang, masa sesi, atau rate
-              limit percobaan token. Gunakan token 64 hex dan rotasi bila dicurigai bocor.
+              Admin memakai sesi opaque per perangkat dengan TOTP wajib, RBAC owner/admin/viewer, dan
+              step-up 15 menit. Belum ada recovery code; kehilangan authenticator berarti pemulihan
+              manual di D1. Rate limit login/TOTP per akun + IP. Biaya CPU Argon2id di Workers belum
+              diukur.
             </li>
             <li>
               Retry webhook memakai Cron tiap menit; keterlambatan minimal sekitar satu menit.
@@ -756,12 +781,25 @@ if (!hash_equals($expected, $parts["v1"])) {
               </tr>
               <tr>
                 <td>Panel 401</td>
-                <td>Token kosong/salah. Klik Keluar, masukkan token lagi.</td>
+                <td>Sesi kedaluwarsa atau dicabut. Masuk lagi dengan password + TOTP.</td>
               </tr>
               <tr>
-                <td>Panel 503</td>
                 <td>
-                  <code>ADMIN_TOKEN</code> belum diset di Worker.
+                  <code>403 REAUTH_REQUIRED</code>
+                </td>
+                <td>Masukkan kode TOTP di modal verifikasi; aksi sensitif berlaku 15 menit.</td>
+              </tr>
+              <tr>
+                <td>
+                  <code>403 FORBIDDEN</code>
+                </td>
+                <td>Role viewer hanya boleh membaca; minta owner/admin melakukan perubahan.</td>
+              </tr>
+              <tr>
+                <td>Setup tidak tersedia</td>
+                <td>
+                  <code>ADMIN_SETUP_TOKEN</code> atau <code>CREDENTIALS_KEY</code> belum diset di
+                  Worker.
                 </td>
               </tr>
             </tbody>

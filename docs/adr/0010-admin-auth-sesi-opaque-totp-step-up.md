@@ -1,6 +1,6 @@
 # 0010. Auth admin: sesi opaque, TOTP wajib, RBAC, step-up
 
-- Status: diterima (implementasi bertahap)
+- Status: diterima (diimplementasikan 2026-11-04)
 - Tanggal: 2026-11-04
 - Menggantikan: ADR-0007 (token Bearer statis)
 
@@ -30,11 +30,13 @@ Token admin statis tidak punya identitas, MFA, masa sesi, atau pencabutan per pe
 
 ## Tahapan
 1. **Fondasi (selesai):** migrasi `0005_admin_auth.sql`, modul Argon2id dan TOTP + vektor uji.
-2. **Sesi & login:** service sesi, route bootstrap/login/logout/session/reauth, middleware cookie+CSRF, panel login/TOTP/enrollment.
-3. **Otorisasi:** RBAC, step-up pada aksi sensitif, rate limit, recovery codes; hapus `ADMIN_TOKEN` dan token statis dari panel.
+2. **Sesi & login (selesai):** service sesi, route bootstrap/login/logout/session/reauth, middleware cookie+CSRF, panel status/setup/login/TOTP/enrollment/logout.
+3. **Otorisasi (selesai):** RBAC owner/admin/viewer, step-up 15 menit pada aksi sensitif, rate limit login/TOTP per akun + IP, token statis dihapus dari Worker, test, dan panel.
+4. **Belum:** recovery codes TOTP; pengukuran CPU Argon2id di Workers free tier.
 
 ## Konsekuensi
 - Positif: sesi bisa dicabut per perangkat, ada identitas dan MFA, CSRF eksplisit, audit lengkap.
 - Negatif: D1 menjadi ketergantungan auth (gangguan D1 = tidak bisa login); Argon2id CPU lebih berat (ukur di free tier; bila melebihi batas, turunkan parameter atau pindah ke bcrypt dengan rate limit lebih ketat).
 - Negatif: `SameSite=Strict` membuat panel hanya bisa dipakai di domain kanonik, bukan `pages.dev`.
-- Yang harus dijaga: `CREDENTIALS_KEY` untuk secret TOTP, kolom token/CSRF hanya hash, rotasi sesi setelah step-up, dan pembersihan sesi kedaluwarsa.
+- Yang harus dijaga: `CREDENTIALS_KEY` untuk secret TOTP, kolom token/CSRF hanya hash, pembaruan `reauthenticated_at` setelah step-up (token sesi tidak dirotasi), dan pembersihan sesi kedaluwarsa.
+- Catatan implementasi: bootstrap memakai `ADMIN_SETUP_TOKEN` dan hanya berjalan selama `admin_users` kosong; hapus secret itu setelah owner dibuat. Panel memakai cookie HttpOnly dan hanya menyimpan CSRF token di sessionStorage. Belum ada recovery code; kehilangan authenticator butuh pemulihan manual. CPU Argon2id (m=19456 KiB, t=2) belum diukur di Workers free tier.

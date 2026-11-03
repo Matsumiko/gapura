@@ -61,10 +61,43 @@ export interface TransactionDetail {
   webhooks: WebhookLog[];
 }
 
+export type AdminRole = "owner" | "admin" | "viewer";
+
+export interface AdminIdentity {
+  id: string;
+  email: string;
+  role: AdminRole;
+}
+
+export interface AuthStatus {
+  needsBootstrap: boolean;
+  setupTokenConfigured: boolean;
+  reauthWindowMinutes: number;
+  authenticated: boolean;
+  admin: AdminIdentity | null;
+}
+
+export interface SessionResult {
+  admin: AdminIdentity;
+  csrfToken: string;
+  expiresAt: string;
+}
+
+export interface BootstrapStartResult {
+  secret: string;
+  otpauthUri: string;
+}
+
+export interface ReauthResult {
+  ok: boolean;
+  reauthenticatedAt: string;
+}
+
 export class ApiError extends Error {
   constructor(
     message: string,
     readonly status: number,
+    readonly code: string | null = null,
   ) {
     super(message);
     this.name = "ApiError";
@@ -73,7 +106,7 @@ export class ApiError extends Error {
 
 export const apiBaseUrl: string = import.meta.env.VITE_API_URL ?? "http://127.0.0.1:8787";
 
-const TOKEN_KEY = "gapura.admin.token";
+const CSRF_KEY = "gapura.admin.csrf";
 const ENV_KEY = "gapura.admin.environment";
 
 export type ApiEnvironment = "sandbox" | "production";
@@ -86,38 +119,85 @@ export function setApiEnvironment(environment: ApiEnvironment): void {
   localStorage.setItem(ENV_KEY, environment);
 }
 
-export function getAdminToken(): string {
-  return sessionStorage.getItem(TOKEN_KEY) ?? "";
-}
+let csrfToken: string | null = sessionStorage.getItem(CSRF_KEY);
+let unauthorizedHandler: (() => void) | null = null;
+let reauthHandler: (() => Promise<boolean>) | null = null;
 
-export function setAdminToken(token: string): void {
+export function setCsrfToken(token: string | null): void {
+  csrfToken = token;
   if (token) {
-    sessionStorage.setItem(TOKEN_KEY, token);
+    sessionStorage.setItem(CSRF_KEY, token);
   } else {
-    sessionStorage.removeItem(TOKEN_KEY);
+    sessionStorage.removeItem(CSRF_KEY);
   }
 }
 
-async function request<T>(path: string, init: RequestInit = {}): Promise<T> {
-  const token = getAdminToken();
-  if (!token) {
-    throw new ApiError("Token admin belum diisi.", 401);
-  }
+export function clearAuthState(): void {
+  setCsrfToken(null);
+}
 
+export function configureApiAuth(handlers: {
+  onUnauthorized?: () => void;
+  onReauthRequired?: () => Promise<boolean>;
+}): void {
+  unauthorizedHandler = handlers.onUnauthorized ?? null;
+  reauthHandler = handlers.onReauthRequired ?? null;
+}
+
+const WRITE_METHODS: Record<string, true> = {
+  POST: true,
+  PUT: true,
+  PATCH: true,
+  DELETE: true,
+};
+
+const AUTH_CREDENTIAL_PATHS = /\/admin\/auth\/(login|bootstrap|status|reauth)/;
+
+interface ApiErrorBody {
+  error?: { code?: unknown; message?: unknown };
+}
+
+async function request<T>(path: string, init: RequestInit = {}, retried = false): Promise<T> {
+  const method = (init.method ?? "GET").toUpperCase();
   const headers = new Headers(init.headers);
-  headers.set("Authorization", `Bearer ${token}`);
   if (init.body !== undefined) {
     headers.set("Content-Type", "application/json");
   }
+  if (WRITE_METHODS[method] === true && csrfToken) {
+    headers.set("X-CSRF-Token", csrfToken);
+  }
 
   const scopedPath = path.startsWith("/admin") ? `/${getApiEnvironment()}${path}` : path;
-  const response = await fetch(`${apiBaseUrl}${scopedPath}`, { ...init, headers });
+  const response = await fetch(`${apiBaseUrl}${scopedPath}`, {
+    ...init,
+    method,
+    headers,
+    credentials: "include",
+  });
 
   if (!response.ok) {
-    const body = (await response.json().catch(() => null)) as {
-      error?: { message?: string };
-    } | null;
-    throw new ApiError(body?.error?.message ?? `HTTP ${response.status}`, response.status);
+    const body = (await response.json().catch(() => null)) as ApiErrorBody | null;
+    const code = typeof body?.error?.code === "string" ? body.error.code : null;
+    const message =
+      typeof body?.error?.message === "string" ? body.error.message : `HTTP ${response.status}`;
+
+    if (response.status === 401 && !AUTH_CREDENTIAL_PATHS.test(scopedPath)) {
+      clearAuthState();
+      unauthorizedHandler?.();
+    }
+    if (
+      response.status === 403 &&
+      code === "REAUTH_REQUIRED" &&
+      !retried &&
+      reauthHandler
+    ) {
+      const reauthenticated = await reauthHandler();
+      if (reauthenticated) {
+        return request<T>(path, init, true);
+      }
+    }
+
+    throw new ApiError(message, response.status, code);
   }
 
   return (await response.json()) as T;
@@ -140,6 +220,51 @@ export function apiPut<T>(path: string, body: unknown): Promise<T> {
 
 export function apiPatch<T>(path: string, body: unknown): Promise<T> {
   return request<T>(path, { method: "PATCH", body: JSON.stringify(body) });
+}
+
+export function fetchAuthStatus(): Promise<AuthStatus> {
+  return apiGet<AuthStatus>("/admin/auth/status");
+}
+
+export async function startBootstrap(input: {
+  setupToken: string;
+  email: string;
+}): Promise<BootstrapStartResult> {
+  return apiPost<BootstrapStartResult>("/admin/auth/bootstrap/start", input);
+}
+
+export async function finishBootstrap(input: {
+  setupToken: string;
+  email: string;
+  password: string;
+  secret: string;
+  totpCode: string;
+}): Promise<SessionResult> {
+  const result = await apiPost<SessionResult>("/admin/auth/bootstrap", input);
+  setCsrfToken(result.csrfToken);
+  return result;
+}
+
+export async function loginAdmin(input: {
+  email: string;
+  password: string;
+  totpCode: string;
+}): Promise<SessionResult> {
+  const result = await apiPost<SessionResult>("/admin/auth/login", input);
+  setCsrfToken(result.csrfToken);
+  return result;
+}
+
+export async function logoutAdmin(): Promise<void> {
+  try {
+    await apiPost<{ ok: boolean }>("/admin/auth/logout");
+  } finally {
+    clearAuthState();
+  }
+}
+
+export function reauthenticate(totpCode: string): Promise<ReauthResult> {
+  return apiPost<ReauthResult>("/admin/auth/reauth", { totpCode });
 }
 
 export type MerchantEnvironment = "sandbox" | "production";

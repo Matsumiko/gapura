@@ -2,7 +2,7 @@ import { Hono } from "hono";
 import { cors } from "hono/cors";
 import { jsonError } from "./http";
 import { apiKeyAuth } from "./middleware/auth";
-import { requireAdminAuth } from "./middleware/admin-auth";
+import { requireAdminAuth, requireAdminOrigin } from "./middleware/admin-auth";
 import { registerAdminRoutes } from "./routes/admin";
 import { registerCallbackRoute } from "./routes/callback";
 import { registerPaymentMethodRoutes } from "./routes/payment-methods";
@@ -26,11 +26,11 @@ export interface AppDeps extends AuthDeps {
   callbacks: CallbackService;
   forwarder: WebhookForwarder;
   admin: AdminService;
-  adminToken?: string;
   paymentMethods: PaymentMethodsService;
   settings: SettingsService;
   adminAuth?: AdminAuthService;
   adminSessions?: AdminSessionService;
+  now?: () => Date;
 }
 
 export function buildApp(deps: AppDeps): Hono<AppEnv> {
@@ -45,8 +45,8 @@ export function buildApp(deps: AppDeps): Hono<AppEnv> {
     cors({
       origin: (origin) => (panelOrigins.includes(origin) ? origin : null),
       credentials: true,
-      allowHeaders: ["Content-Type", "X-Gapura-Key", "Authorization", "X-CSRF-Token"],
-      allowMethods: ["GET", "POST", "PATCH", "OPTIONS"],
+      allowHeaders: ["Content-Type", "X-Gapura-Key", "X-CSRF-Token"],
+      allowMethods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
       maxAge: 600,
     }),
   );
@@ -69,16 +69,13 @@ export function buildApp(deps: AppDeps): Hono<AppEnv> {
   registerPaymentMethodRoutes(app, deps);
   registerPaymentRoutes(app, deps);
   registerCallbackRoute(app, deps);
+  app.use("/admin/*", requireAdminOrigin({ panelOrigins }));
   if (deps.adminAuth && deps.adminSessions) {
     registerAuthRoutes(app, { auth: deps.adminAuth, sessions: deps.adminSessions });
   }
   app.use(
     "/admin/*",
-    requireAdminAuth({
-      adminToken: deps.adminToken,
-      sessions: deps.adminSessions,
-      panelOrigins: panelOrigins,
-    }),
+    requireAdminAuth({ sessions: deps.adminSessions, now: deps.now }),
   );
   registerAdminRoutes(app, deps);
   registerSettingsRoutes(app, deps);
