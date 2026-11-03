@@ -83,6 +83,9 @@ const unusedAdmin = {
   async setProjectActive() {
     throw new Error("admin.setProjectActive tidak diharapkan di test ini");
   },
+  async updateProject() {
+    throw new Error("admin.updateProject tidak diharapkan di test ini");
+  },
   async rotateApiKey() {
     throw new Error("admin.rotateApiKey tidak diharapkan di test ini");
   },

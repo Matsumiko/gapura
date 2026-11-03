@@ -154,6 +154,31 @@ export function createAdminRepository(db: D1Database): AdminRepository {
       return (result.meta.changes ?? 0) === 1;
     },
 
+    async updateProjectProfile(
+      id: string,
+      input: { name?: string; webhookUrl?: string },
+    ): Promise<boolean> {
+      const assignments: string[] = [];
+      const params: unknown[] = [];
+      if (input.name !== undefined) {
+        assignments.push("name = ?");
+        params.push(input.name);
+      }
+      if (input.webhookUrl !== undefined) {
+        assignments.push("webhook_url = ?");
+        params.push(input.webhookUrl);
+      }
+      if (assignments.length === 0) {
+        return false;
+      }
+      params.push(id);
+      const result = await db
+        .prepare(`UPDATE projects SET ${assignments.join(", ")} WHERE id = ?`)
+        .bind(...params)
+        .run();
+      return (result.meta.changes ?? 0) === 1;
+    },
+
     async updateProjectApiKeyHash(id: string, hash: string): Promise<boolean> {
       const result = await db
         .prepare("UPDATE projects SET api_key_hash = ? WHERE id = ?")

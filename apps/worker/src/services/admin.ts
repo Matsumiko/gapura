@@ -1,4 +1,4 @@
-import type { CreateProjectInput } from "@gapura/shared/admin";
+import type { CreateProjectInput, UpdateProjectInput } from "@gapura/shared/admin";
 import type {
   AdminProject,
   AdminRepository,
@@ -37,6 +37,11 @@ export interface AdminService {
   listProjects(): Promise<AdminProject[]>;
   createProject(input: CreateProjectInput, actor: string): Promise<CreatedProject>;
   setProjectActive(id: string, active: boolean, actor: string): Promise<AdminProject | null>;
+  updateProject(
+    id: string,
+    input: UpdateProjectInput,
+    actor: string,
+  ): Promise<AdminProject | null>;
   rotateApiKey(id: string, actor: string): Promise<string | null>;
   rotateWebhookSecret(id: string, actor: string): Promise<string | null>;
   listTransactions(
@@ -139,6 +144,21 @@ export function createAdminService(deps: AdminServiceDeps): AdminService {
         return null;
       }
       await audit(actor, active ? "activate_project" : "deactivate_project", id, null);
+      return deps.admin.findProject(id);
+    },
+
+    async updateProject(
+      id: string,
+      input: UpdateProjectInput,
+      actor: string,
+    ): Promise<AdminProject | null> {
+      const changed = await deps.admin.updateProjectProfile(id, input);
+      if (!changed) {
+        return null;
+      }
+      await audit(actor, "update_project", id, {
+        fields: Object.keys(input),
+      });
       return deps.admin.findProject(id);
     },
 

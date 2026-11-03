@@ -164,6 +164,76 @@ describe("manajemen project", () => {
     expect(me.status).toBe(403);
   });
 
+  it("mengedit nama dan webhook URL tanpa mengubah prefix", async () => {
+    const { app, env, db } = await setup();
+    await createProject(app, env);
+
+    const response = await app.request(
+      "/admin/projects/pbr",
+      {
+        method: "PATCH",
+        headers: { ...ADMIN, "Content-Type": "application/json" },
+        body: JSON.stringify({
+          name: "Project Baru Diubah",
+          webhookUrl: "https://baru.example/hook-v2",
+        }),
+      },
+      env,
+    );
+
+    expect(response.status).toBe(200);
+    expect((await response.json()) as { project: { name: string } }).toMatchObject({
+      project: { id: "pbr", name: "Project Baru Diubah", prefix: "PBR" },
+    });
+    const row = await db
+      .prepare("SELECT name, prefix, webhook_url FROM projects WHERE id = 'pbr'")
+      .first<{ name: string; prefix: string; webhook_url: string }>();
+    expect(row).toEqual({
+      name: "Project Baru Diubah",
+      prefix: "PBR",
+      webhook_url: "https://baru.example/hook-v2",
+    });
+  });
+
+  it("menolak edit webhook URL tidak valid, prefix, atau campuran status", async () => {
+    const { app, env } = await setup();
+    await createProject(app, env);
+
+    for (const body of [
+      { webhookUrl: "ftp://baru.example/hook" },
+      { prefix: "XXX" },
+      { isActive: false, name: "Campur" },
+      {},
+    ]) {
+      const response = await app.request(
+        "/admin/projects/pbr",
+        {
+          method: "PATCH",
+          headers: { ...ADMIN, "Content-Type": "application/json" },
+          body: JSON.stringify(body),
+        },
+        env,
+      );
+      expect(response.status).toBe(400);
+    }
+  });
+
+  it("mengembalikan 404 saat mengedit project yang tidak ada", async () => {
+    const { app, env } = await setup();
+
+    const response = await app.request(
+      "/admin/projects/tidak-ada",
+      {
+        method: "PATCH",
+        headers: { ...ADMIN, "Content-Type": "application/json" },
+        body: JSON.stringify({ name: "X" }),
+      },
+      env,
+    );
+
+    expect(response.status).toBe(404);
+  });
+
   it("merotasi API key dan webhook secret", async () => {
     const { app, env } = await setup();
     const created = await createProject(app, env);

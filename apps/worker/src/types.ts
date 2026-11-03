@@ -187,6 +187,10 @@ export interface AdminRepository {
     createdAt: string;
   }): Promise<boolean>;
   setProjectActive(id: string, active: boolean): Promise<boolean>;
+  updateProjectProfile(
+    id: string,
+    input: { name?: string; webhookUrl?: string },
+  ): Promise<boolean>;
   updateProjectApiKeyHash(id: string, hash: string): Promise<boolean>;
   updateProjectWebhookSecret(id: string, secret: string): Promise<boolean>;
   listTransactions(

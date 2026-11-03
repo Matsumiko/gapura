@@ -10,6 +10,19 @@ export const createProjectInputSchema = z
 
 export type CreateProjectInput = z.infer<typeof createProjectInputSchema>;
 
+/** Prefix sengaja tidak bisa diubah: sudah melekat pada merchantOrderId di Duitku. */
+export const updateProjectInputSchema = z
+  .object({
+    name: z.string().min(1).max(100).optional(),
+    webhookUrl: z.url({ protocol: /^https?$/ }).max(2048).optional(),
+  })
+  .strict()
+  .refine((value) => value.name !== undefined || value.webhookUrl !== undefined, {
+    message: "minimal satu field diisi",
+  });
+
+export type UpdateProjectInput = z.infer<typeof updateProjectInputSchema>;
+
 export const TRANSACTION_STATUS_VALUES = ["PENDING", "PAID", "FAILED", "EXPIRED"] as const;
 
 export const adminTransactionFilterSchema = z

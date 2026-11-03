@@ -13,6 +13,8 @@ export {
   TRANSACTION_STATUS_VALUES,
   adminTransactionFilterSchema,
   createProjectInputSchema,
+  updateProjectInputSchema,
   type AdminTransactionFilter,
   type CreateProjectInput,
+  type UpdateProjectInput,
 } from "./admin";

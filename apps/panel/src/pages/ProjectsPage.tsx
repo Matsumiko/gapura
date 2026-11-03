@@ -20,6 +20,11 @@ export function ProjectsPage() {
   const queryClient = useQueryClient();
   const [form, setForm] = useState(INITIAL_FORM);
   const [revealed, setRevealed] = useState<RevealedCredential[] | null>(null);
+  const [editing, setEditing] = useState<{
+    id: string;
+    name: string;
+    webhookUrl: string;
+  } | null>(null);
 
   const projects = useQuery({
     queryKey: ["admin", "projects"],
@@ -49,6 +54,18 @@ export function ProjectsPage() {
         isActive: !project.isActive,
       }),
     onSuccess: refresh,
+  });
+
+  const updateProject = useMutation({
+    mutationFn: (input: { id: string; name: string; webhookUrl: string }) =>
+      apiPatch<{ project: Project }>(`/admin/projects/${input.id}`, {
+        name: input.name,
+        webhookUrl: input.webhookUrl,
+      }),
+    onSuccess: async () => {
+      setEditing(null);
+      await refresh();
+    },
   });
 
   const rotateKey = useMutation({
@@ -155,52 +172,119 @@ export function ProjectsPage() {
                 </tr>
               </thead>
               <tbody>
-                {projects.data.items.map((project) => (
-                  <tr key={project.id}>
-                    <td>{project.name}</td>
-                    <td>
-                      <code>{project.prefix}</code>
-                    </td>
-                    <td className="wrap">{project.webhookUrl}</td>
-                    <td>
-                      <span className={project.isActive ? "badge good" : "badge bad"}>
-                        {project.isActive ? "aktif" : "nonaktif"}
-                      </span>
-                    </td>
-                    <td>{formatTime(project.createdAt)}</td>
-                    <td className="actions">
-                      <button
-                        type="button"
-                        className="ghost"
-                        onClick={() => toggleProject.mutate(project)}
-                        disabled={toggleProject.isPending}
-                      >
-                        {project.isActive ? "Nonaktifkan" : "Aktifkan"}
-                      </button>
-                      <button
-                        type="button"
-                        className="ghost"
-                        onClick={() => rotateKey.mutate(project)}
-                        disabled={rotateKey.isPending}
-                      >
-                        Rotasi key
-                      </button>
-                      <button
-                        type="button"
-                        className="ghost"
-                        onClick={() => rotateSecret.mutate(project)}
-                        disabled={rotateSecret.isPending}
-                      >
-                        Rotasi secret
-                      </button>
-                    </td>
-                  </tr>
-                ))}
+                {projects.data.items.map((project) => {
+                  const isEditing = editing?.id === project.id;
+                  return (
+                    <tr key={project.id}>
+                      <td>
+                        {isEditing ? (
+                          <input
+                            name="edit-name"
+                            value={editing.name}
+                            maxLength={100}
+                            onChange={(event) =>
+                              setEditing({ ...editing, name: event.target.value })
+                            }
+                          />
+                        ) : (
+                          project.name
+                        )}
+                      </td>
+                      <td>
+                        <code>{project.prefix}</code>
+                      </td>
+                      <td className="wrap">
+                        {isEditing ? (
+                          <input
+                            name="edit-webhook"
+                            type="url"
+                            value={editing.webhookUrl}
+                            onChange={(event) =>
+                              setEditing({ ...editing, webhookUrl: event.target.value })
+                            }
+                          />
+                        ) : (
+                          project.webhookUrl
+                        )}
+                      </td>
+                      <td>
+                        <span className={project.isActive ? "badge good" : "badge bad"}>
+                          {project.isActive ? "aktif" : "nonaktif"}
+                        </span>
+                      </td>
+                      <td>{formatTime(project.createdAt)}</td>
+                      <td className="actions">
+                        {isEditing ? (
+                          <>
+                            <button
+                              type="button"
+                              onClick={() => updateProject.mutate(editing)}
+                              disabled={updateProject.isPending}
+                            >
+                              {updateProject.isPending ? "Menyimpan..." : "Simpan"}
+                            </button>
+                            <button
+                              type="button"
+                              className="ghost"
+                              onClick={() => setEditing(null)}
+                            >
+                              Batal
+                            </button>
+                          </>
+                        ) : (
+                          <>
+                            <button
+                              type="button"
+                              className="ghost"
+                              onClick={() =>
+                                setEditing({
+                                  id: project.id,
+                                  name: project.name,
+                                  webhookUrl: project.webhookUrl,
+                                })
+                              }
+                            >
+                              Edit
+                            </button>
+                            <button
+                              type="button"
+                              className="ghost"
+                              onClick={() => toggleProject.mutate(project)}
+                              disabled={toggleProject.isPending}
+                            >
+                              {project.isActive ? "Nonaktifkan" : "Aktifkan"}
+                            </button>
+                            <button
+                              type="button"
+                              className="ghost"
+                              onClick={() => rotateKey.mutate(project)}
+                              disabled={rotateKey.isPending}
+                            >
+                              Rotasi key
+                            </button>
+                            <button
+                              type="button"
+                              className="ghost"
+                              onClick={() => rotateSecret.mutate(project)}
+                              disabled={rotateSecret.isPending}
+                            >
+                              Rotasi secret
+                            </button>
+                          </>
+                        )}
+                      </td>
+                    </tr>
+                  );
+                })}
               </tbody>
             </table>
           </div>
         ) : null}
-        <ErrorNote error={toggleProject.error ?? rotateKey.error ?? rotateSecret.error} />
+        <ErrorNote
+          error={
+            updateProject.error ?? toggleProject.error ?? rotateKey.error ?? rotateSecret.error
+          }
+        />
       </article>
     </section>
   );

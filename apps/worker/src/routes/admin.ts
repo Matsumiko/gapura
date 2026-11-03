@@ -1,5 +1,9 @@
 import type { Hono } from "hono";
-import { adminTransactionFilterSchema, createProjectInputSchema } from "@gapura/shared/admin";
+import {
+  adminTransactionFilterSchema,
+  createProjectInputSchema,
+  updateProjectInputSchema,
+} from "@gapura/shared/admin";
 import { jsonError } from "../http";
 import { AdminConflictError, type AdminService } from "../services/admin";
 import type { AppEnv } from "../types";
@@ -49,12 +53,29 @@ export function registerAdminRoutes(app: Hono<AppEnv>, deps: AdminRouteDeps): vo
 
   app.patch("/admin/projects/:id", async (c) => {
     const raw: unknown = await c.req.json().catch(() => null);
-    if (!isActiveBody(raw)) {
-      return jsonError(c, 400, "INVALID_REQUEST", "Body wajib berisi isActive boolean.");
+
+    if (isActiveBody(raw)) {
+      if (Object.keys(raw).some((key) => key !== "isActive")) {
+        return jsonError(c, 400, "INVALID_REQUEST", "isActive tidak boleh digabung field lain.");
+      }
+      const project = await deps.admin.setProjectActive(
+        c.req.param("id"),
+        raw.isActive,
+        c.get("adminActor"),
+      );
+      if (!project) {
+        return jsonError(c, 404, "NOT_FOUND", "Project tidak ditemukan.");
+      }
+      return c.json({ project });
     }
-    const project = await deps.admin.setProjectActive(
+
+    const parsed = updateProjectInputSchema.safeParse(raw);
+    if (!parsed.success) {
+      return jsonError(c, 400, "INVALID_REQUEST", "Body edit project tidak valid.");
+    }
+    const project = await deps.admin.updateProject(
       c.req.param("id"),
-      raw.isActive,
+      parsed.data,
       c.get("adminActor"),
     );
     if (!project) {

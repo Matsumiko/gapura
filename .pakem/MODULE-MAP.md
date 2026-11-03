@@ -14,7 +14,7 @@ Worker (Cloudflare):
 - `apps/worker/src/routes/callback.ts` — `POST /callback/duitku`: parse form, verifikasi lewat service, jadwalkan forward asinkron.
 - `apps/worker/src/routes/admin.ts` — endpoint `/admin/*`: ringkasan, project, transaksi, webhook retry; menerjemahkan error domain ke HTTP.
 - `apps/worker/src/middleware/admin-auth.ts` — wajib Bearer `ADMIN_TOKEN` (waktu-konstan); fail closed bila secret kosong.
-- `apps/worker/src/repositories/admin.ts` — SQL khusus admin: daftar/mutasi project, daftar transaksi + filter, riwayat webhook, ringkasan, audit.
+- `apps/worker/src/repositories/admin.ts` — SQL khusus admin: daftar/mutasi project (termasuk edit profil), daftar transaksi + filter, riwayat webhook, ringkasan, audit.
 - `apps/worker/src/services/admin.ts` — operasi admin (buat project, rotasi kredensial, ringkasan, retry webhook) + penulisan audit.
 - `apps/worker/src/services/payments.ts` — orkestrasi buat transaksi: order ID, simpan PENDING, panggil provider, simpan artefak; membuang baris PENDING bila vendor gagal sebelum transaksi dibuat.
 - `apps/worker/src/services/callbacks.ts` — verifikasi signature/nominal/merchant, transisi status hanya sekali, menyusun payload forward.
@@ -51,7 +51,7 @@ Panel:
 - `apps/panel/src/App.tsx` — gate login token + layout React Router.
 - `apps/panel/src/pages/LoginPage.tsx` — layar token admin (verifikasi lewat `/admin/summary`).
 - `apps/panel/src/pages/SummaryPage.tsx` — total PAID hari/bulan per project.
-- `apps/panel/src/pages/ProjectsPage.tsx` — buat project, aktif/nonaktif, rotasi key/secret (tampil sekali).
+- `apps/panel/src/pages/ProjectsPage.tsx` — buat project, edit nama/webhook (prefix tetap), aktif/nonaktif, rotasi key/secret (tampil sekali).
 - `apps/panel/src/pages/TransactionsPage.tsx` — daftar transaksi dengan filter dan paging.
 - `apps/panel/src/pages/TransactionDetailPage.tsx` — detail transaksi + riwayat webhook + retry.
 - `apps/panel/src/pages/WebhooksPage.tsx` — antrean FAILED/DEAD dan kirim ulang.

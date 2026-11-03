@@ -6,7 +6,7 @@ Spesifikasi produk: [PRD.md](PRD.md). Keputusan arsitektur: [docs/adr](docs/adr)
 
 ## Status
 
-Fase 1-3 berjalan dan **staging live** di `https://pay.example.com` (D1 `gapura-sandbox`, Cron aktif, kredensial sandbox asli). Panel admin live di `https://admin.example.com` dan API `/admin/*` di `https://pay.example.com/admin/*`, dilindungi token admin (Bearer). Total 150 test. Kredensial sandbox asli sudah dipakai; pembayaran sandbox lewat demo Duitku berhasil dan callback asli membuat transaksi PAID.
+Fase 1-3 berjalan dan **staging live** di `https://pay.example.com` (D1 `gapura-sandbox`, Cron aktif, kredensial sandbox asli). Panel admin live di `https://admin.example.com` dan API `/admin/*` di `https://pay.example.com/admin/*`, dilindungi token admin (Bearer). Total 153 test. Kredensial sandbox asli sudah dipakai; pembayaran sandbox lewat demo Duitku berhasil dan callback asli membuat transaksi PAID.
 
 ## Struktur
 
@@ -80,7 +80,7 @@ SPA React di `apps/panel` + endpoint `/admin/*` di Worker. Endpoint admin memban
 pnpm --filter @gapura/panel dev   # http://127.0.0.1:5173
 ```
 
-Halaman: Ringkasan (total PAID hari/bulan), Project (buat, aktif/nonaktif, rotasi API key & webhook secret — kredensial tampil sekali), Transaksi (filter + detail + riwayat webhook), Webhook gagal (retry manual). Setiap aksi admin dicatat di tabel `admin_audit` dengan email pelaku dari JWT.
+Halaman: Ringkasan (total PAID hari/bulan), Project (buat, edit nama/webhook URL, aktif/nonaktif, rotasi API key & webhook secret — kredensial tampil sekali; prefix tidak bisa diubah karena menempel di order ID Duitku), Transaksi (filter + detail + riwayat webhook), Webhook gagal (retry manual). Setiap aksi admin dicatat di tabel `admin_audit` dengan email pelaku dari JWT.
 
 Panel sudah dideploy di `https://admin.example.com` (Pages) dengan layar login token; alias `your-project.pages.dev` menampilkan login yang sama. API admin memakai Bearer `ADMIN_TOKEN`; request tanpa token ditolak 401. Langkah lengkap ada di `DEPLOYMENT.md`. Detail keputusan: [ADR-0007](docs/adr/0007-admin-memakai-token-bearer-tanpa-zero-trust.md).
 
