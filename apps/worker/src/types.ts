@@ -170,6 +170,45 @@ export interface AdminTransactionQuery {
 
 export type MerchantEnvironment = "sandbox" | "production";
 
+export interface AdminUser {
+  id: string;
+  email: string;
+  role: "owner" | "admin" | "viewer";
+  isActive: boolean;
+  totpEnabled: boolean;
+  totpLastCounter: number | null;
+}
+
+export interface AdminSession {
+  id: string;
+  adminId: string;
+  csrfHash: string;
+  ip: string | null;
+  userAgent: string | null;
+  expiresAt: string;
+  lastSeenAt: string;
+  reauthenticatedAt: string | null;
+  createdAt: string;
+}
+
+export interface AdminSessionRepository {
+  create(input: {
+    id: string;
+    adminId: string;
+    tokenHash: string;
+    csrfHash: string;
+    ip: string | null;
+    userAgent: string | null;
+    expiresAt: string;
+    now: string;
+  }): Promise<void>;
+  find(tokenHash: string): Promise<{ session: AdminSession; admin: AdminUser } | null>;
+  touch(id: string, now: string): Promise<void>;
+  revoke(id: string): Promise<void>;
+  setReauthenticated(id: string, at: string): Promise<void>;
+  deleteExpired(now: string): Promise<void>;
+}
+
 export interface MerchantCredentials {
   environment: MerchantEnvironment;
   merchantCode: string;

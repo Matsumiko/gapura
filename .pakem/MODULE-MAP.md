@@ -28,6 +28,8 @@ Worker (Cloudflare):
 - `apps/worker/src/services/credentials.ts` — cipher AES-GCM untuk API key.
 - `apps/worker/src/services/totp.ts` — TOTP RFC 6238 + base32.
 - `apps/worker/src/services/admin-password.ts` — hash/verify Argon2id.
+- `apps/worker/src/services/admin-sessions.ts` — terbitkan/verifikasi/cabut sesi opaque + CSRF.
+- `apps/worker/src/repositories/admin-sessions.ts` — SQL admin_sessions + join admin_users.
 - `apps/worker/src/services/credential-resolver.ts` — kredensial aktif dari D1 atau fallback secret Worker.
 - `apps/worker/src/services/settings.ts` — simpan/aktifkan/uji kredensial + audit.
 - `apps/worker/src/providers/managed.ts` — provider dinamis mengikuti environment dan versi kredensial.
@@ -86,6 +88,7 @@ Test:
 - `apps/worker/test/sync.test.ts` — pemetaan 00/01/02, transaksi lama vs baru, kegagalan provider.
 - `apps/worker/test/totp.test.ts` — vektor RFC dan replay.
 - `apps/worker/test/admin-password.test.ts` — Argon2id PHC.
+- `apps/worker/test/admin-sessions.test.ts` — sesi, CSRF, expiry, revoke, cleanup.
 - `apps/worker/test/settings.test.ts` — cipher, simpan/aktifkan/uji kredensial, audit.
 - `apps/worker/test/settings-routes.test.ts` — otorisasi dan endpoint pengaturan.
 - `apps/worker/test/managed-provider.test.ts` — pemilihan environment dan rotasi kredensial.
