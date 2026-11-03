@@ -160,7 +160,7 @@ Daftar ini bisa berubah kapan saja; selalu ambil ulang dari API.
 - **Credit card (`VC`)**: 3DS; `creditCardDetail` opsional untuk memilih acquirer (`014` BCA, `022` CIMB) dan whitelist BIN maksimal 25.
 - **Retail (`FT`/`IR`)**: pembeli membayar di gerai; expiry default 24 jam.
 - **PayLater (`DN`/`AT`)**: butuh akun/limit pelanggan.
-- **Void**: docs vendor hanya menandai `OV` dan `SA` "Support Void"; tidak ada endpoint void di API v2 yang didokumentasikan, jadi Gapura belum menyediakannya.
+- **Void**: docs vendor hanya menandai `OV` dan `SA` "Support Void"; tidak ada endpoint void di API v2 yang didokumentasikan (probe sandbox 404), jadi Gapura belum menyediakannya. Pembatalan praktis dilakukan lewat expiry atau dashboard/CS Duitku.
 
 ## Bagaimana Gapura memperlakukannya
 

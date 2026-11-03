@@ -205,3 +205,15 @@ Response: `merchantOrderId`, `reference`, `amount`, `fee`, `statusCode`, `status
 - VA demo sukses: https://sandbox.duitku.com/payment/demo/demosuccesstransaction.aspx
 - QRIS/Shopee/Nusapay/Indodana/Atome/Jenius/Tokopedia punya kredensial uji masing-masing di halaman vendor.
 - Gapura sudah membuktikan satu siklus nyata di sandbox: inquiry channel `BT`, pembayaran lewat demo VA, lalu callback asli Duitku diterima Gapura (`PAID`) dan diteruskan ke webhook project.
+
+## Cancel, void, dan refund
+
+Diperiksa 2026-11-04.
+
+- **Tidak ada endpoint cancel/void di API v2.** Postman collection resmi hanya berisi lima request: `getpaymentmethod`, `v2/inquiry`, callback (contoh), redirect (contoh), dan `transactionStatus`. Probe ke `/webapi/api/merchant/transaction/delete` dan `/webapi/api/merchant/v2/void` di sandbox menghasilkan HTTP 404.
+- **Transaksi belum dibayar** berakhir lewat `expiryPeriod` (atau default channel). FAQ Duitku menyebut merchant dapat mengubah dynamic VA menjadi expired dan fixed VA menjadi inactive; cara yang didokumentasikan adalah lewat dashboard/CS, bukan API publik.
+- **Tabel channel** menandai `OV` dan `SA` sebagai "Support Void". Itu kapabilitas channel, bukan janji endpoint API; tidak ada request void yang didokumentasikan.
+- **Refund bukan layanan Duitku.** FAQ: "Duitku belum menyediakan layanan refund transaksi; seluruh proses refund ditangani merchant." SNAP API punya `Debit Payment Refund` (`/merchant/debit/v1.0/debit/refund`) untuk transaksi jalur SNAP, bukan API v2 yang dipakai Gapura.
+- Klaim SDK komunitas tentang `merchant/transaction/delete` dengan signature MD5 tidak dipakai: anchor dokumentasinya tidak ada, PR tidak di-merge, dan MD5 sudah obsolete.
+
+Implikasi untuk Gapura: belum ada endpoint cancel. Jangan menandai transaksi batal secara lokal tanpa konfirmasi vendor, karena pembeli masih bisa membayar dan callback `PAID` akan datang. Cara aman: `expiryPeriod` pendek + biarkan sinkronisasi `02` memetakan ke `EXPIRED`.
