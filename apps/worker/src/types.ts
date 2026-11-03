@@ -179,6 +179,37 @@ export interface AdminUser {
   totpLastCounter: number | null;
 }
 
+export interface AdminUserRecord extends AdminUser {
+  email: string;
+  passwordHash: string;
+  totpSecretCiphertext: string | null;
+  totpSecretIv: string | null;
+}
+
+export interface AdminUserRepository {
+  count(): Promise<number>;
+  findByEmail(email: string): Promise<AdminUserRecord | null>;
+  findById(id: string): Promise<AdminUserRecord | null>;
+  create(input: {
+    id: string;
+    email: string;
+    passwordHash: string;
+    role: "owner" | "admin" | "viewer";
+    totpSecretCiphertext: string;
+    totpSecretIv: string;
+    now: string;
+  }): Promise<boolean>;
+  setTotpCounter(id: string, counter: number, now: string): Promise<void>;
+  recordAttempt(input: {
+    email: string | null;
+    ip: string | null;
+    kind: string;
+    success: boolean;
+    createdAt: string;
+  }): Promise<void>;
+  recentFailures(email: string, ip: string | null, sinceIso: string): Promise<number>;
+}
+
 export interface AdminSession {
   id: string;
   adminId: string;
