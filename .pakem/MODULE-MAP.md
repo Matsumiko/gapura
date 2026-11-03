@@ -55,6 +55,7 @@ Panel:
 - `apps/panel/src/pages/TransactionsPage.tsx` — daftar transaksi dengan filter dan paging.
 - `apps/panel/src/pages/TransactionDetailPage.tsx` — detail transaksi + riwayat webhook + retry.
 - `apps/panel/src/pages/WebhooksPage.tsx` — antrean FAILED/DEAD dan kirim ulang.
+- `apps/panel/src/pages/DocsPage.tsx` — dokumentasi in-app: integrasi project, API, webhook + verifikasi signature, status, error, admin API, troubleshooting.
 
 Test:
 - `apps/worker/test/app.test.ts` — auth, CORS, routing lewat `app.request`.
