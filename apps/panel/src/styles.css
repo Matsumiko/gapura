@@ -399,3 +399,14 @@ button.ghost {
 .section-head h2 {
   margin: 0;
 }
+
+.env-select {
+  align-items: center;
+  display: inline-flex;
+  flex-direction: row;
+  gap: 0.4rem;
+}
+
+.env-select select {
+  padding: 0.2rem 0.45rem;
+}

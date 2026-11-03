@@ -10,9 +10,15 @@ routes = [
 # Database staging (wrangler d1 create gapura-sandbox).
 # Untuk produksi, buat database terpisah dan ganti id ini.
 [[d1_databases]]
-binding = "DB"
+binding = "DB_SANDBOX"
 database_name = "gapura-sandbox"
 database_id = "22222222-2222-2222-2222-222222222222"
+migrations_dir = "migrations"
+
+[[d1_databases]]
+binding = "DB_PRODUCTION"
+database_name = "gapura-production"
+database_id = "33333333-3333-3333-3333-333333333333"
 migrations_dir = "migrations"
 
 [vars]

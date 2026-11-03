@@ -1,45 +1,51 @@
 import { generateApiKey, generateWebhookSecret, sha256Hex } from "@gapura/shared/crypto";
-import type { Hono } from "hono";
+import { Hono } from "hono";
 import { buildApp } from "./app";
 import { createCronRunner, type CronRunner } from "./cron";
 import { createManagedDuitkuProvider } from "./providers/managed";
 import { createAdminRepository } from "./repositories/admin";
 import { createProjectsRepository } from "./repositories/projects";
+import { createSettingsRepository } from "./repositories/settings";
 import { createTransactionRepository } from "./repositories/transactions";
 import { createWebhookLogRepository } from "./repositories/webhook-logs";
 import { createAdminService } from "./services/admin";
 import { createCallbackService } from "./services/callbacks";
+import { createCredentialCipher, type CredentialCipher } from "./services/credentials";
+import { createCredentialResolver } from "./services/credential-resolver";
 import { createPaymentMethodsService } from "./services/payment-methods";
 import { createPaymentsService } from "./services/payments";
 import { createRetention } from "./services/retention";
 import { createRetryProcessor } from "./services/retries";
+import { createSettingsService } from "./services/settings";
 import { createPendingSync } from "./services/sync";
 import { createWebhookForwarder, deliverWebhook, type DeliverFn } from "./services/webhooks";
-import { createCredentialCipher, type CredentialCipher } from "./services/credentials";
-import { createCredentialResolver } from "./services/credential-resolver";
-import { createSettingsService } from "./services/settings";
-import { createSettingsRepository } from "./repositories/settings";
-import type { AppEnv, Env } from "./types";
+import type { AppEnv, Env, MerchantEnvironment } from "./types";
 
-interface Runtime {
+interface EnvironmentRuntime {
+  environment: MerchantEnvironment;
   app: Hono<AppEnv>;
   cron: CronRunner;
 }
 
-const runtimes = new WeakMap<Env, Runtime>();
+export interface RootRuntime {
+  root: Hono<AppEnv>;
+  sandbox: EnvironmentRuntime;
+  production: EnvironmentRuntime;
+}
+
+const runtimes = new WeakMap<Env, RootRuntime>();
 
 const now = (): Date => new Date();
 
-function runtimeFor(env: Env): Runtime {
-  let runtime = runtimes.get(env);
-  if (runtime) {
-    return runtime;
-  }
-
+function buildEnvironmentRuntime(
+  env: Env,
+  db: D1Database,
+  environment: MerchantEnvironment,
+): EnvironmentRuntime {
   // workerd menolak fetch yang dipanggil tanpa receiver-nya.
   const fetchImpl = fetch.bind(globalThis);
-  const transactions = createTransactionRepository(env.DB);
-  const logs = createWebhookLogRepository(env.DB);
+  const transactions = createTransactionRepository(db);
+  const logs = createWebhookLogRepository(db);
 
   let cipherPromise: Promise<CredentialCipher> | null = null;
   const getCipher = (): Promise<CredentialCipher | null> => {
@@ -50,14 +56,15 @@ function runtimeFor(env: Env): Runtime {
     return cipherPromise;
   };
 
-  const adminRepo = createAdminRepository(env.DB);
-  const settingsRepo = createSettingsRepository({ db: env.DB, getCipher });
+  const adminRepo = createAdminRepository(db);
+  const settingsRepo = createSettingsRepository({ db, getCipher });
   const resolver = createCredentialResolver({
     store: settingsRepo,
     fallback: {
-      merchantCode: env.DUITKU_MERCHANT_CODE ?? "",
-      apiKey: env.DUITKU_API_KEY ?? "",
-      environment: "sandbox",
+      // Secret lama hanya dipakai sandbox; production harus lewat panel.
+      merchantCode: environment === "sandbox" ? (env.DUITKU_MERCHANT_CODE ?? "") : "",
+      apiKey: environment === "sandbox" ? (env.DUITKU_API_KEY ?? "") : "",
+      environment,
     },
   });
   const provider = createManagedDuitkuProvider({ fetch: fetchImpl, resolver });
@@ -66,13 +73,13 @@ function runtimeFor(env: Env): Runtime {
     deliverWebhook({ fetch: fetchImpl, project, payload, now });
 
   const app = buildApp({
-    projects: createProjectsRepository(env.DB),
+    projects: createProjectsRepository(db),
     sha256Hex,
     panelOrigin: env.PANEL_ORIGIN,
     payments: createPaymentsService({
       transactions,
       provider,
-      publicBaseUrl: env.PUBLIC_BASE_URL ?? "",
+      publicBaseUrl: `${env.PUBLIC_BASE_URL ?? ""}/${environment}`,
       now,
     }),
     callbacks: createCallbackService({
@@ -97,9 +104,10 @@ function runtimeFor(env: Env): Runtime {
       repo: settingsRepo,
       now,
       cipherConfigured: Boolean(env.CREDENTIALS_KEY),
-      publicBaseUrl: env.PUBLIC_BASE_URL ?? "",
+      publicBaseUrl: `${env.PUBLIC_BASE_URL ?? ""}/${environment}`,
       fetch: fetchImpl,
       insertAudit: (entry) => adminRepo.insertAudit(entry),
+      environmentScope: environment,
     }),
   });
 
@@ -109,22 +117,49 @@ function runtimeFor(env: Env): Runtime {
     retention: createRetention({ logs, now }),
   });
 
-  runtime = { app, cron };
+  return { environment, app, cron };
+}
+
+export function runtimeFor(env: Env): RootRuntime {
+  let runtime = runtimes.get(env);
+  if (runtime) {
+    return runtime;
+  }
+
+  const sandbox = buildEnvironmentRuntime(env, env.DB_SANDBOX, "sandbox");
+  const production = buildEnvironmentRuntime(env, env.DB_PRODUCTION, "production");
+
+  const root = new Hono<AppEnv>();
+  root.route("/production", production.app);
+  root.route("/sandbox", sandbox.app);
+  // Kompatibilitas: path lama (tanpa prefix) tetap sandbox.
+  root.route("/", sandbox.app);
+
+  runtime = { root, sandbox, production };
   runtimes.set(env, runtime);
   return runtime;
 }
 
 export default {
   fetch(request: Request, env: Env, ctx: ExecutionContext): Response | Promise<Response> {
-    return runtimeFor(env).app.fetch(request, env, ctx);
+    return runtimeFor(env).root.fetch(request, env, ctx);
   },
 
   scheduled(_controller: ScheduledController, env: Env, ctx: ExecutionContext): void {
+    const runtime = runtimeFor(env);
     ctx.waitUntil(
-      runtimeFor(env)
-        .cron.run()
-        .then((report) => {
-          console.log("cron_done", JSON.stringify(report));
+      Promise.allSettled([runtime.sandbox.cron.run(), runtime.production.cron.run()])
+        .then((results) => {
+          console.log(
+            "cron_done",
+            JSON.stringify(
+              results.map((result, index) => ({
+                environment: index === 0 ? "sandbox" : "production",
+                status: result.status,
+                value: result.status === "fulfilled" ? result.value : String(result.reason),
+              })),
+            ),
+          );
         })
         .catch((error: unknown) => {
           console.error("cron_failed", error instanceof Error ? error.message : "unknown");

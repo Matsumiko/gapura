@@ -19,7 +19,8 @@ export interface FixtureProject extends ProjectRecord {
 
 export function makeEnv(overrides: Partial<Env> = {}): Env {
   return {
-    DB: {} as D1Database,
+    DB_SANDBOX: {} as D1Database,
+    DB_PRODUCTION: {} as D1Database,
     ENVIRONMENT: "test",
     PANEL_ORIGIN,
     PUBLIC_BASE_URL: "https://pay.test",

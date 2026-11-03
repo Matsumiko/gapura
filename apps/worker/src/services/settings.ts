@@ -59,6 +59,7 @@ export interface SettingsServiceDeps {
   publicBaseUrl: string;
   fetch: FetchLike;
   insertAudit: (entry: AuditEntry) => Promise<void>;
+  environmentScope?: MerchantEnvironment;
 }
 
 const ENVIRONMENTS: MerchantEnvironment[] = ["sandbox", "production"];
@@ -90,6 +91,14 @@ export function createSettingsService(deps: SettingsServiceDeps): SettingsServic
     });
   }
 
+  function requireScope(environment: MerchantEnvironment): void {
+    if (deps.environmentScope && deps.environmentScope !== environment) {
+      throw new SettingsInvalidError(
+        `Deployment ini hanya mengelola environment ${deps.environmentScope}.`,
+      );
+    }
+  }
+
   async function viewOf(environment: MerchantEnvironment): Promise<MerchantSettingsView> {
     const items = await deps.repo.list();
     return items.find((item) => item.environment === environment) ?? emptyView(environment);
@@ -98,7 +107,8 @@ export function createSettingsService(deps: SettingsServiceDeps): SettingsServic
   return {
     async overview(): Promise<SettingsOverview> {
       const stored = await deps.repo.list();
-      const items = ENVIRONMENTS.map(
+      const environments = deps.environmentScope ? [deps.environmentScope] : ENVIRONMENTS;
+      const items = environments.map(
         (environment) => stored.find((item) => item.environment === environment) ?? emptyView(environment),
       );
       return {
@@ -114,6 +124,7 @@ export function createSettingsService(deps: SettingsServiceDeps): SettingsServic
       input: MerchantSettingsInput,
       actor: string,
     ): Promise<MerchantSettingsView> {
+      requireScope(environment);
       if (input.apiKey !== undefined && !deps.cipherConfigured) {
         throw new SettingsUnavailableError();
       }
@@ -142,6 +153,7 @@ export function createSettingsService(deps: SettingsServiceDeps): SettingsServic
     },
 
     async activate(environment: MerchantEnvironment, actor: string): Promise<MerchantSettingsView> {
+      requireScope(environment);
       const activated = await deps.repo.activate(environment);
       if (!activated) {
         throw new SettingsNotFoundError();
@@ -151,6 +163,7 @@ export function createSettingsService(deps: SettingsServiceDeps): SettingsServic
     },
 
     async test(environment: MerchantEnvironment): Promise<SettingsTestResult> {
+      requireScope(environment);
       if (!deps.cipherConfigured) {
         throw new SettingsUnavailableError();
       }

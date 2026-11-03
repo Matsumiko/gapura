@@ -6,7 +6,7 @@ Spesifikasi produk: [PRD.md](PRD.md). Keputusan arsitektur: [docs/adr](docs/adr)
 
 ## Status
 
-Fase 1-3 berjalan dan **staging live** di `https://pay.example.com` (D1 `gapura-sandbox`, Cron aktif, kredensial sandbox asli). Panel admin live di `https://admin.example.com` dan API `/admin/*` di `https://pay.example.com/admin/*`, dilindungi token admin (Bearer). Total 202 test. Kredensial sandbox asli sudah dipakai; pembayaran sandbox lewat demo Duitku berhasil dan callback asli membuat transaksi PAID.
+Fase 1-3 berjalan dan **staging live** di `https://pay.example.com` dengan dua environment terpisah (`/sandbox` dan `/production`, masing-masing D1 sendiri) (D1 `gapura-sandbox`, Cron aktif, kredensial sandbox asli). Panel admin live di `https://admin.example.com` dan API `/admin/*` di `https://pay.example.com/admin/*`, dilindungi token admin (Bearer). Total 206 test. Kredensial sandbox asli sudah dipakai; pembayaran sandbox lewat demo Duitku berhasil dan callback asli membuat transaksi PAID.
 
 ## Struktur
 
@@ -42,16 +42,16 @@ pnpm --filter @gapura/panel dev                 # http://127.0.0.1:5173
 
 ## API
 
-Semua endpoint `/v1/*` memakai header `X-Gapura-Key` (API key project). Error selalu `{"error":{"code":"...","message":"..."}}`.
+`{env}` adalah `sandbox` atau `production`; path lama tanpa prefix diperlakukan sebagai sandbox. Semua endpoint `/v1/*` memakai header `X-Gapura-Key` (API key project). Error selalu `{"error":{"code":"...","message":"..."}}`.
 
 | Endpoint | Fungsi |
 |---|---|
 | `GET /health` | status Worker, tanpa auth |
-| `GET /v1/me` | identitas project pemilik API key |
-| `POST /v1/payments` | buat transaksi Duitku, simpan `PENDING`, kembalikan `paymentUrl`/`vaNumber`/`qrString` |
-| `GET /v1/payments/:orderId` | status transaksi milik project sendiri |
-| `GET /v1/payment-methods?amount=` | channel aktif + biaya dari Duitku (cache 5 menit per nominal) |
-| `POST /callback/duitku` | callback Duitku; verifikasi HMAC-SHA256 + nominal, forward asinkron |
+| `GET /{env}/v1/me` | identitas project pemilik API key |
+| `POST /{env}/v1/payments` | buat transaksi Duitku, simpan `PENDING`, kembalikan `paymentUrl`/`vaNumber`/`qrString` |
+| `GET /{env}/v1/payments/:orderId` | status transaksi milik project sendiri |
+| `GET /{env}/v1/payment-methods?amount=` | channel aktif + biaya dari Duitku (cache 5 menit per nominal) |
+| `POST /{env}/callback/duitku` | callback Duitku; verifikasi HMAC-SHA256 + nominal, forward asinkron |
 | `GET /admin/*`, `POST /admin/*`, `PATCH /admin/*`, `PUT /admin/*` | panel admin; wajib `Authorization: Bearer <ADMIN_TOKEN>` |
 | `GET /admin/settings`, `PUT /admin/settings/:env`, `POST /admin/settings/:env/activate`, `POST /admin/settings/:env/test` | kredensial Duitku per environment (terenkripsi) |
 | `GET /admin/audit` | jejak aksi admin |

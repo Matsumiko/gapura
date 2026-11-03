@@ -74,6 +74,17 @@ export class ApiError extends Error {
 export const apiBaseUrl: string = import.meta.env.VITE_API_URL ?? "http://127.0.0.1:8787";
 
 const TOKEN_KEY = "gapura.admin.token";
+const ENV_KEY = "gapura.admin.environment";
+
+export type ApiEnvironment = "sandbox" | "production";
+
+export function getApiEnvironment(): ApiEnvironment {
+  return localStorage.getItem(ENV_KEY) === "production" ? "production" : "sandbox";
+}
+
+export function setApiEnvironment(environment: ApiEnvironment): void {
+  localStorage.setItem(ENV_KEY, environment);
+}
 
 export function getAdminToken(): string {
   return sessionStorage.getItem(TOKEN_KEY) ?? "";
@@ -99,7 +110,8 @@ async function request<T>(path: string, init: RequestInit = {}): Promise<T> {
     headers.set("Content-Type", "application/json");
   }
 
-  const response = await fetch(`${apiBaseUrl}${path}`, { ...init, headers });
+  const scopedPath = path.startsWith("/admin") ? `/${getApiEnvironment()}${path}` : path;
+  const response = await fetch(`${apiBaseUrl}${scopedPath}`, { ...init, headers });
 
   if (!response.ok) {
     const body = (await response.json().catch(() => null)) as {

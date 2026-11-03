@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { BrowserRouter, NavLink, Route, Routes } from "react-router-dom";
-import { getAdminToken, setAdminToken } from "./api";
+import { useQueryClient } from "@tanstack/react-query";
+import { getAdminToken, getApiEnvironment, setAdminToken, setApiEnvironment, type ApiEnvironment } from "./api";
 import { LoginPage } from "./pages/LoginPage";
 import { SummaryPage } from "./pages/SummaryPage";
 import { ProjectsPage } from "./pages/ProjectsPage";
@@ -22,7 +23,9 @@ const links = [
 ];
 
 export default function App() {
+  const queryClient = useQueryClient();
   const [token, setToken] = useState(() => getAdminToken());
+  const [environment, setEnvironment] = useState<ApiEnvironment>(() => getApiEnvironment());
 
   if (!token) {
     return (
@@ -59,6 +62,21 @@ export default function App() {
                 {link.label}
               </NavLink>
             ))}
+            <label className="env-select">
+              Env
+              <select
+                value={environment}
+                onChange={(event) => {
+                  const next = event.target.value as ApiEnvironment;
+                  setApiEnvironment(next);
+                  setEnvironment(next);
+                  queryClient.clear();
+                }}
+              >
+                <option value="sandbox">sandbox</option>
+                <option value="production">production</option>
+              </select>
+            </label>
             <button type="button" className="ghost" onClick={logout}>
               Keluar
             </button>

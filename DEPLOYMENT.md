@@ -59,6 +59,15 @@ wrangler rollback <version-id>
 
 Migrasi D1 bersifat maju saja; rollback kode tidak membatalkan migrasi. Untuk perubahan skema yang merusak, buat migrasi baru yang memperbaiki, bukan mengedit migrasi lama.
 
+## Dua environment (route + D1)
+
+- `/sandbox/*` → binding `DB_SANDBOX` (`gapura-sandbox`), callback `https://pay.example.com/sandbox/callback/duitku`.
+- `/production/*` → binding `DB_PRODUCTION` (`gapura-production`), callback `https://pay.example.com/production/callback/duitku`.
+- Migrasi harus dijalankan untuk **kedua** database:
+  `wrangler d1 migrations apply gapura-sandbox --remote` dan `wrangler d1 migrations apply gapura-production --remote`.
+- Panel memilih environment di header; semua request admin diberi prefix env.
+- Path lama `/v1`, `/callback/duitku`, `/admin` tetap sandbox (kompatibilitas).
+
 ## Kredensial Duitku dari panel
 
 1. Set master key: `openssl rand -base64 32 | wrangler secret put CREDENTIALS_KEY`.

@@ -25,7 +25,7 @@ reason.modular:
 Backend gerbang pembayaran di Cloudflare Workers: banyak project memakai satu akun merchant Duitku tanpa berbagi kredensial. Spesifikasi produk ada di `PRD.md`; keputusan arsitektur di `docs/adr/`.
 
 ## Ringkasan
-Gapura membuat transaksi Duitku atas nama project pemanggil, menerima callback Duitku (verifikasi signature + nominal), menyimpan status di D1, lalu meneruskan status ke webhook project dengan HMAC. Panel admin (SPA React di Cloudflare Pages) dipakai owner untuk mengelola project dan memantau transaksi. Fase 1-3 berjalan dan staging live; Fase 6 (admin API + panel) live dengan token admin. Total 202 test.
+Gapura membuat transaksi Duitku atas nama project pemanggil, menerima callback Duitku (verifikasi signature + nominal), menyimpan status di D1, lalu meneruskan status ke webhook project dengan HMAC. Panel admin (SPA React di Cloudflare Pages) dipakai owner untuk mengelola project dan memantau transaksi. Fase 1-3 berjalan dan staging live; Fase 6 (admin API + panel) live dengan token admin. Total 206 test.
 
 ## Stack
 - Runtime API: Cloudflare Workers, TypeScript, Hono 4.
@@ -79,7 +79,7 @@ Checklist keamanan (aktif karena `sensitive: true`):
 - Ada test untuk jalur gagal (signature salah, nominal tidak cocok, akses ditolak, order tak dikenal).
 
 ## Status & artefak yang ditunda
-Fase sekarang: Fase 6 selesai di kode, staging live untuk API pembayaran. Worker `https://pay.example.com` (satu-satunya host; workers.dev dimatikan) memakai D1 `gapura-sandbox`, migrasi 0001-0003 remote, Cron aktif, retensi 30 hari, dan kredensial sandbox asli. Pembayaran sandbox nyata lewat demo Duitku berhasil: callback asli membuat transaksi PAID dan webhook project DELIVERED. Admin API live di `https://pay.example.com/admin/*` dengan Bearer `ADMIN_TOKEN` (fail closed bila kosong), dan panel live di `https://admin.example.com` (Pages) dengan layar login token; `your-project.pages.dev` menampilkan login yang sama. Request tanpa token ke `/admin/*` ditolak 401. Access apps sudah dihapus dan `ACCESS_*` dilepas (ADR-0007). Deploy produksi belum.
+Fase sekarang: Fase 6 selesai di kode, staging live untuk API pembayaran. Worker `https://pay.example.com` (satu-satunya host; workers.dev dimatikan) melayani `/sandbox` dengan D1 `gapura-sandbox` dan `/production` dengan D1 `gapura-production`, migrasi 0001-0003 remote, Cron aktif, retensi 30 hari, dan kredensial sandbox asli. Pembayaran sandbox nyata lewat demo Duitku berhasil: callback asli membuat transaksi PAID dan webhook project DELIVERED. Admin API live di `https://pay.example.com/admin/*` dengan Bearer `ADMIN_TOKEN` (fail closed bila kosong), dan panel live di `https://admin.example.com` (Pages) dengan layar login token; `your-project.pages.dev` menampilkan login yang sama. Request tanpa token ke `/admin/*` ditolak 401. Access apps sudah dihapus dan `ACCESS_*` dilepas (ADR-0007). Deploy produksi belum.
 
 Ditunda (pemicunya belum ada):
 - Deploy produksi: butuh D1 produksi terpisah dan kredensial Duitku asli setelah Fase 0 disetujui.

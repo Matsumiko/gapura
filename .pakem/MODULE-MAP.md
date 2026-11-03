@@ -7,7 +7,7 @@ Tambahkan komentar pakem:ignore di baris yang sengaja menyebut path hipotetis. -
 ## Struktur
 
 Worker (Cloudflare):
-- `apps/worker/src/index.ts` — entry point: cache app per binding Env, merangkai repository, provider, service, dan `ctx.waitUntil`. Tanpa logika bisnis.
+- `apps/worker/src/index.ts` — entry point: membangun runtime `/sandbox` (DB_SANDBOX) dan `/production` (DB_PRODUCTION), mount route, jalankan Cron keduanya, merangkai repository, provider, service, dan `ctx.waitUntil`. Tanpa logika bisnis.
 - `apps/worker/src/app.ts` — merangkai Hono: CORS panel, `/health`, `/v1/*` dengan auth, callback Duitku, 404/500.
 - `apps/worker/src/middleware/auth.ts` — membaca `X-Gapura-Key`, mencocokkan hash, menolak project nonaktif.
 - `apps/worker/src/routes/payments.ts` — `POST /v1/payments` dan `GET /v1/payments/:orderId`, menerjemahkan error domain ke status HTTP.

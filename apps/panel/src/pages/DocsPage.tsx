@@ -62,6 +62,11 @@ export function DocsPage() {
         </p>
 
         <Section id="mulai" title="Mulai">
+          <p>
+            Semua endpoint project diawali environment: <code>{API_BASE}/sandbox/v1/...</code> atau{" "}
+            <code>{API_BASE}/production/v1/...</code>. Path lama tanpa prefix diperlakukan sebagai
+            sandbox.
+          </p>
           <p>Dua permukaan yang dipakai:</p>
           <table>
             <tbody>
@@ -104,7 +109,7 @@ export function DocsPage() {
             API key project. Key hanya ditampilkan sekali saat project dibuat atau dirotasi; yang
             disimpan di database hanya hash SHA-256.
           </p>
-          <Code>{`curl ${API_BASE}/v1/me \\
+          <Code>{`curl ${API_BASE}/sandbox/v1/me \\
   -H "X-Gapura-Key: gpk_..."`}</Code>
           <p>
             Project nonaktif ditolak untuk transaksi baru (<code>403 PROJECT_INACTIVE</code>), tetapi
@@ -276,7 +281,7 @@ export function DocsPage() {
               </tr>
             </tbody>
           </table>
-          <Code>{`curl -X POST ${API_BASE}/v1/payments \\
+          <Code>{`curl -X POST ${API_BASE}/sandbox/v1/payments \\
   -H "X-Gapura-Key: gpk_..." \\
   -H "Content-Type: application/json" \\
   -d '{
@@ -314,7 +319,7 @@ export function DocsPage() {
             <code>GET /v1/payments/:orderId</code> mengembalikan transaksi milik project sendiri
             (order project, bukan <code>merchantOrderId</code>). Project lain akan mendapat 404.
           </p>
-          <Code>{`curl ${API_BASE}/v1/payments/INV123 \\
+          <Code>{`curl ${API_BASE}/sandbox/v1/payments/INV123 \\
   -H "X-Gapura-Key: gpk_..."`}</Code>
           <p>
             Gunakan endpoint ini untuk rekonsiliasi manual. Transaksi <code>PENDING</code> yang

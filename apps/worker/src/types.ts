@@ -1,5 +1,6 @@
 export interface Env {
-  DB: D1Database;
+  DB_SANDBOX: D1Database;
+  DB_PRODUCTION: D1Database;
   ENVIRONMENT?: string;
   PANEL_ORIGIN?: string;
   PUBLIC_BASE_URL?: string;
