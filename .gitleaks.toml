@@ -1,0 +1,12 @@
+title = "Gapura secret scan"
+
+[extend]
+useDefault = true
+
+[allowlist]
+description = "File contoh dan lockfile tidak berisi secret nyata"
+paths = [
+  '''(^|/)\.dev\.vars$''',
+  '''(^|/)\.env\.example$''',
+  '''(^|/)pnpm-lock\.yaml$''',
+]

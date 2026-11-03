@@ -67,5 +67,15 @@ export function createWebhookLogRepository(db: D1Database): WebhookLogRepository
         .bind(id)
         .run();
     },
+
+    async pruneTerminalBefore(cutoffIso: string): Promise<number> {
+      const result = await db
+        .prepare(
+          "DELETE FROM webhook_logs WHERE status IN ('DELIVERED', 'DEAD') AND created_at < ?",
+        )
+        .bind(cutoffIso)
+        .run();
+      return result.meta.changes ?? 0;
+    },
   };
 }

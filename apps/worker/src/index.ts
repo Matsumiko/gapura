@@ -8,6 +8,7 @@ import { createTransactionRepository } from "./repositories/transactions";
 import { createWebhookLogRepository } from "./repositories/webhook-logs";
 import { createCallbackService } from "./services/callbacks";
 import { createPaymentsService } from "./services/payments";
+import { createRetention } from "./services/retention";
 import { createRetryProcessor } from "./services/retries";
 import { createPendingSync } from "./services/sync";
 import { createWebhookForwarder, deliverWebhook, type DeliverFn } from "./services/webhooks";
@@ -64,6 +65,7 @@ function runtimeFor(env: Env): Runtime {
   const cron = createCronRunner({
     retries: createRetryProcessor({ transactions, logs, deliver, now }),
     sync: createPendingSync({ transactions, provider, forwarder, now }),
+    retention: createRetention({ logs, now }),
   });
 
   runtime = { app, cron };

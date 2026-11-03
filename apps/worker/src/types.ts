@@ -108,6 +108,8 @@ export interface WebhookLogRepository {
   claim(id: number, expectedNextAttemptAt: string, leaseUntil: string): Promise<boolean>;
   clearSchedule(id: number): Promise<void>;
   markDead(id: number): Promise<void>;
+  /** Hapus riwayat selesai yang lebih tua dari cutoff; mengembalikan jumlah baris. */
+  pruneTerminalBefore(cutoffIso: string): Promise<number>;
 }
 
 export type AppEnv = {

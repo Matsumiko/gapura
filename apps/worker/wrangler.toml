@@ -1,21 +1,21 @@
-name = "gapura"
+name = "gapura-sandbox"
 main = "src/index.ts"
 compatibility_date = "2026-11-01"
 workers_dev = true
 
-# Ganti database_id dengan UUID D1 yang sebenarnya (wrangler d1 create gapura).
-# Placeholder UUID ini hanya agar build --dry-run bisa berjalan tanpa akun.
+# Database staging (wrangler d1 create gapura-sandbox).
+# Untuk produksi, buat database terpisah dan ganti id ini.
 [[d1_databases]]
 binding = "DB"
-database_name = "gapura"
-database_id = "00000000-0000-0000-0000-000000000000"
+database_name = "gapura-sandbox"
+database_id = "22222222-2222-2222-2222-222222222222"
 migrations_dir = "migrations"
 
 [vars]
-ENVIRONMENT = "development"
+ENVIRONMENT = "staging"
 PANEL_ORIGIN = "http://localhost:5173"
 # URL publik Worker, dipakai sebagai callbackUrl transaksi Duitku.
-PUBLIC_BASE_URL = "http://127.0.0.1:8787"
+PUBLIC_BASE_URL = "https://pay.example.com"
 DUITKU_BASE_URL = "https://sandbox.duitku.com"
 
 [triggers]

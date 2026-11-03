@@ -9,6 +9,7 @@
     "test": "pnpm --filter @gapura/shared test && pnpm --filter @gapura/worker test",
     "typecheck": "pnpm -r run typecheck",
     "build": "pnpm --filter @gapura/panel build && pnpm --filter @gapura/worker build",
-    "verify": "pnpm typecheck && pnpm test && pnpm build"
+    "verify": "pnpm typecheck && pnpm test && pnpm build",
+    "security": "pnpm audit --audit-level high"
   }
 }

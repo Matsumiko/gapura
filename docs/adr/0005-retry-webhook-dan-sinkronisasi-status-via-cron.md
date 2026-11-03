@@ -30,12 +30,12 @@ Pakai opsi 3.
 - `transactionStatus` Duitku: `00` → `PAID`, `02` (canceled) → `EXPIRED`, `01` (pending) → tidak berubah.
 - Hanya transisi yang benar-benar berubah yang diteruskan ke webhook project (lewat forwarder, sehingga tercatat di `webhook_logs`). Kegagalan memanggil Duitku dihitung, tidak mengubah status, dan dicoba lagi pada Cron berikutnya.
 
-Cron menjalankan retry lebih dulu, lalu sinkronisasi. Hasil ringkas dicatat sebagai log terstruktur `cron_done`; tidak ada data pribadi di log.
+Cron menjalankan retry, lalu sinkronisasi, lalu retensi. Hasil ringkas dicatat sebagai log terstruktur `cron_done`; tidak ada data pribadi di log.
 
 ## Konsekuensi
 - Positif: tanpa layanan berbayar, tanpa binding baru; riwayat percobaan dan jadwal ada di satu tempat; dead-letter cukup query `status = 'DEAD'` untuk panel admin (Fase 6).
 - Positif: 1440 invocation Cron per hari, jauh di bawah kuota free tier; batch 10 menjaga durasi eksekusi.
 - Negatif: keterlambatan retry minimal satu menit ditambah durasi batch; tidak ada presisi detik.
 - Negatif: duplikasi kirim mungkin terjadi bila proses mati setelah kirim sebelum menulis hasil (at-least-once).
-- Negatif: `webhook_logs` tumbuh tanpa batas; kebijakan retensi/pemangkasan ditetapkan sebelum volume nyata (Fase 4).
+- Retensi: baris `DELIVERED`/`DEAD` lebih tua dari 30 hari dipangkas oleh langkah terakhir Cron (`apps/worker/src/services/retention.ts`); baris `FAILED` yang masih terjadwal tidak pernah dipangkas.
 - Yang harus dijaga: index (`status`, `next_attempt_at`), klaim bersyarat, batas batch, dan `next_attempt_at` selalu ISO 8601 UTC agar perbandingan string konsisten di SQLite.

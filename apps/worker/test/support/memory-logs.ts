@@ -53,6 +53,21 @@ export function createMemoryWebhookLogs(): MemoryWebhookLogs {
       }
     },
 
+    async pruneTerminalBefore(cutoffIso): Promise<number> {
+      const before = entries.length;
+      for (let index = entries.length - 1; index >= 0; index -= 1) {
+        const entry = entries[index];
+        if (
+          entry &&
+          (entry.status === "DELIVERED" || entry.status === "DEAD") &&
+          entry.createdAt < cutoffIso
+        ) {
+          entries.splice(index, 1);
+        }
+      }
+      return before - entries.length;
+    },
+
     async markDead(id): Promise<void> {
       const entry = entries.find((candidate) => candidate.id === id);
       if (entry) {

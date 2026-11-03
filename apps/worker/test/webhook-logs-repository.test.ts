@@ -79,6 +79,31 @@ describe("webhook log repository", () => {
     expect(await repo.findDue(FUTURE, 10)).toHaveLength(0);
   });
 
+  it("memangkas hanya riwayat selesai yang lama", async () => {
+    const { db, repo } = await setup();
+    await seed(repo, {
+      merchantOrderId: "LAMA-LUNAS",
+      status: "DELIVERED",
+      nextAttemptAt: null,
+      createdAt: "2026-09-01T00:00:00.000Z",
+    });
+    await seed(repo, {
+      merchantOrderId: "BARU-LUNAS",
+      status: "DELIVERED",
+      nextAttemptAt: null,
+      createdAt: "2026-11-02T00:00:00.000Z",
+    });
+    await seed(repo, { merchantOrderId: "RETRY", status: "FAILED", createdAt: "2026-09-01T00:00:00.000Z" });
+
+    const pruned = await repo.pruneTerminalBefore("2026-10-04T10:00:00.000Z");
+
+    expect(pruned).toBe(1);
+    const rows = await db
+      .prepare("SELECT merchant_order_id FROM webhook_logs ORDER BY merchant_order_id")
+      .all<{ merchant_order_id: string }>();
+    expect(rows.results.map((row) => row.merchant_order_id)).toEqual(["BARU-LUNAS", "RETRY"]);
+  });
+
   it("markDead mengubah status dan membuang jadwal", async () => {
     const { db, repo } = await setup();
     await seed(repo);

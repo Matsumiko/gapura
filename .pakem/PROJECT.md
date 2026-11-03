@@ -7,7 +7,7 @@
 type: app
 sensitive: true
 exposure: private
-deploy: none
+deploy: staging
 handover: false
 verify: pnpm verify
 reason.verify: 
@@ -25,7 +25,7 @@ reason.modular:
 Backend gerbang pembayaran di Cloudflare Workers: banyak project memakai satu akun merchant Duitku tanpa berbagi kredensial. Spesifikasi produk ada di `PRD.md`; keputusan arsitektur di `docs/adr/`.
 
 ## Ringkasan
-Gapura membuat transaksi Duitku atas nama project pemanggil, menerima callback Duitku (verifikasi signature + nominal), menyimpan status di D1, lalu meneruskan status ke webhook project dengan HMAC. Panel admin (SPA React di Cloudflare Pages) dipakai owner untuk mengelola project dan memantau transaksi. Fase 1 sampai 3 sudah berjalan lokal: auth project, create/cek payment, callback, forward bertanda tangan, retry Cron, sinkronisasi transaksi pending, dan 129 test.
+Gapura membuat transaksi Duitku atas nama project pemanggil, menerima callback Duitku (verifikasi signature + nominal), menyimpan status di D1, lalu meneruskan status ke webhook project dengan HMAC. Panel admin (SPA React di Cloudflare Pages) dipakai owner untuk mengelola project dan memantau transaksi. Fase 1 sampai 3 berjalan, plus deploy staging: auth project, create/cek payment, callback, forward bertanda tangan, retry Cron, sinkronisasi transaksi pending, retensi log, dan 132 test.
 
 ## Stack
 - Runtime API: Cloudflare Workers, TypeScript, Hono 4.
@@ -45,7 +45,8 @@ Gapura membuat transaksi Duitku atas nama project pemanggil, menerima callback D
 - Jalankan API: `pnpm --filter @gapura/worker dev` (default `127.0.0.1:8787`).
 - Jalankan panel: `pnpm --filter @gapura/panel dev` (`127.0.0.1:5173`).
 - Verify: `pnpm verify` — typecheck semua paket, test shared + worker, build panel, dan bundel Worker lewat `wrangler deploy --dry-run`.
-- Smoke manual: jalankan `wrangler dev`, lalu `curl` endpoint; seed project memakai `wrangler d1 execute gapura --local`. Untuk callback, hitung signature dengan kunci di `apps/worker/.dev.vars` (lihat ADR-0004). Untuk Cron, jalankan `wrangler dev --test-scheduled` lalu `curl "http://127.0.0.1:8787/__scheduled?cron=*+*+*+*+*"`; arahkan `DUITKU_BASE_URL` ke stub lokal bila tidak memakai sandbox.
+- Smoke manual: jalankan `wrangler dev`, lalu `curl` endpoint; seed project memakai `wrangler d1 execute gapura --local`.
+- Deploy staging: lihat `DEPLOYMENT.md`; rollback dan triage di `RUNBOOK.md`. Untuk callback, hitung signature dengan kunci di `apps/worker/.dev.vars` (lihat ADR-0004). Untuk Cron, jalankan `wrangler dev --test-scheduled` lalu `curl "http://127.0.0.1:8787/__scheduled?cron=*+*+*+*+*"`; arahkan `DUITKU_BASE_URL` ke stub lokal bila tidak memakai sandbox.
 
 ## Konvensi
 - Bahasa kode dan nama API: Inggris; dokumen dan pesan error ke pengguna: Indonesia.
@@ -77,14 +78,14 @@ Checklist keamanan (aktif karena `sensitive: true`):
 - Ada test untuk jalur gagal (signature salah, nominal tidak cocok, akses ditolak, order tak dikenal).
 
 ## Status & artefak yang ditunda
-Fase sekarang: Fase 3 selesai di kode. Sudah ada `/health`, `/v1/me`, `POST /v1/payments`, `GET /v1/payments/:orderId`, `POST /callback/duitku`, forward webhook bertanda tangan, Cron tiap menit untuk retry (8 percobaan, backoff 1m/5m/15m/1j/6j, DEAD) dan sinkronisasi transaksi PENDING > 10 menit, migrasi dua file, dan 129 test. Smoke nyata (wrangler dev `--test-scheduled` + D1 lokal + stub Duitku + receiver webhook lokal) membuktikan retry attempt 2 DELIVERED, sinkronisasi `00` menjadi PAID dengan webhook tercatat DELIVERED, dan Cron kedua tidak mengirim ulang. Belum ada transaksi ke sandbox Duitku sungguhan (kredensial merchant belum ada), deploy, atau panel fungsional.
+Fase sekarang: Fase 4 (staging). Worker live di `https://pay.example.com` dengan D1 `gapura-sandbox`, kedua migrasi terpasang, trigger Cron aktif, dan retensi `webhook_logs` 30 hari. Smoke remote membuktikan `/health`, auth lewat D1 remote, create payment mencapai Duitku sandbox (502 dengan kredensial placeholder), callback HMAC menghasilkan `PAID`, dan forward tercatat. Secret staging masih placeholder (`D0001`/`placeholder-api-key`) sampai kredensial sandbox asli ada. Belum ada transaksi sandbox nyata, panel fungsional, CI, atau deploy produksi.
 
 Ditunda (pemicunya belum ada):
-- Deploy staging (gate Fase 1): butuh akun Cloudflare dan `database_id` D1 asli; `wrangler.toml` masih memakai UUID placeholder.
+- Deploy produksi: butuh D1 produksi terpisah dan kredensial Duitku asli setelah Fase 0 disetujui.
 - CI, `DEPLOYMENT.md`, `RUNBOOK.md`: dibuat saat deploy staging pertama; flag `deploy` dinaikkan saat itu.
-- `SECURITY.md`: repo privat tanpa pelapor eksternal; dibuat saat repo dibuka atau ada kontributor luar.
-- Threat model/checklist keamanan dan secret/dependency scan: checklist sudah dicatat di atas; dokumen terpisah dibuat sebelum rilis produksi (Fase 4), saat jalur pembayaran lengkap.
-- Retensi `webhook_logs`: pemangkasan baris lama ditetapkan sebelum volume nyata (Fase 4); belum ada sekarang.
+- CI (`pakem ci`/GitHub Actions): belum ada remote GitHub; workflow dibuat saat repo punya remote.
+- Rate limit per project (FR-10): ditunda; andalkan Cloudflare/WAF sebelum produksi (lihat `docs/SECURITY_CHECKLIST.md`).
+- Retensi `webhook_logs`: selesai (30 hari untuk DELIVERED/DEAD, lihat ADR-0005 dan `apps/worker/src/services/retention.ts`).
 - Transaksi sandbox Duitku sungguhan: butuh kredensial merchant sandbox dan jawaban Fase 0.
 - Makefile/justfile: perintah sudah pendek lewat `pnpm` dan tercatat di README; dibuat bila perintah harian mulai berulang.
 - Fase 0 (konfirmasi tertulis Duitku) masih terbuka dan wajib sebelum kredensial produksi dipakai.

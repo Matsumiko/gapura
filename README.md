@@ -6,7 +6,7 @@ Spesifikasi produk: [PRD.md](PRD.md). Keputusan arsitektur: [docs/adr](docs/adr)
 
 ## Status
 
-Fase 1 sampai 3 berjalan lokal: Worker Hono dengan auth API key, create/cek payment, callback Duitku bertanda tangan, forward webhook bertanda tangan, retry Cron, sinkronisasi transaksi pending, skema D1, panel shell, dan 129 test. **Belum ada deploy** dan **belum ada transaksi ke sandbox Duitku sungguhan** (kredensial merchant belum tersedia).
+Fase 1-3 berjalan dan **staging sudah live** di `https://pay.example.com` (D1 `gapura-sandbox`, Cron aktif). Auth API key, create/cek payment, callback Duitku bertanda tangan, forward webhook bertanda tangan, retry Cron, sinkronisasi transaksi pending, retensi log, skema D1, panel shell, dan 132 test. **Belum ada transaksi ke sandbox Duitku sungguhan**: secret staging masih placeholder (`D0001`/`placeholder-api-key`) sampai kredensial merchant tersedia.
 
 ## Struktur
 
@@ -91,6 +91,8 @@ Cron Trigger berjalan tiap menit (`[triggers]` di `wrangler.toml`) dan mengerjak
 1. **Retry webhook** — baris `FAILED` yang `next_attempt_at`-nya lewat diklaim, dikirim ulang, lalu dicatat sebagai percobaan berikutnya. Jeda: 1m, 5m, 15m, 1j, 6j; percobaan ke-8 yang gagal menjadi `DEAD`. Pengiriman at-least-once — project wajib idempotent.
 2. **Sinkronisasi pending** — transaksi `PENDING` lebih dari 10 menit dicek ke Duitku (`transactionStatus`): `00` → `PAID`, `02` → `EXPIRED`, `01` → tetap. Hanya perubahan yang diteruskan ke webhook.
 
+Riwayat `DELIVERED`/`DEAD` lebih tua dari 30 hari dipangkas otomatis; `FAILED` yang masih terjadwal tidak disentuh.
+
 Detail: [ADR-0005](docs/adr/0005-retry-webhook-dan-sinkronisasi-status-via-cron.md). Uji Cron lokal:
 
 ```sh
@@ -110,18 +112,18 @@ Test Worker memakai harness HTTP + repository in-memory untuk logika, SQL asli (
 
 ## Deploy
 
-Belum dilakukan. Sebelum deploy pertama:
+Staging sudah berjalan; langkah lengkap dan rollback ada di [DEPLOYMENT.md](DEPLOYMENT.md), triage di [RUNBOOK.md](RUNBOOK.md). Ringkas:
 
-1. `wrangler d1 create gapura`, lalu ganti `database_id` placeholder di `apps/worker/wrangler.toml`.
-2. `wrangler d1 migrations apply gapura --remote`.
-3. `wrangler secret put DUITKU_MERCHANT_CODE` dan `DUITKU_API_KEY`.
-4. Set `PUBLIC_BASE_URL` ke domain publik Worker (dipakai sebagai `callbackUrl` Duitku) dan sesuaikan `PANEL_ORIGIN`.
+1. `wrangler d1 create gapura-sandbox`, isi `database_id` di `apps/worker/wrangler.toml`.
+2. `wrangler d1 migrations apply gapura-sandbox --remote`.
+3. `wrangler deploy`, lalu set `PUBLIC_BASE_URL` ke URL Worker dan deploy ulang.
+4. `wrangler secret put DUITKU_MERCHANT_CODE` dan `DUITKU_API_KEY`.
 
 Hanya layanan Cloudflare free tier yang dipakai (Workers, D1, Cron Trigger). Tanpa Queues/R2.
 
 ## Keamanan
 
-Repo ini menangani transaksi pembayaran dan data pembeli (nama, email). Jangan commit secret Duitku, API key project, atau webhook secret. API key project disimpan sebagai hash SHA-256; key mentah hanya ditampilkan sekali saat dibuat (Fase 6). Checklist keamanan ada di `.pakem/PROJECT.md`.
+Repo ini menangani transaksi pembayaran dan data pembeli (nama, email). Jangan commit secret Duitku, API key project, atau webhook secret. API key project disimpan sebagai hash SHA-256; key mentah hanya ditampilkan sekali saat dibuat (Fase 6). Laporan celah: [SECURITY.md](SECURITY.md). Ancaman dan checklist: [docs/SECURITY_CHECKLIST.md](docs/SECURITY_CHECKLIST.md). `pnpm audit` bersih per 2026-11-03.
 
 ## Bekerja dengan pakem
 
