@@ -6,7 +6,7 @@ Spesifikasi produk: [PRD.md](PRD.md). Keputusan arsitektur: [docs/adr](docs/adr)
 
 ## Status
 
-Fase 1-3 berjalan dan **staging sudah live** di `https://pay.example.com` (D1 `gapura-sandbox`, Cron aktif, kredensial sandbox asli). Fase 6 (admin API + panel) berjalan lokal dengan JWT Cloudflare Access, **belum dideploy** karena Access belum aktif di akun. Total 158 test. **Belum ada transaksi ke sandbox Duitku sungguhan**: secret staging masih placeholder (`D0001`/`placeholder-api-key`) sampai kredensial merchant tersedia.
+Fase 1-3 berjalan dan **staging sudah live** di `https://pay.example.com` (D1 `gapura-sandbox`, Cron aktif, kredensial sandbox asli). Fase 6: admin API sudah live di staging dalam keadaan fail-closed (503 sampai Access diset); panel React berjalan lokal dengan JWT Access, **belum dideploy** karena Access belum aktif di akun. Total 158 test. **Belum ada transaksi ke sandbox Duitku sungguhan**: secret staging masih placeholder (`D0001`/`placeholder-api-key`) sampai kredensial merchant tersedia.
 
 ## Struktur
 

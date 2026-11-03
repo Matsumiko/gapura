@@ -78,7 +78,7 @@ Checklist keamanan (aktif karena `sensitive: true`):
 - Ada test untuk jalur gagal (signature salah, nominal tidak cocok, akses ditolak, order tak dikenal).
 
 ## Status & artefak yang ditunda
-Fase sekarang: Fase 6 selesai di kode, staging live untuk API pembayaran. Worker `https://pay.example.com` memakai D1 `gapura-sandbox`, migrasi 0001-0002 remote (0003 menunggu deploy admin), Cron aktif, retensi 30 hari, dan kredensial sandbox asli. Pembayaran sandbox nyata lewat demo Duitku berhasil: callback asli membuat transaksi PAID dan webhook project DELIVERED. Admin API (`/admin/*`) dan panel React sudah berjalan lokal dengan verifikasi JWT Access (diuji memakai JWKS lokal), tetapi **belum dideploy**: Access belum diaktifkan di akun Cloudflare sehingga panel tidak boleh dipublikasikan tanpa proteksi. Deploy produksi juga belum.
+Fase sekarang: Fase 6 selesai di kode, staging live untuk API pembayaran. Worker `https://pay.example.com` memakai D1 `gapura-sandbox`, migrasi 0001-0002 remote (0003 menunggu deploy admin), Cron aktif, retensi 30 hari, dan kredensial sandbox asli. Pembayaran sandbox nyata lewat demo Duitku berhasil: callback asli membuat transaksi PAID dan webhook project DELIVERED. Admin API dan migrasi 0003 sudah dideploy ke staging dalam keadaan **fail-closed** (`/admin/*` → 503 karena `ACCESS_TEAM_DOMAIN`/`ACCESS_AUD` belum diset). Panel React berjalan lokal dengan verifikasi JWT Access (diuji memakai JWKS lokal), tetapi **belum dideploy**: Access belum diaktifkan di akun Cloudflare (API: `access.api.error.not_enabled`), jadi panel tidak boleh dipublikasikan. Deploy produksi juga belum.
 
 Ditunda (pemicunya belum ada):
 - Deploy produksi: butuh D1 produksi terpisah dan kredensial Duitku asli setelah Fase 0 disetujui.
@@ -86,7 +86,7 @@ Ditunda (pemicunya belum ada):
 - CI (`pakem ci`/GitHub Actions): belum ada remote GitHub; workflow dibuat saat repo punya remote.
 - Rate limit per project dan admin (FR-10): ditunda; andalkan Cloudflare/WAF sebelum produksi (lihat `docs/SECURITY_CHECKLIST.md`).
 - Retensi `webhook_logs`: selesai (30 hari untuk DELIVERED/DEAD, lihat ADR-0005 dan `apps/worker/src/services/retention.ts`).
-- Deploy panel admin: menunggu Access diaktifkan + domain panel; sampai itu `/admin/*` staging menjawab 503 (fail closed). Migrasi `0003_admin_audit.sql` diterapkan saat deploy admin.
+- Deploy panel admin: menunggu Access diaktifkan lewat dashboard + domain panel (zona yang ada: indonesia.indevs.in, bansos.us.ci) + izin token Access; sampai itu `/admin/*` staging menjawab 503 (fail closed). Migrasi 0003 sudah remote.
 - Transaksi sandbox Duitku sungguhan: butuh kredensial merchant sandbox dan jawaban Fase 0.
 - Makefile/justfile: perintah sudah pendek lewat `pnpm` dan tercatat di README; dibuat bila perintah harian mulai berulang.
 - Fase 0 (konfirmasi tertulis Duitku) masih terbuka dan wajib sebelum kredensial produksi dipakai.
