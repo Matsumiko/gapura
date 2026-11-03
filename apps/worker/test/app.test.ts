@@ -83,7 +83,7 @@ describe("CORS panel", () => {
     );
 
     expect(response.headers.get("access-control-allow-origin")).toBe(PANEL_ORIGIN);
-    expect(response.headers.get("access-control-allow-credentials")).toBeNull();
+    expect(response.headers.get("access-control-allow-credentials")).toBe("true");
   });
 
   it("tidak mengizinkan origin lain", async () => {

@@ -4,11 +4,15 @@ import { buildApp } from "./app";
 import { createCronRunner, type CronRunner } from "./cron";
 import { createManagedDuitkuProvider } from "./providers/managed";
 import { createAdminRepository } from "./repositories/admin";
+import { createAdminSessionRepository } from "./repositories/admin-sessions";
+import { createAdminUserRepository } from "./repositories/admin-users";
 import { createProjectsRepository } from "./repositories/projects";
 import { createSettingsRepository } from "./repositories/settings";
 import { createTransactionRepository } from "./repositories/transactions";
 import { createWebhookLogRepository } from "./repositories/webhook-logs";
 import { createAdminService } from "./services/admin";
+import { createAdminAuthService } from "./services/admin-auth";
+import { createAdminSessionService } from "./services/admin-sessions";
 import { createCallbackService } from "./services/callbacks";
 import { createCredentialCipher, type CredentialCipher } from "./services/credentials";
 import { createCredentialResolver } from "./services/credential-resolver";
@@ -57,6 +61,20 @@ function buildEnvironmentRuntime(
   };
 
   const adminRepo = createAdminRepository(db);
+  const adminUsers = createAdminUserRepository(db);
+  const adminSessions = createAdminSessionService({
+    repo: createAdminSessionRepository(db),
+    now,
+  });
+  const adminAuth = createAdminAuthService({
+    users: adminUsers,
+    sessions: adminSessions,
+    getCipher,
+    setupToken: env.ADMIN_SETUP_TOKEN,
+    issuer: "Gapura",
+    now,
+    insertAudit: (entry) => adminRepo.insertAudit(entry),
+  });
   const settingsRepo = createSettingsRepository({ db, getCipher });
   const resolver = createCredentialResolver({
     store: settingsRepo,
@@ -99,6 +117,8 @@ function buildEnvironmentRuntime(
       sha256Hex,
     }),
     adminToken: env.ADMIN_TOKEN,
+    adminAuth,
+    adminSessions,
     paymentMethods: createPaymentMethodsService({ provider }),
     settings: createSettingsService({
       repo: settingsRepo,

@@ -8,6 +8,7 @@ export interface Env {
   DUITKU_MERCHANT_CODE?: string;
   DUITKU_API_KEY?: string;
   ADMIN_TOKEN?: string;
+  ADMIN_SETUP_TOKEN?: string;
   CREDENTIALS_KEY?: string;
 }
 
@@ -312,5 +313,5 @@ export interface AdminRepository {
 
 export type AppEnv = {
   Bindings: Env;
-  Variables: { project: ProjectRecord; adminActor: string };
+  Variables: { project: ProjectRecord; adminActor: string; adminSessionId?: string };
 };
