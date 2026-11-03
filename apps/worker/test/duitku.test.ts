@@ -30,7 +30,10 @@ function response(body: unknown, status = 200): Response {
   });
 }
 
-function setup(handler: () => Response | Promise<Response>) {
+function setup(
+  handler: () => Response | Promise<Response>,
+  overrides: Partial<Parameters<typeof createDuitkuProvider>[0]> = {},
+) {
   const calls: Array<{ url: string; init: RequestInit | undefined }> = [];
   const provider = createDuitkuProvider({
     merchantCode: MERCHANT_CODE,
@@ -40,6 +43,7 @@ function setup(handler: () => Response | Promise<Response>) {
       calls.push({ url: String(input), init });
       return handler();
     },
+    ...overrides,
   });
   return { provider, calls };
 }
@@ -184,6 +188,97 @@ describe("createInvoice", () => {
       await expect(provider.getStatus("PRJA-INV123")).rejects.toMatchObject({
         code: "INVALID_RESPONSE",
       });
+    });
+  });
+
+  describe("getPaymentMethods", () => {
+    const FIXED_NOW = Date.UTC(2026, 10, 3, 10, 0, 0);
+
+    function methodResponse(): Response {
+      return response({
+        paymentFee: [
+          {
+            paymentMethod: "BT",
+            paymentName: "PERMATA VA",
+            paymentImage: "https://images.duitku.com/hotlink-ok/PERMATA.PNG",
+            totalFee: "0",
+          },
+          {
+            paymentMethod: "VC",
+            paymentName: "CREDIT CARD",
+            paymentImage: "https://images.duitku.com/hotlink-ok/VC.PNG",
+            totalFee: "2790",
+          },
+        ],
+        responseCode: "00",
+        responseMessage: "SUCCESS",
+      });
+    }
+
+    it("mengirim body sesuai vendor dan memetakan paymentFee", async () => {
+      const { provider, calls } = setup(methodResponse, { now: () => FIXED_NOW });
+
+      const methods = await provider.getPaymentMethods(10000);
+
+      expect(calls[0]?.url).toBe(
+        `${BASE_URL}/webapi/api/merchant/paymentmethod/getpaymentmethod`,
+      );
+      expect(JSON.parse(String(calls[0]?.init?.body))).toEqual({
+        merchantcode: MERCHANT_CODE,
+        amount: 10000,
+        datetime: "2026-11-03 10:00:00",
+        signature: "43231920585afcc97d92a279a85aa60ce99b24977288c403affb191be84fa42c",
+      });
+      expect(methods).toEqual([
+        {
+          code: "BT",
+          name: "PERMATA VA",
+          image: "https://images.duitku.com/hotlink-ok/PERMATA.PNG",
+          totalFee: "0",
+        },
+        {
+          code: "VC",
+          name: "CREDIT CARD",
+          image: "https://images.duitku.com/hotlink-ok/VC.PNG",
+          totalFee: "2790",
+        },
+      ]);
+    });
+
+    it("memakai cache per nominal sampai TTL habis", async () => {
+      let now = FIXED_NOW;
+      const { provider, calls } = setup(methodResponse, { now: () => now, cacheTtlMs: 1000 });
+
+      await provider.getPaymentMethods(10000);
+      await provider.getPaymentMethods(10000);
+      expect(calls).toHaveLength(1);
+
+      now += 2000;
+      await provider.getPaymentMethods(10000);
+      expect(calls).toHaveLength(2);
+    });
+
+    it("memisahkan cache per nominal", async () => {
+      const { provider, calls } = setup(methodResponse, { now: () => FIXED_NOW });
+
+      await provider.getPaymentMethods(10000);
+      await provider.getPaymentMethods(50000);
+
+      expect(calls).toHaveLength(2);
+    });
+
+    it("melempar INVALID_RESPONSE bila responseCode bukan 00", async () => {
+      const { provider } = setup(() => response({ responseCode: "01", paymentFee: [] }));
+
+      await expect(provider.getPaymentMethods(10000)).rejects.toMatchObject({
+        code: "INVALID_RESPONSE",
+      });
+    });
+
+    it("melempar HTTP_<status> dan tidak menyimpan cache saat gagal", async () => {
+      const { provider } = setup(() => response({}, 500));
+
+      await expect(provider.getPaymentMethods(10000)).rejects.toMatchObject({ code: "HTTP_500" });
     });
   });
 

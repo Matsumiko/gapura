@@ -189,7 +189,7 @@ Response: `merchantOrderId`, `reference`, `amount`, `fee`, `statusCode`, `status
 | Inquiry + signature HMAC | Dipakai |
 | Callback + verifikasi signature/nominal | Dipakai |
 | Cek transaksi + Cron pending sync | Dipakai |
-| `getPaymentMethod` | Belum dipakai; channel diambil dari input project |
+| `getPaymentMethod` | Dipakai lewat `GET /v1/payment-methods`, cache 5 menit per nominal |
 | `expiryPeriod` | Belum dikirim (memakai default vendor) |
 | `itemDetails`, `customerDetail`, `phoneNumber` | Belum dikirim |
 | `accountLink` (OL/SL) | Belum didukung |

@@ -6,7 +6,7 @@ Spesifikasi produk: [PRD.md](PRD.md). Keputusan arsitektur: [docs/adr](docs/adr)
 
 ## Status
 
-Fase 1-3 berjalan dan **staging live** di `https://pay.example.com` (D1 `gapura-sandbox`, Cron aktif, kredensial sandbox asli). Panel admin live di `https://admin.example.com` dan API `/admin/*` di `https://pay.example.com/admin/*`, dilindungi token admin (Bearer). Total 162 test. Kredensial sandbox asli sudah dipakai; pembayaran sandbox lewat demo Duitku berhasil dan callback asli membuat transaksi PAID.
+Fase 1-3 berjalan dan **staging live** di `https://pay.example.com` (D1 `gapura-sandbox`, Cron aktif, kredensial sandbox asli). Panel admin live di `https://admin.example.com` dan API `/admin/*` di `https://pay.example.com/admin/*`, dilindungi token admin (Bearer). Total 177 test. Kredensial sandbox asli sudah dipakai; pembayaran sandbox lewat demo Duitku berhasil dan callback asli membuat transaksi PAID.
 
 ## Struktur
 
@@ -50,6 +50,7 @@ Semua endpoint `/v1/*` memakai header `X-Gapura-Key` (API key project). Error se
 | `GET /v1/me` | identitas project pemilik API key |
 | `POST /v1/payments` | buat transaksi Duitku, simpan `PENDING`, kembalikan `paymentUrl`/`vaNumber`/`qrString` |
 | `GET /v1/payments/:orderId` | status transaksi milik project sendiri |
+| `GET /v1/payment-methods?amount=` | channel aktif + biaya dari Duitku (cache 5 menit per nominal) |
 | `POST /callback/duitku` | callback Duitku; verifikasi HMAC-SHA256 + nominal, forward asinkron |
 | `GET /admin/*`, `POST /admin/*`, `PATCH /admin/*` | panel admin; wajib `Authorization: Bearer <ADMIN_TOKEN>` |
 
@@ -92,7 +93,7 @@ Kontrak vendor dipelajari dan dicatat supaya tidak menebak:
 - [docs/reference/duitku-payment-methods.md](docs/reference/duitku-payment-methods.md) — 32 channel per sistem, expiry, void, account link, channel aktif sandbox, batas nominal/order ID.
 - Katalog machine-readable: `packages/shared/src/payment-methods.ts` (dipakai panel untuk label channel).
 
-Batas yang ditegakkan Gapura: nominal minimal Rp10.000, `merchantOrderId` maks 50 karakter, email maks 50 karakter, `paymentMethod` 2 karakter.
+Batas yang ditegakkan Gapura: nominal minimal Rp10.000, `merchantOrderId` maks 50 karakter, email maks 50 karakter, `paymentMethod` 2 karakter. Channel aktif + biaya diambil lewat `GET /v1/payment-methods` (cache 5 menit).
 
 ## Webhook keluar
 

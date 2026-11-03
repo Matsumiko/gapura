@@ -5,11 +5,13 @@ import { apiKeyAuth } from "./middleware/auth";
 import { requireAdminToken } from "./middleware/admin-auth";
 import { registerAdminRoutes } from "./routes/admin";
 import { registerCallbackRoute } from "./routes/callback";
+import { registerPaymentMethodRoutes } from "./routes/payment-methods";
 import { registerPaymentRoutes } from "./routes/payments";
 import type { CallbackService } from "./services/callbacks";
 import type { PaymentsService } from "./services/payments";
 import type { WebhookForwarder } from "./services/webhooks";
 import type { AdminService } from "./services/admin";
+import type { PaymentMethodsService } from "./services/payment-methods";
 
 import type { AppEnv, AuthDeps } from "./types";
 
@@ -20,6 +22,7 @@ export interface AppDeps extends AuthDeps {
   forwarder: WebhookForwarder;
   admin: AdminService;
   adminToken?: string;
+  paymentMethods: PaymentMethodsService;
 }
 
 export function buildApp(deps: AppDeps): Hono<AppEnv> {
@@ -55,6 +58,7 @@ export function buildApp(deps: AppDeps): Hono<AppEnv> {
       project: { id: project.id, name: project.name, prefix: project.prefix },
     });
   });
+  registerPaymentMethodRoutes(app, deps);
   registerPaymentRoutes(app, deps);
   registerCallbackRoute(app, deps);
   app.use("/admin/*", requireAdminToken(deps.adminToken));

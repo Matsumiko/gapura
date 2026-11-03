@@ -2,6 +2,7 @@ import { sha256Hex } from "@gapura/shared/crypto";
 import { buildApp, type AppDeps } from "../../src/app";
 import type { AdminService } from "../../src/services/admin";
 import type { CallbackService } from "../../src/services/callbacks";
+import type { PaymentMethodsService } from "../../src/services/payment-methods";
 import type { PaymentsService } from "../../src/services/payments";
 import type { WebhookForwarder } from "../../src/services/webhooks";
 import type { AppEnv, Env, ProjectRecord, ProjectRepository } from "../../src/types";
@@ -61,6 +62,12 @@ const unusedPayments: PaymentsService = {
   },
   async get() {
     return null;
+  },
+};
+
+const unusedPaymentMethods: PaymentMethodsService = {
+  async list() {
+    throw new Error("paymentMethods.list tidak diharapkan di test ini");
   },
 };
 
@@ -134,6 +141,7 @@ export async function createTestApp(
     forwarder: unusedForwarder,
     admin: unusedAdmin,
     adminToken: undefined as string | undefined,
+    paymentMethods: unusedPaymentMethods,
     ...overrides,
   };
   const background: Promise<unknown>[] = [];

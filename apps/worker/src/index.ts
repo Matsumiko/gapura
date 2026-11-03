@@ -9,6 +9,7 @@ import { createTransactionRepository } from "./repositories/transactions";
 import { createWebhookLogRepository } from "./repositories/webhook-logs";
 import { createAdminService } from "./services/admin";
 import { createCallbackService } from "./services/callbacks";
+import { createPaymentMethodsService } from "./services/payment-methods";
 import { createPaymentsService } from "./services/payments";
 import { createRetention } from "./services/retention";
 import { createRetryProcessor } from "./services/retries";
@@ -70,6 +71,7 @@ function runtimeFor(env: Env): Runtime {
       sha256Hex,
     }),
     adminToken: env.ADMIN_TOKEN,
+    paymentMethods: createPaymentMethodsService({ provider }),
   });
 
   const cron = createCronRunner({

@@ -121,9 +121,28 @@ export function DocsPage() {
           </p>
           <p>
             Channel yang bisa dipakai adalah yang aktif di akun merchant Duitku, bukan seluruh tabel.
-            Daftar aktif beserta biayanya diambil dari{" "}
-            <code>POST /webapi/api/merchant/paymentmethod/getpaymentmethod</code> (lihat{" "}
-            <code>docs/reference/duitku-api.md</code>). Katalog di bawah adalah referensi vendor.
+            Gapura menyediakan daftar aktif beserta biaya dari{" "}
+            <code>getPaymentMethod</code>:
+          </p>
+          <Code>{`curl "${API_BASE}/v1/payment-methods?amount=150000" \
+  -H "X-Gapura-Key: gpk_..."`}</Code>
+          <Code>{`{
+  "amount": 150000,
+  "items": [
+    {
+      "code": "BC",
+      "name": "BCA VA",
+      "officialName": "BCA Virtual Account",
+      "system": "Bank Transfer",
+      "image": "https://images.duitku.com/hotlink-ok/BC.PNG",
+      "totalFee": "5000"
+    }
+  ]
+}`}</Code>
+          <p>
+            Hasil di-cache 5 menit per nominal (biaya bisa bergantung nominal). Kode di luar katalog
+            tetap diteruskan dengan <code>system: null</code>. Katalog di bawah adalah referensi
+            vendor; sumbernya <code>packages/shared/src/payment-methods.ts</code>.
           </p>
           {PAYMENT_SYSTEMS.map((system) => (
             <div key={system}>

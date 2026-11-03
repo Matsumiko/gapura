@@ -7,6 +7,8 @@ export interface DuitkuConfig {
   apiKey: string;
   baseUrl: string;
   fetch: FetchLike;
+  now?: () => number;
+  cacheTtlMs?: number;
 }
 
 export interface CreateInvoiceRequest {
@@ -33,11 +35,22 @@ export interface TransactionStatusResult {
   amount: number | null;
 }
 
+export interface DuitkuPaymentMethod {
+  code: string;
+  name: string;
+  image: string;
+  totalFee: string;
+}
+
+export interface PaymentMethodProvider {
+  getPaymentMethods(amount: number): Promise<DuitkuPaymentMethod[]>;
+}
+
 export interface StatusProvider {
   getStatus(merchantOrderId: string): Promise<TransactionStatusResult>;
 }
 
-export interface PaymentProvider extends StatusProvider {
+export interface PaymentProvider extends StatusProvider, PaymentMethodProvider {
   createInvoice(request: CreateInvoiceRequest): Promise<CreateInvoiceResponse>;
 }
 
@@ -69,6 +82,25 @@ export function callbackSignature(
   apiKey: string,
 ): Promise<string> {
   return hmacSha256Hex(`${merchantCode}${amount}${merchantOrderId}`, apiKey);
+}
+
+/** stringToSign = merchantcode + amount + datetime (get payment method). */
+export function getPaymentMethodsSignature(
+  merchantCode: string,
+  amount: number,
+  datetime: string,
+  apiKey: string,
+): Promise<string> {
+  return hmacSha256Hex(`${merchantCode}${amount}${datetime}`, apiKey);
+}
+
+function duitkuDatetime(epochMs: number): string {
+  const date = new Date(epochMs);
+  const pad = (value: number) => String(value).padStart(2, "0");
+  return (
+    `${date.getUTCFullYear()}-${pad(date.getUTCMonth() + 1)}-${pad(date.getUTCDate())} ` +
+    `${pad(date.getUTCHours())}:${pad(date.getUTCMinutes())}:${pad(date.getUTCSeconds())}`
+  );
 }
 
 /** stringToSign = merchantCode + merchantOrderId (cek transaksi, dipakai Fase 3). */
@@ -103,6 +135,10 @@ interface InquiryResponse {
 }
 
 export function createDuitkuProvider(config: DuitkuConfig): PaymentProvider {
+  const clock = config.now ?? (() => Date.now());
+  const cacheTtl = config.cacheTtlMs ?? 5 * 60_000;
+  const methodCache = new Map<string, { at: number; methods: DuitkuPaymentMethod[] }>();
+
   return {
     async createInvoice(request: CreateInvoiceRequest): Promise<CreateInvoiceResponse> {
       if (!config.merchantCode || !config.apiKey) {
@@ -170,6 +206,80 @@ export function createDuitkuProvider(config: DuitkuConfig): PaymentProvider {
         vaNumber: typeof payload.vaNumber === "string" ? payload.vaNumber : null,
         qrString: typeof payload.qrString === "string" ? payload.qrString : null,
       };
+    },
+
+    async getPaymentMethods(amount: number): Promise<DuitkuPaymentMethod[]> {
+      if (!config.merchantCode || !config.apiKey) {
+        throw new PaymentProviderError(
+          "PROVIDER_NOT_CONFIGURED",
+          "DUITKU_MERCHANT_CODE/DUITKU_API_KEY belum diset.",
+        );
+      }
+
+      const cacheKey = String(amount);
+      const cached = methodCache.get(cacheKey);
+      if (cached && clock() - cached.at < cacheTtl) {
+        return cached.methods;
+      }
+
+      const datetime = duitkuDatetime(clock());
+      let response: Response;
+      try {
+        response = await config.fetch(
+          `${config.baseUrl}/webapi/api/merchant/paymentmethod/getpaymentmethod`,
+          {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              merchantcode: config.merchantCode,
+              amount,
+              datetime,
+              signature: await getPaymentMethodsSignature(
+                config.merchantCode,
+                amount,
+                datetime,
+                config.apiKey,
+              ),
+            }),
+            signal: AbortSignal.timeout(15_000),
+          },
+        );
+      } catch {
+        throw new PaymentProviderError("NETWORK", "Tidak bisa menghubungi Duitku.");
+      }
+
+      if (!response.ok) {
+        throw new PaymentProviderError(`HTTP_${response.status}`, "Duitku menolak permintaan channel.");
+      }
+
+      const payload = (await response.json().catch(() => null)) as {
+        paymentFee?: Array<{
+          paymentMethod?: unknown;
+          paymentName?: unknown;
+          paymentImage?: unknown;
+          totalFee?: unknown;
+        }>;
+        responseCode?: unknown;
+      } | null;
+
+      if (!payload || payload.responseCode !== "00" || !Array.isArray(payload.paymentFee)) {
+        throw new PaymentProviderError("INVALID_RESPONSE", "Respons metode pembayaran tidak valid.");
+      }
+
+      const methods = payload.paymentFee
+        .filter(
+          (item) =>
+            typeof item.paymentMethod === "string" && typeof item.paymentName === "string",
+        )
+        .map((item) => ({
+          code: String(item.paymentMethod),
+          name: String(item.paymentName),
+          image: typeof item.paymentImage === "string" ? item.paymentImage : "",
+          totalFee: typeof item.totalFee === "string" ? item.totalFee : String(item.totalFee ?? "0"),
+        }));
+
+      methodCache.set(cacheKey, { at: clock(), methods });
+      return methods;
     },
 
     async getStatus(merchantOrderId: string): Promise<TransactionStatusResult> {
