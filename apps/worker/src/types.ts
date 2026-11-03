@@ -6,8 +6,7 @@ export interface Env {
   DUITKU_BASE_URL?: string;
   DUITKU_MERCHANT_CODE?: string;
   DUITKU_API_KEY?: string;
-  ACCESS_TEAM_DOMAIN?: string;
-  ACCESS_AUD?: string;
+  ADMIN_TOKEN?: string;
 }
 
 export interface ProjectRecord {
@@ -203,5 +202,5 @@ export interface AdminRepository {
 
 export type AppEnv = {
   Bindings: Env;
-  Variables: { project: ProjectRecord; adminEmail: string };
+  Variables: { project: ProjectRecord; adminActor: string };
 };

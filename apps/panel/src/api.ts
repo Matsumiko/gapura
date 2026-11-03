@@ -73,17 +73,33 @@ export class ApiError extends Error {
 
 export const apiBaseUrl: string = import.meta.env.VITE_API_URL ?? "http://127.0.0.1:8787";
 
+const TOKEN_KEY = "gapura.admin.token";
+
+export function getAdminToken(): string {
+  return sessionStorage.getItem(TOKEN_KEY) ?? "";
+}
+
+export function setAdminToken(token: string): void {
+  if (token) {
+    sessionStorage.setItem(TOKEN_KEY, token);
+  } else {
+    sessionStorage.removeItem(TOKEN_KEY);
+  }
+}
+
 async function request<T>(path: string, init: RequestInit = {}): Promise<T> {
+  const token = getAdminToken();
+  if (!token) {
+    throw new ApiError("Token admin belum diisi.", 401);
+  }
+
   const headers = new Headers(init.headers);
+  headers.set("Authorization", `Bearer ${token}`);
   if (init.body !== undefined) {
     headers.set("Content-Type", "application/json");
   }
 
-  const response = await fetch(`${apiBaseUrl}${path}`, {
-    ...init,
-    headers,
-    credentials: "include",
-  });
+  const response = await fetch(`${apiBaseUrl}${path}`, { ...init, headers });
 
   if (!response.ok) {
     const body = (await response.json().catch(() => null)) as {

@@ -1,6 +1,6 @@
 # Deployment
 
-Staging berjalan di Cloudflare Workers + D1 pada `https://pay.example.com`; panel di `https://admin.example.com`. Semua langkah di bawah memakai `wrangler` dari `apps/worker` dan token dengan izin Workers Scripts + D1 (+ DNS/Access untuk domain & panel).
+Staging berjalan di Cloudflare Workers + D1 pada `https://pay.example.com`; panel di `https://admin.example.com`. Semua langkah di bawah memakai `wrangler` dari `apps/worker` dan token dengan izin Workers Scripts + D1 (+ DNS/Pages untuk domain & panel).
 
 ## Prasyarat
 
@@ -59,29 +59,27 @@ wrangler rollback <version-id>
 
 Migrasi D1 bersifat maju saja; rollback kode tidak membatalkan migrasi. Untuk perubahan skema yang merusak, buat migrasi baru yang memperbaiki, bukan mengedit migrasi lama.
 
-## Panel admin (sudah berjalan)
-
-Domain dan Access:
+## Panel admin (Pages + token)
 
 | Item | Nilai |
 |---|---|
 | API Worker | `https://pay.example.com` |
-| Panel Pages | `https://admin.example.com` |
-| Team Access | `https://your-team.cloudflareaccess.com` |
-| Access app API | `https://pay.example.com/admin` (AUD `REDACTED_AUD808652ace892c8b4b85c6a092c7916b563ef550fcaaf1f44c599f1e4`) |
-| Access app panel | `https://admin.example.com` (AUD `REDACTED_AUD97328632d618c2b3bc78109f58d4e9558bc546434572f97041700e54`) |
-| Access app pages.dev | `your-project.pages.dev` + wildcard `*.your-project.pages.dev` (preview) |
-| Policy | allow email owner (satu-satunya identitas) |
+| Panel Pages | `https://admin.example.com` (project `gapura-admin`) |
+| Alias Pages | `https://your-project.pages.dev` (hanya halaman login) |
+| Auth | `Authorization: Bearer <ADMIN_TOKEN>`; token disimpan di sessionStorage |
 
 Langkah yang sudah dijalankan:
 
-1. Zero Trust/Access diaktifkan; dua application self-hosted dibuat + policy email owner.
-2. `ACCESS_TEAM_DOMAIN` dan `ACCESS_AUD` diset di `wrangler.toml`; Worker dideploy ulang.
-3. Worker custom domain `pay.example.com` dipasang lewat `routes` (`custom_domain = true`).
-4. Panel dibangun dengan `VITE_API_URL=https://pay.example.com` lalu `wrangler pages deploy apps/panel/dist --project-name gapura-admin --branch main`.
-5. Custom domain Pages `admin-pay.example.com` ditambahkan, plus CNAME proxied ke `your-project.pages.dev`.
+1. Worker custom domain `pay.example.com`; `workers_dev = false` sehingga hanya host itu yang melayani.
+2. Secret admin: `printf '%s' '<token-64-hex>' | wrangler secret put ADMIN_TOKEN`.
+3. Build panel: `VITE_API_URL=https://pay.example.com pnpm --filter @gapura/panel build`.
+4. Deploy Pages: `wrangler pages deploy apps/panel/dist --project-name gapura-admin --branch main`.
+5. Custom domain Pages `admin-pay.example.com` + CNAME proxied ke `your-project.pages.dev`.
+6. `PANEL_ORIGIN` di `wrangler.toml` memuat origin panel (`admin-pay.example.com` dan `your-project.pages.dev`); CORS mengizinkan header `Authorization`.
 
-Verifikasi: request tanpa sesi ke `/admin/*`, panel, `your-project.pages.dev`, dan preview `*.your-project.pages.dev` menghasilkan 302 ke login Access; `/health` tetap publik. `workers_dev = false`, jadi Worker hanya bisa diakses lewat `pay.example.com` (workers.dev menjawab 404). Bila `ACCESS_AUD` diganti, deploy ulang Worker. Jangan menonaktifkan policy Access saat panel dipakai.
+Verifikasi: `/health` 200; `/admin/summary` tanpa token 401 dan dengan Bearer 200; panel menampilkan layar token, dan setelah login menampilkan ringkasan/project/transaksi dari D1.
+
+Rotasi token: `wrangler secret put ADMIN_TOKEN` dengan nilai baru; semua tab lama akan menerima 401 dan harus login ulang. Jangan menaruh token di repo, URL, atau `localStorage`.
 
 ## Produksi (belum dilakukan)
 

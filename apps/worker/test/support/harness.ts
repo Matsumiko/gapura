@@ -1,7 +1,6 @@
 import { sha256Hex } from "@gapura/shared/crypto";
 import { buildApp, type AppDeps } from "../../src/app";
 import type { AdminService } from "../../src/services/admin";
-import type { AccessVerifier } from "../../src/providers/access";
 import type { CallbackService } from "../../src/services/callbacks";
 import type { PaymentsService } from "../../src/services/payments";
 import type { WebhookForwarder } from "../../src/services/webhooks";
@@ -131,7 +130,7 @@ export async function createTestApp(
     callbacks: unusedCallbacks,
     forwarder: unusedForwarder,
     admin: unusedAdmin,
-    adminVerifier: null as AccessVerifier | null,
+    adminToken: undefined as string | undefined,
     ...overrides,
   };
   const background: Promise<unknown>[] = [];

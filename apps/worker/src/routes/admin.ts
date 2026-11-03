@@ -37,7 +37,7 @@ export function registerAdminRoutes(app: Hono<AppEnv>, deps: AdminRouteDeps): vo
       return jsonError(c, 400, "INVALID_REQUEST", "Body project tidak valid.");
     }
     try {
-      const created = await deps.admin.createProject(parsed.data, c.get("adminEmail"));
+      const created = await deps.admin.createProject(parsed.data, c.get("adminActor"));
       return c.json(created, 201);
     } catch (error) {
       if (error instanceof AdminConflictError) {
@@ -55,7 +55,7 @@ export function registerAdminRoutes(app: Hono<AppEnv>, deps: AdminRouteDeps): vo
     const project = await deps.admin.setProjectActive(
       c.req.param("id"),
       raw.isActive,
-      c.get("adminEmail"),
+      c.get("adminActor"),
     );
     if (!project) {
       return jsonError(c, 404, "NOT_FOUND", "Project tidak ditemukan.");
@@ -64,7 +64,7 @@ export function registerAdminRoutes(app: Hono<AppEnv>, deps: AdminRouteDeps): vo
   });
 
   app.post("/admin/projects/:id/rotate-key", async (c) => {
-    const apiKey = await deps.admin.rotateApiKey(c.req.param("id"), c.get("adminEmail"));
+    const apiKey = await deps.admin.rotateApiKey(c.req.param("id"), c.get("adminActor"));
     if (!apiKey) {
       return jsonError(c, 404, "NOT_FOUND", "Project tidak ditemukan.");
     }
@@ -74,7 +74,7 @@ export function registerAdminRoutes(app: Hono<AppEnv>, deps: AdminRouteDeps): vo
   app.post("/admin/projects/:id/rotate-secret", async (c) => {
     const webhookSecret = await deps.admin.rotateWebhookSecret(
       c.req.param("id"),
-      c.get("adminEmail"),
+      c.get("adminActor"),
     );
     if (!webhookSecret) {
       return jsonError(c, 404, "NOT_FOUND", "Project tidak ditemukan.");
@@ -121,7 +121,7 @@ export function registerAdminRoutes(app: Hono<AppEnv>, deps: AdminRouteDeps): vo
     if (!Number.isInteger(id) || id < 1) {
       return jsonError(c, 400, "INVALID_REQUEST", "Id webhook tidak valid.");
     }
-    const changed = await deps.admin.retryWebhook(id, c.get("adminEmail"));
+    const changed = await deps.admin.retryWebhook(id, c.get("adminActor"));
     if (!changed) {
       return jsonError(c, 404, "NOT_FOUND", "Webhook tidak ditemukan atau sudah terkirim.");
     }

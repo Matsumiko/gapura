@@ -1,6 +1,6 @@
 # 0006. Admin API dan panel dilindungi Cloudflare Access JWT
 
-- Status: diterima
+- Status: digantikan ADR-0007 (token Bearer); Access tidak dipakai
 - Tanggal: 2026-11-03
 
 ## Konteks

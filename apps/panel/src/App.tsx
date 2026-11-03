@@ -1,4 +1,7 @@
+import { useState } from "react";
 import { BrowserRouter, NavLink, Route, Routes } from "react-router-dom";
+import { getAdminToken, setAdminToken } from "./api";
+import { LoginPage } from "./pages/LoginPage";
 import { SummaryPage } from "./pages/SummaryPage";
 import { ProjectsPage } from "./pages/ProjectsPage";
 import { TransactionsPage } from "./pages/TransactionsPage";
@@ -13,6 +16,24 @@ const links = [
 ];
 
 export default function App() {
+  const [token, setToken] = useState(() => getAdminToken());
+
+  if (!token) {
+    return (
+      <LoginPage
+        onLogin={(value) => {
+          setAdminToken(value);
+          setToken(value);
+        }}
+      />
+    );
+  }
+
+  function logout() {
+    setAdminToken("");
+    setToken("");
+  }
+
   return (
     <BrowserRouter>
       <div className="app">
@@ -21,7 +42,7 @@ export default function App() {
             <h1>Gapura Admin</h1>
             <p className="muted">Kelola project, transaksi, dan pengiriman webhook.</p>
           </div>
-          <nav className="nav">
+          <div className="nav">
             {links.map((link) => (
               <NavLink
                 key={link.to}
@@ -32,7 +53,10 @@ export default function App() {
                 {link.label}
               </NavLink>
             ))}
-          </nav>
+            <button type="button" className="ghost" onClick={logout}>
+              Keluar
+            </button>
+          </div>
         </header>
 
         <main className="content">

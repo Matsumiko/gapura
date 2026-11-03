@@ -13,8 +13,7 @@ Worker (Cloudflare):
 - `apps/worker/src/routes/payments.ts` — `POST /v1/payments` dan `GET /v1/payments/:orderId`, menerjemahkan error domain ke status HTTP.
 - `apps/worker/src/routes/callback.ts` — `POST /callback/duitku`: parse form, verifikasi lewat service, jadwalkan forward asinkron.
 - `apps/worker/src/routes/admin.ts` — endpoint `/admin/*`: ringkasan, project, transaksi, webhook retry; menerjemahkan error domain ke HTTP.
-- `apps/worker/src/middleware/admin-auth.ts` — wajib JWT Access valid; fail closed bila Access belum dikonfigurasi.
-- `apps/worker/src/providers/access.ts` — verifikasi JWT RS256 via JWKS Access, cache kunci, ambil email admin.
+- `apps/worker/src/middleware/admin-auth.ts` — wajib Bearer `ADMIN_TOKEN` (waktu-konstan); fail closed bila secret kosong.
 - `apps/worker/src/repositories/admin.ts` — SQL khusus admin: daftar/mutasi project, daftar transaksi + filter, riwayat webhook, ringkasan, audit.
 - `apps/worker/src/services/admin.ts` — operasi admin (buat project, rotasi kredensial, ringkasan, retry webhook) + penulisan audit.
 - `apps/worker/src/services/payments.ts` — orkestrasi buat transaksi: order ID, simpan PENDING, panggil provider, simpan artefak; membuang baris PENDING bila vendor gagal sebelum transaksi dibuat.
@@ -48,8 +47,9 @@ Shared (dipakai Worker dan panel):
 Panel:
 - `apps/panel/src/main.tsx` — bootstrap React + QueryClient.
 - `apps/panel/src/App.tsx` — halaman status API.
-- `apps/panel/src/api.ts` — base URL `VITE_API_URL`, tipe admin, dan fetch dengan cookie Access.
-- `apps/panel/src/App.tsx` — layout + React Router untuk Ringkasan/Project/Transaksi/Webhook.
+- `apps/panel/src/api.ts` — base URL `VITE_API_URL`, tipe admin, token di sessionStorage, fetch dengan header Authorization.
+- `apps/panel/src/App.tsx` — gate login token + layout React Router.
+- `apps/panel/src/pages/LoginPage.tsx` — layar token admin (verifikasi lewat `/admin/summary`).
 - `apps/panel/src/pages/SummaryPage.tsx` — total PAID hari/bulan per project.
 - `apps/panel/src/pages/ProjectsPage.tsx` — buat project, aktif/nonaktif, rotasi key/secret (tampil sekali).
 - `apps/panel/src/pages/TransactionsPage.tsx` — daftar transaksi dengan filter dan paging.
@@ -68,8 +68,7 @@ Test:
 - `apps/worker/test/retries.test.ts` — klaim, pengiriman ulang, backoff, DEAD.
 - `apps/worker/test/sync.test.ts` — pemetaan 00/01/02, transaksi lama vs baru, kegagalan provider.
 - `apps/worker/test/retention.test.ts` — pemangkasan hanya untuk baris terminal lama.
-- `apps/worker/test/access.test.ts` — verifikasi JWT Access (valid, kedaluwarsa, aud/iss salah, signature diubah, cache JWKS).
-- `apps/worker/test/admin.test.ts` — otorisasi admin, CRUD project, rotasi kredensial, ringkasan, filter transaksi, retry webhook, audit.
+- `apps/worker/test/admin.test.ts` — otorisasi token, CRUD project, rotasi kredensial, ringkasan, filter transaksi, retry webhook, audit.
 - `apps/worker/test/schema.test.ts` — constraint dan index migrasi.
 - `apps/worker/test/support/` — harness HTTP, repository in-memory, adapter D1→SQLite. Bukan test.
 - `packages/shared/test/` — unit test crypto, hmac, order id, status, dan skema payment.

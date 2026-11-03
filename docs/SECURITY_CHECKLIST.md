@@ -15,7 +15,7 @@ Diperbarui: 2026-11-03. Berlaku untuk Worker staging `gapura-sandbox`.
 | SQL injection | Baca/ubah data | Semua query D1 memakai `.bind()` parameter | Ada |
 | SSRF lewat `webhook_url` | Worker memanggil host internal | URL hanya diisi owner lewat admin (Fase 6); belum ada validasi host khusus | Tertunda (belum ada input eksternal) |
 | Data pribadi di log | Kebocoran nama/email | Log hanya memuat merchant order id, kode error, dan ringkasan cron | Ada |
-| Panel admin terekspos | Aksi admin tanpa izin | `/admin/*` dan panel di balik Cloudflare Access; Worker memverifikasi JWT RS256 (aud/iss/exp); fail closed bila vars kosong | Ada + test; live |
+| Panel admin terekspos | Aksi admin tanpa izin | `/admin/*` wajib Bearer `ADMIN_TOKEN` (dibandingkan waktu-konstan, fail closed bila kosong); panel login token di sessionStorage | Ada + test; live |
 | Dependency rentan | RCE/data leak | `pnpm audit` bersih per 2026-11-03; jalankan sebelum rilis | Ada (manual) |
 | Secret masuk repo | Kredensial bocor | `.dev.vars`/`.env` di-.gitignore; secret produksi lewat `wrangler secret put`; config gitleaks tersedia | Ada + config |
 | Log webhook tumbuh tanpa batas | Kuota D1 penuh | Retensi 30 hari untuk baris `DELIVERED`/`DEAD`; retry terjadwal tidak dipangkas | Ada + test |
@@ -32,7 +32,8 @@ Diperbarui: 2026-11-03. Berlaku untuk Worker staging `gapura-sandbox`.
 - [x] Test jalur gagal (signature salah, nominal salah, akses ditolak, order tak dikenal, retry DEAD).
 - [x] `pnpm audit` bersih sebelum deploy staging (2026-11-03).
 - [ ] Rate limit per project (FR-10, P1) — belum; andalkan Cloudflare/WAF sebelum produksi.
-- [x] Endpoint `/admin/*` dan panel dilindungi Cloudflare Access (policy email owner).
+- [x] Endpoint `/admin/*` dilindungi token Bearer; panel tidak menyimpan token di localStorage/URL.
+- [ ] Rate limit percobaan token admin — belum; token 64 hex + WAF disarankan.
 - [x] Rotasi API key dan webhook secret lewat panel; kredensial tampil sekali.
 - [x] Aksi admin dicatat di `admin_audit` (email pelaku, aksi, target).
 - [ ] Pemindaian secret otomatis di CI — config ada, CI belum dipasang.

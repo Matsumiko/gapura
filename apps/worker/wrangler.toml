@@ -17,12 +17,10 @@ migrations_dir = "migrations"
 
 [vars]
 ENVIRONMENT = "staging"
-PANEL_ORIGIN = "https://admin.example.com"
+PANEL_ORIGIN = "https://admin.example.com,https://your-project.pages.dev"
 # URL publik Worker, dipakai sebagai callbackUrl transaksi Duitku.
 PUBLIC_BASE_URL = "https://pay.example.com"
 DUITKU_BASE_URL = "https://sandbox.duitku.com"
-ACCESS_TEAM_DOMAIN = "https://your-team.cloudflareaccess.com"
-ACCESS_AUD = "REDACTED_AUD808652ace892c8b4b85c6a092c7916b563ef550fcaaf1f44c599f1e4"
 
 [triggers]
 # Pemroses retry webhook dan sinkronisasi transaksi PENDING.

@@ -1,6 +1,5 @@
 import { sha256Hex, generateApiKey, generateWebhookSecret } from "@gapura/shared/crypto";
 import { describe, expect, it } from "vitest";
-import type { AccessVerifier } from "../src/providers/access";
 import { createAdminRepository } from "../src/repositories/admin";
 import { createProjectsRepository } from "../src/repositories/projects";
 import { createAdminService } from "../src/services/admin";
@@ -11,16 +10,7 @@ import { createTestApp } from "./support/harness";
 import { createTestDatabase } from "./support/d1";
 
 const NOW = new Date("2026-11-03T10:00:00.000Z");
-const ADMIN = { "Cf-Access-Jwt-Assertion": "good" };
-
-const verifier: AccessVerifier = {
-  async verify(token) {
-    if (token !== "good") {
-      throw new Error("bad token");
-    }
-    return { email: "admin@test", subject: "admin" };
-  },
-};
+const ADMIN = { Authorization: "Bearer test-token" };
 
 async function setup() {
   const db = createTestDatabase(`${schema1}\n${schema2}\n${schema3}`);
@@ -34,7 +24,7 @@ async function setup() {
   const test = await createTestApp({
     projects: createProjectsRepository(db),
     admin,
-    adminVerifier: verifier,
+    adminToken: "test-token",
   });
   return { ...test, db, admin };
 }
@@ -61,28 +51,28 @@ async function createProject(
 }
 
 describe("otorisasi admin", () => {
-  it("menolak request tanpa JWT Access", async () => {
+  it("menolak request tanpa token admin", async () => {
     const { app, env } = await setup();
     const response = await app.request("/admin/summary", {}, env);
 
     expect(response.status).toBe(401);
   });
 
-  it("menolak JWT yang tidak valid", async () => {
+  it("menolak token admin yang salah", async () => {
     const { app, env } = await setup();
     const response = await app.request(
       "/admin/summary",
-      { headers: { "Cf-Access-Jwt-Assertion": "bad" } },
+      { headers: { Authorization: "Bearer salah" } },
       env,
     );
 
     expect(response.status).toBe(401);
   });
 
-  it("menonaktifkan endpoint admin bila Access belum dikonfigurasi", async () => {
-    const withoutAccess = await createTestApp({ adminVerifier: null });
+  it("menonaktifkan endpoint admin bila ADMIN_TOKEN belum diset", async () => {
+    const withoutToken = await createTestApp({ adminToken: undefined });
 
-    const response = await withoutAccess.app.request("/admin/summary", {}, withoutAccess.env);
+    const response = await withoutToken.app.request("/admin/summary", {}, withoutToken.env);
 
     expect(response.status).toBe(503);
     expect(((await response.json()) as { error: { code: string } }).error.code).toBe(
@@ -90,7 +80,7 @@ describe("otorisasi admin", () => {
     );
   });
 
-  it("mengizinkan preflight panel dengan header Access", async () => {
+  it("mengizinkan preflight panel dengan header Authorization", async () => {
     const { app, env } = await setup();
     const response = await app.request(
       "/admin/summary",
@@ -99,7 +89,7 @@ describe("otorisasi admin", () => {
         headers: {
           Origin: "http://localhost:5173",
           "Access-Control-Request-Method": "GET",
-          "Access-Control-Request-Headers": "Cf-Access-Jwt-Assertion",
+          "Access-Control-Request-Headers": "Authorization",
         },
       },
       env,
@@ -349,7 +339,7 @@ describe("audit admin", () => {
       "deactivate_project",
       "rotate_api_key",
     ]);
-    expect(rows.results.every((row) => row.actor_email === "admin@test")).toBe(true);
+    expect(rows.results.every((row) => row.actor_email === "admin-token")).toBe(true);
     const serialized = JSON.stringify(rows.results);
     expect(serialized).not.toContain(String(created.body.apiKey));
     expect(serialized).not.toContain(String(created.body.webhookSecret));

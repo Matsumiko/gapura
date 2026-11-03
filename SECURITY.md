@@ -22,7 +22,7 @@ Jangan menyertakan API key, secret Duitku, atau data pembeli asli dalam laporan 
 ## Di luar cakupan
 
 - Halaman pembayaran Duitku (milik vendor).
-- Panel admin belum dideploy; begitu dideploy, panel berada di balik Cloudflare Access.
+- Panel admin dideploy di Cloudflare Pages dan dilindungi token admin (`ADMIN_TOKEN`), bukan Zero Trust; API `/admin/*` menolak request tanpa Bearer token.
 - Serangan pada akun Cloudflare atau akun Duitku itu sendiri.
 
 ## Target respons

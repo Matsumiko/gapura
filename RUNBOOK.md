@@ -68,9 +68,9 @@ wrangler d1 execute gapura-sandbox --remote --json --command \
 
 ## Panel admin
 
-- `503 ADMIN_NOT_CONFIGURED`: `ACCESS_TEAM_DOMAIN`/`ACCESS_AUD` kosong di Worker. Set ulang dan deploy.
-- `401 ADMIN_UNAUTHORIZED`: sesi Access habis atau domain/AUD tidak cocok. Login ulang lewat Access; cek `aud` application.
-- Halaman kosong/`403`: policy Access tidak mengizinkan email tersebut.
+- `503 ADMIN_NOT_CONFIGURED`: secret `ADMIN_TOKEN` kosong. Set lewat `wrangler secret put ADMIN_TOKEN`.
+- `401 ADMIN_UNAUTHORIZED`: token di sessionStorage kosong/salah. Klik Keluar lalu masukkan token lagi.
+- Lupa token: rotasi dengan `wrangler secret put ADMIN_TOKEN`, lalu login ulang di panel (semua tab lama harus logout).
 - Tombol kirim ulang webhook mengubah baris `DEAD`/`FAILED` menjadi jadwal baru (attempt 1, jatuh tempo sekarang); Cron berikutnya mengirim.
 
 ## Eskalasi

@@ -6,7 +6,7 @@ Spesifikasi produk: [PRD.md](PRD.md). Keputusan arsitektur: [docs/adr](docs/adr)
 
 ## Status
 
-Fase 1-3 berjalan dan **staging live** di `https://pay.example.com` (D1 `gapura-sandbox`, Cron aktif, kredensial sandbox asli). Panel admin live di `https://admin.example.com` dan API `/admin/*` di `https://pay.example.com/admin/*`, keduanya di balik Cloudflare Access. Total 158 test. **Belum ada transaksi ke sandbox Duitku sungguhan**: secret staging masih placeholder (`D0001`/`placeholder-api-key`) sampai kredensial merchant tersedia.
+Fase 1-3 berjalan dan **staging live** di `https://pay.example.com` (D1 `gapura-sandbox`, Cron aktif, kredensial sandbox asli). Panel admin live di `https://admin.example.com` dan API `/admin/*` di `https://pay.example.com/admin/*`, dilindungi token admin (Bearer). Total 150 test. Kredensial sandbox asli sudah dipakai; pembayaran sandbox lewat demo Duitku berhasil dan callback asli membuat transaksi PAID.
 
 ## Struktur
 
@@ -51,7 +51,7 @@ Semua endpoint `/v1/*` memakai header `X-Gapura-Key` (API key project). Error se
 | `POST /v1/payments` | buat transaksi Duitku, simpan `PENDING`, kembalikan `paymentUrl`/`vaNumber`/`qrString` |
 | `GET /v1/payments/:orderId` | status transaksi milik project sendiri |
 | `POST /callback/duitku` | callback Duitku; verifikasi HMAC-SHA256 + nominal, forward asinkron |
-| `GET /admin/*`, `POST /admin/*`, `PATCH /admin/*` | panel admin; wajib JWT Cloudflare Access (`Cf-Access-Jwt-Assertion` atau cookie `CF_Authorization`) |
+| `GET /admin/*`, `POST /admin/*`, `PATCH /admin/*` | panel admin; wajib `Authorization: Bearer <ADMIN_TOKEN>` |
 
 Contoh:
 
@@ -74,7 +74,7 @@ curl -X POST http://127.0.0.1:8787/v1/payments \
 
 ## Panel admin
 
-SPA React di `apps/panel` + endpoint `/admin/*` di Worker. Semua endpoint admin memverifikasi JWT Cloudflare Access (RS256, `aud`, `iss`, `exp`); tanpa `ACCESS_TEAM_DOMAIN`/`ACCESS_AUD` endpoint menjawab `503 ADMIN_NOT_CONFIGURED` (fail closed).
+SPA React di `apps/panel` + endpoint `/admin/*` di Worker. Endpoint admin membandingkan token Bearer dengan secret `ADMIN_TOKEN` secara waktu-konstan; bila secret kosong endpoint menjawab `503 ADMIN_NOT_CONFIGURED` (fail closed). Panel meminta token sekali dan menyimpannya di `sessionStorage` tab; tombol Keluar menghapusnya.
 
 ```sh
 pnpm --filter @gapura/panel dev   # http://127.0.0.1:5173
@@ -82,7 +82,7 @@ pnpm --filter @gapura/panel dev   # http://127.0.0.1:5173
 
 Halaman: Ringkasan (total PAID hari/bulan), Project (buat, aktif/nonaktif, rotasi API key & webhook secret — kredensial tampil sekali), Transaksi (filter + detail + riwayat webhook), Webhook gagal (retry manual). Setiap aksi admin dicatat di tabel `admin_audit` dengan email pelaku dari JWT.
 
-Panel sudah dideploy di `https://admin.example.com` (Access app terpisah, policy email owner; `your-project.pages.dev` dan preview `*.your-project.pages.dev` juga di balik Access). API admin memakai Access app pada path `/admin`; request tanpa sesi diarahkan ke login. Langkah lengkap ada di `DEPLOYMENT.md`. Detail keputusan: [ADR-0006](docs/adr/0006-admin-api-dan-panel-dilindungi-cloudflare-access-j.md).
+Panel sudah dideploy di `https://admin.example.com` (Pages) dengan layar login token; alias `your-project.pages.dev` menampilkan login yang sama. API admin memakai Bearer `ADMIN_TOKEN`; request tanpa token ditolak 401. Langkah lengkap ada di `DEPLOYMENT.md`. Detail keputusan: [ADR-0007](docs/adr/0007-admin-memakai-token-bearer-tanpa-zero-trust.md).
 
 ## Webhook keluar
 

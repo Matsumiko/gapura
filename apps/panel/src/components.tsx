@@ -10,11 +10,11 @@ export function ErrorNote({ error }: { error: unknown }) {
   return (
     <div className="error" role="alert">
       <strong>Gagal memuat.</strong> {message}
-      {status === 401 || status === 503 ? (
-        <span className="muted">
-          {" "}
-          Akses admin belum aktif di environment ini (Cloudflare Access / ACCESS_AUD).
-        </span>
+      {status === 401 ? (
+        <span className="muted"> Token admin kosong atau salah. Keluar lalu masukkan token lagi.</span>
+      ) : null}
+      {status === 503 ? (
+        <span className="muted"> ADMIN_TOKEN belum diset di Worker.</span>
       ) : null}
     </div>
   );
