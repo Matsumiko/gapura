@@ -1,6 +1,6 @@
 # Deployment
 
-Staging berjalan di Cloudflare Workers + D1. Semua langkah di bawah memakai `wrangler` dari `apps/worker` dan token dengan izin Workers Scripts + D1.
+Staging berjalan di Cloudflare Workers + D1 pada `https://pay.example.com`; panel di `https://admin.example.com`. Semua langkah di bawah memakai `wrangler` dari `apps/worker` dan token dengan izin Workers Scripts + D1 (+ DNS/Access untuk domain & panel).
 
 ## Prasyarat
 
@@ -59,19 +59,29 @@ wrangler rollback <version-id>
 
 Migrasi D1 bersifat maju saja; rollback kode tidak membatalkan migrasi. Untuk perubahan skema yang merusak, buat migrasi baru yang memperbaiki, bukan mengedit migrasi lama.
 
-## Panel admin (menunggu Access)
+## Panel admin (sudah berjalan)
 
-Status: migrasi `0003_admin_audit.sql` sudah diterapkan remote dan Worker admin sudah dideploy **fail-closed** (`/admin/*` → 503). Akun Cloudflare belum mengaktifkan Access (`access.api.error.not_enabled`), jadi langkah berikut belum dijalankan:
+Domain dan Access:
 
-1. Aktifkan Zero Trust/Access di dashboard, lalu buat Access application untuk domain panel dan path `/admin/*` pada Worker (satu application, policy email owner).
-2. Ambil Application Audience (AUD) dan team domain (`<team>.cloudflareaccess.com`).
-3. Set variabel Worker: `ACCESS_TEAM_DOMAIN` dan `ACCESS_AUD` di `wrangler.toml`, lalu deploy ulang.
-4. Migrasi 0003 sudah diterapkan; tidak perlu diulang.
-5. Build panel: `pnpm --filter @gapura/panel build`.
-6. Deploy Pages: `wrangler pages deploy apps/panel/dist --project-name gapura-admin` (set `VITE_API_URL` saat build ke URL Worker).
-7. Pastikan `_redirects` SPA ikut terunggah dan panel hanya bisa dibuka setelah login Access.
+| Item | Nilai |
+|---|---|
+| API Worker | `https://pay.example.com` |
+| Panel Pages | `https://admin.example.com` |
+| Team Access | `https://your-team.cloudflareaccess.com` |
+| Access app API | `https://pay.example.com/admin` (AUD `REDACTED_AUD808652ace892c8b4b85c6a092c7916b563ef550fcaaf1f44c599f1e4`) |
+| Access app panel | `https://admin.example.com` (AUD `REDACTED_AUD97328632d618c2b3bc78109f58d4e9558bc546434572f97041700e54`) |
+| Access app pages.dev | `your-project.pages.dev` + wildcard `*.your-project.pages.dev` (preview) |
+| Policy | allow email owner (satu-satunya identitas) |
 
-Tanpa langkah 1–3, `/admin/*` menjawab `503 ADMIN_NOT_CONFIGURED`; jangan deploy panel tanpa Access.
+Langkah yang sudah dijalankan:
+
+1. Zero Trust/Access diaktifkan; dua application self-hosted dibuat + policy email owner.
+2. `ACCESS_TEAM_DOMAIN` dan `ACCESS_AUD` diset di `wrangler.toml`; Worker dideploy ulang.
+3. Worker custom domain `pay.example.com` dipasang lewat `routes` (`custom_domain = true`).
+4. Panel dibangun dengan `VITE_API_URL=https://pay.example.com` lalu `wrangler pages deploy apps/panel/dist --project-name gapura-admin --branch main`.
+5. Custom domain Pages `admin-pay.example.com` ditambahkan, plus CNAME proxied ke `your-project.pages.dev`.
+
+Verifikasi: request tanpa sesi ke `/admin/*`, panel, `your-project.pages.dev`, dan preview `*.your-project.pages.dev` menghasilkan 302 ke login Access; `/health` tetap publik. Worker `workers.dev` tetap bisa diakses langsung, tetapi `/admin/*` di sana menolak tanpa JWT (401). Bila `ACCESS_AUD` diganti, deploy ulang Worker. Jangan menonaktifkan policy Access saat panel dipakai.
 
 ## Produksi (belum dilakukan)
 

@@ -6,7 +6,7 @@ Spesifikasi produk: [PRD.md](PRD.md). Keputusan arsitektur: [docs/adr](docs/adr)
 
 ## Status
 
-Fase 1-3 berjalan dan **staging sudah live** di `https://pay.example.com` (D1 `gapura-sandbox`, Cron aktif, kredensial sandbox asli). Fase 6: admin API sudah live di staging dalam keadaan fail-closed (503 sampai Access diset); panel React berjalan lokal dengan JWT Access, **belum dideploy** karena Access belum aktif di akun. Total 158 test. **Belum ada transaksi ke sandbox Duitku sungguhan**: secret staging masih placeholder (`D0001`/`placeholder-api-key`) sampai kredensial merchant tersedia.
+Fase 1-3 berjalan dan **staging live** di `https://pay.example.com` (D1 `gapura-sandbox`, Cron aktif, kredensial sandbox asli). Panel admin live di `https://admin.example.com` dan API `/admin/*` di `https://pay.example.com/admin/*`, keduanya di balik Cloudflare Access. Total 158 test. **Belum ada transaksi ke sandbox Duitku sungguhan**: secret staging masih placeholder (`D0001`/`placeholder-api-key`) sampai kredensial merchant tersedia.
 
 ## Struktur
 
@@ -82,7 +82,7 @@ pnpm --filter @gapura/panel dev   # http://127.0.0.1:5173
 
 Halaman: Ringkasan (total PAID hari/bulan), Project (buat, aktif/nonaktif, rotasi API key & webhook secret — kredensial tampil sekali), Transaksi (filter + detail + riwayat webhook), Webhook gagal (retry manual). Setiap aksi admin dicatat di tabel `admin_audit` dengan email pelaku dari JWT.
 
-Panel **belum dideploy**: akun Cloudflare belum mengaktifkan Access, dan panel tidak boleh publik tanpa proteksi. Langkah deploy ada di `DEPLOYMENT.md`. Detail keputusan: [ADR-0006](docs/adr/0006-admin-api-dan-panel-dilindungi-cloudflare-access-j.md).
+Panel sudah dideploy di `https://admin.example.com` (Access app terpisah, policy email owner; `your-project.pages.dev` dan preview `*.your-project.pages.dev` juga di balik Access). API admin memakai Access app pada path `/admin`; request tanpa sesi diarahkan ke login. Langkah lengkap ada di `DEPLOYMENT.md`. Detail keputusan: [ADR-0006](docs/adr/0006-admin-api-dan-panel-dilindungi-cloudflare-access-j.md).
 
 ## Webhook keluar
 
