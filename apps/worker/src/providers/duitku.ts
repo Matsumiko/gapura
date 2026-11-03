@@ -20,6 +20,8 @@ export interface CreateInvoiceRequest {
   email: string;
   returnUrl: string;
   callbackUrl: string;
+  expiryPeriod?: number;
+  creditCardDetail?: { acquirer?: string; binWhitelist?: string[] };
 }
 
 export interface CreateInvoiceResponse {
@@ -123,6 +125,8 @@ interface InquiryBody {
   returnUrl: string;
   callbackUrl: string;
   signature: string;
+  expiryPeriod?: number;
+  creditCardDetail?: { acquirer?: string; binWhitelist?: string[] };
 }
 
 interface InquiryResponse {
@@ -165,6 +169,8 @@ export function createDuitkuProvider(config: DuitkuConfig): PaymentProvider {
           request.amount,
           config.apiKey,
         ),
+        ...(request.expiryPeriod !== undefined ? { expiryPeriod: request.expiryPeriod } : {}),
+        ...(request.creditCardDetail ? { creditCardDetail: request.creditCardDetail } : {}),
       };
 
       let response: Response;

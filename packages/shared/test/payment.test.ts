@@ -49,6 +49,55 @@ describe("createPaymentInputSchema", () => {
     ).toBe(false);
   });
 
+  it("menerima expiryPeriod dalam batas channel", () => {
+    expect(createPaymentInputSchema.safeParse({ ...validInput, expiryPeriod: 60 }).success).toBe(true);
+    expect(
+      createPaymentInputSchema.safeParse({ ...validInput, paymentMethod: "SP", expiryPeriod: 60 }).success,
+    ).toBe(true);
+  });
+
+  it("menolak expiryPeriod di luar batas atau channel maksimum", () => {
+    for (const input of [
+      { ...validInput, expiryPeriod: 0 },
+      { ...validInput, expiryPeriod: 10081 },
+      { ...validInput, paymentMethod: "SP", expiryPeriod: 120 },
+    ]) {
+      expect(createPaymentInputSchema.safeParse(input).success).toBe(false);
+    }
+  });
+
+  it("menerima creditCardDetail hanya untuk VC", () => {
+    expect(
+      createPaymentInputSchema.safeParse({
+        ...validInput,
+        paymentMethod: "VC",
+        creditCardDetail: { acquirer: "014", binWhitelist: ["014", "400000"] },
+      }).success,
+    ).toBe(true);
+
+    expect(
+      createPaymentInputSchema.safeParse({
+        ...validInput,
+        paymentMethod: "BT",
+        creditCardDetail: { acquirer: "014" },
+      }).success,
+    ).toBe(false);
+  });
+
+  it("menolak creditCardDetail dengan acquirer atau BIN tidak valid", () => {
+    for (const detail of [
+      { acquirer: "999" },
+      { binWhitelist: ["12"] },
+      { binWhitelist: ["1234567"] },
+      { binWhitelist: Array.from({ length: 26 }, () => "014") },
+    ]) {
+      expect(
+        createPaymentInputSchema.safeParse({ ...validInput, paymentMethod: "VC", creditCardDetail: detail })
+          .success,
+      ).toBe(false);
+    }
+  });
+
   it("menolak orderId kosong atau berspasi di ujung", () => {
     for (const orderId of ["", " INV123", "INV123 "]) {
       expect(createPaymentInputSchema.safeParse({ ...validInput, orderId }).success).toBe(false);

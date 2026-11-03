@@ -256,6 +256,24 @@ export function DocsPage() {
                 </td>
                 <td>URL http/https; pembeli diarahkan ke sini setelah selesai/batal.</td>
               </tr>
+              <tr>
+                <td>
+                  <code>expiryPeriod</code>
+                </td>
+                <td>
+                  Opsional, 1–10080 menit. Tidak boleh melebihi batas channel (mis. QRIS 60 menit);
+                  default mengikuti Duitku.
+                </td>
+              </tr>
+              <tr>
+                <td>
+                  <code>creditCardDetail</code>
+                </td>
+                <td>
+                  Khusus <code>VC</code>: <code>acquirer</code> <code>014</code>/<code>022</code>,
+                  <code>binWhitelist</code> 3/6 digit maksimal 25.
+                </td>
+              </tr>
             </tbody>
           </table>
           <Code>{`curl -X POST ${API_BASE}/v1/payments \\

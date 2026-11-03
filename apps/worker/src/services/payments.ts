@@ -104,6 +104,8 @@ export function createPaymentsService(deps: PaymentsDeps): PaymentsService {
           email: input.email,
           returnUrl: input.returnUrl,
           callbackUrl: `${deps.publicBaseUrl}/callback/duitku`,
+          ...(input.expiryPeriod !== undefined ? { expiryPeriod: input.expiryPeriod } : {}),
+          ...(input.creditCardDetail ? { creditCardDetail: input.creditCardDetail } : {}),
         });
       } catch (error) {
         // Belum ada transaksi di Duitku, jadi baris PENDING dibuang agar project bisa mencoba lagi.

@@ -106,6 +106,43 @@ describe("createInvoice", () => {
     });
   });
 
+  it("meneruskan expiryPeriod dan creditCardDetail bila dikirim", async () => {
+    const { provider, calls } = setup(() =>
+      response({
+        reference: "REF-1",
+        paymentUrl: "https://sandbox.duitku.com/topup/REF-1",
+        statusCode: "00",
+      }),
+    );
+
+    await provider.createInvoice({
+      ...REQUEST,
+      paymentMethod: "VC",
+      expiryPeriod: 20,
+      creditCardDetail: { acquirer: "014", binWhitelist: ["014", "400000"] },
+    });
+
+    const body = JSON.parse(String(calls[0]?.init?.body)) as Record<string, unknown>;
+    expect(body.expiryPeriod).toBe(20);
+    expect(body.creditCardDetail).toEqual({ acquirer: "014", binWhitelist: ["014", "400000"] });
+  });
+
+  it("tidak mengirim field opsional bila tidak diisi", async () => {
+    const { provider, calls } = setup(() =>
+      response({
+        reference: "REF-1",
+        paymentUrl: "https://sandbox.duitku.com/topup/REF-1",
+        statusCode: "00",
+      }),
+    );
+
+    await provider.createInvoice(REQUEST);
+
+    const body = JSON.parse(String(calls[0]?.init?.body)) as Record<string, unknown>;
+    expect("expiryPeriod" in body).toBe(false);
+    expect("creditCardDetail" in body).toBe(false);
+  });
+
   it("menolak sebelum memanggil jaringan bila kredensial kosong", async () => {
     const calls: string[] = [];
     const provider = createDuitkuProvider({

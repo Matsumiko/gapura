@@ -153,6 +153,34 @@ describe("POST /v1/payments", () => {
     expect(calls).toHaveLength(0);
   });
 
+  it("meneruskan expiryPeriod dan creditCardDetail ke provider", async () => {
+    const { app, calls } = await setup();
+
+    const response = await postPayment(app, {
+      ...VALID_BODY,
+      paymentMethod: "VC",
+      expiryPeriod: 20,
+      creditCardDetail: { acquirer: "014", binWhitelist: ["014", "400000"] },
+    });
+
+    expect(response.status).toBe(201);
+    expect(calls[0]?.expiryPeriod).toBe(20);
+    expect(calls[0]?.creditCardDetail).toEqual({ acquirer: "014", binWhitelist: ["014", "400000"] });
+  });
+
+  it("menolak creditCardDetail untuk channel selain VC", async () => {
+    const { app, calls } = await setup();
+
+    const response = await postPayment(app, {
+      ...VALID_BODY,
+      paymentMethod: "BT",
+      creditCardDetail: { acquirer: "014" },
+    });
+
+    expect(response.status).toBe(400);
+    expect(calls).toHaveLength(0);
+  });
+
   it("menolak orderId yang membuat merchantOrderId melebihi 50 karakter", async () => {
     const { app, calls } = await setup();
 

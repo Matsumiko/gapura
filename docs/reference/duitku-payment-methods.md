@@ -110,7 +110,7 @@ Response inquiry untuk QRIS mengisi `qrString` (payload yang harus dirender menj
 | Jenius Pay | 10 | 10 |
 | Tokopedia | 1440 | 1440 |
 
-Gapura belum mengirim `expiryPeriod`, jadi semua transaksi memakai default vendor di atas. `expiryPeriod` bisa ditambahkan per transaksi bila diperlukan.
+Gapura menerima `expiryPeriod` opsional (1–10080 menit), memvalidasinya terhadap batas maksimum channel di tabel ini, lalu meneruskannya ke Duitku. Bila tidak diisi, vendor memakai default di atas.
 
 ## Batas dan aturan yang mudah terlewat
 
@@ -157,7 +157,7 @@ Daftar ini bisa berubah kapan saja; selalu ambil ulang dari API.
 - **VA**: response berisi `vaNumber` + `paymentUrl`; nominal harus sama persis.
 - **QRIS**: response berisi `qrString`; render sendiri menjadi QR. `NQ`/`SP`/`SQ` beda issuer.
 - **E-Wallet account link (`OL`/`SL`)**: tidak bisa dipakai tanpa `accountLink` dari Duitku.
-- **Credit card (`VC`)**: 3DS; bisa batasi acquirer/BIN.
+- **Credit card (`VC`)**: 3DS; `creditCardDetail` opsional untuk memilih acquirer (`014` BCA, `022` CIMB) dan whitelist BIN maksimal 25.
 - **Retail (`FT`/`IR`)**: pembeli membayar di gerai; expiry default 24 jam.
 - **PayLater (`DN`/`AT`)**: butuh akun/limit pelanggan.
 - **Void**: docs vendor hanya menandai `OV` dan `SA` "Support Void"; tidak ada endpoint void di API v2 yang didokumentasikan, jadi Gapura belum menyediakannya.

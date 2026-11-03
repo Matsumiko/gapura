@@ -190,10 +190,10 @@ Response: `merchantOrderId`, `reference`, `amount`, `fee`, `statusCode`, `status
 | Callback + verifikasi signature/nominal | Dipakai |
 | Cek transaksi + Cron pending sync | Dipakai |
 | `getPaymentMethod` | Dipakai lewat `GET /v1/payment-methods`, cache 5 menit per nominal |
-| `expiryPeriod` | Belum dikirim (memakai default vendor) |
+| `expiryPeriod` | Dipakai opsional; divalidasi 1–10080 menit dan batas maksimum channel |
 | `itemDetails`, `customerDetail`, `phoneNumber` | Belum dikirim |
 | `accountLink` (OL/SL) | Belum didukung |
-| `creditCardDetail` | Belum dikirim |
+| `creditCardDetail` | Dipakai opsional untuk `VC`; `acquirer` 014/022 dan `binWhitelist` maks 25 |
 | Fixed VA (SNAP API) | Belum didukung |
 | `appUrl` pada response | Belum disimpan |
 | Void transaksi | Belum ada (vendor hanya menandai dukungan void untuk OV/SA) |
