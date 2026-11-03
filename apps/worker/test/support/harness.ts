@@ -3,6 +3,7 @@ import { buildApp, type AppDeps } from "../../src/app";
 import type { AdminService } from "../../src/services/admin";
 import type { CallbackService } from "../../src/services/callbacks";
 import type { PaymentMethodsService } from "../../src/services/payment-methods";
+import type { SettingsService } from "../../src/services/settings";
 import type { PaymentsService } from "../../src/services/payments";
 import type { WebhookForwarder } from "../../src/services/webhooks";
 import type { AppEnv, Env, ProjectRecord, ProjectRepository } from "../../src/types";
@@ -71,6 +72,21 @@ const unusedPaymentMethods: PaymentMethodsService = {
   },
 };
 
+const unusedSettings: SettingsService = {
+  async overview() {
+    throw new Error("settings.overview tidak diharapkan di test ini");
+  },
+  async save() {
+    throw new Error("settings.save tidak diharapkan di test ini");
+  },
+  async activate() {
+    throw new Error("settings.activate tidak diharapkan di test ini");
+  },
+  async test() {
+    throw new Error("settings.test tidak diharapkan di test ini");
+  },
+};
+
 const unusedCallbacks: CallbackService = {
   async handle() {
     return { outcome: "ignored" };
@@ -111,6 +127,9 @@ const unusedAdmin = {
   async retryWebhook() {
     throw new Error("admin.retryWebhook tidak diharapkan di test ini");
   },
+  async listAudit() {
+    throw new Error("admin.listAudit tidak diharapkan di test ini");
+  },
 } satisfies AdminService;
 
 const unusedForwarder: WebhookForwarder = {
@@ -142,6 +161,7 @@ export async function createTestApp(
     admin: unusedAdmin,
     adminToken: undefined as string | undefined,
     paymentMethods: unusedPaymentMethods,
+    settings: unusedSettings,
     ...overrides,
   };
   const background: Promise<unknown>[] = [];

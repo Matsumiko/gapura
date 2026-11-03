@@ -59,6 +59,14 @@ wrangler rollback <version-id>
 
 Migrasi D1 bersifat maju saja; rollback kode tidak membatalkan migrasi. Untuk perubahan skema yang merusak, buat migrasi baru yang memperbaiki, bukan mengedit migrasi lama.
 
+## Kredensial Duitku dari panel
+
+1. Set master key: `openssl rand -base64 32 | wrangler secret put CREDENTIALS_KEY`.
+2. Terapkan migrasi `0004_merchant_settings.sql` (`wrangler d1 migrations apply gapura-sandbox --remote`).
+3. Di panel → Pengaturan: isi merchant code + API key sandbox, Simpan, Uji kredensial, lalu Aktifkan.
+4. Production: isi kartu Production dan aktifkan hanya setelah Fase 0 disetujui; sebaiknya deployment + D1 terpisah.
+5. Tanpa `CREDENTIALS_KEY`, penyimpanan dinonaktifkan dan Worker memakai fallback secret `DUITKU_*`.
+
 ## Panel admin (Pages + token)
 
 | Item | Nilai |

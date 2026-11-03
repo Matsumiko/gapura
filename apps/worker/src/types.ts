@@ -7,6 +7,7 @@ export interface Env {
   DUITKU_MERCHANT_CODE?: string;
   DUITKU_API_KEY?: string;
   ADMIN_TOKEN?: string;
+  CREDENTIALS_KEY?: string;
 }
 
 export interface ProjectRecord {
@@ -166,6 +167,39 @@ export interface AdminTransactionQuery {
   offset: number;
 }
 
+export type MerchantEnvironment = "sandbox" | "production";
+
+export interface MerchantCredentials {
+  environment: MerchantEnvironment;
+  merchantCode: string;
+  apiKey: string;
+  updatedAt: string;
+  updatedBy: string;
+}
+
+export interface MerchantSettingsView {
+  environment: MerchantEnvironment;
+  merchantCode: string;
+  apiKeySet: boolean;
+  isActive: boolean;
+  updatedAt: string | null;
+  updatedBy: string | null;
+}
+
+export interface SettingsRepository {
+  list(): Promise<MerchantSettingsView[]>;
+  get(environment: MerchantEnvironment): Promise<MerchantCredentials | null>;
+  getActive(): Promise<MerchantCredentials | null>;
+  upsert(input: {
+    environment: MerchantEnvironment;
+    merchantCode: string;
+    apiKey?: string;
+    updatedAt: string;
+    updatedBy: string;
+  }): Promise<boolean>;
+  activate(environment: MerchantEnvironment): Promise<boolean>;
+}
+
 export interface AuditEntry {
   actorEmail: string;
   action: string;
@@ -202,6 +236,7 @@ export interface AdminRepository {
   requeueWebhook(id: number, nowIso: string): Promise<boolean>;
   summary(dayStartIso: string, monthStartIso: string): Promise<AdminSummaryRow[]>;
   insertAudit(entry: AuditEntry): Promise<void>;
+  listAudit(limit: number): Promise<AuditEntry[]>;
 }
 
 export type AppEnv = {

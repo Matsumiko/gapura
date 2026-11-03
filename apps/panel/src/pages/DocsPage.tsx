@@ -559,6 +559,13 @@ if (!hash_equals($expected, $parts["v1"])) {
               <strong>Webhook gagal</strong> — daftar <code>FAILED</code> (menunggu retry) dan{" "}
               <code>DEAD</code>; tombol kirim ulang menjadwalkan percobaan baru.
             </li>
+            <li>
+              <strong>Pengaturan</strong> — merchant code + API key sandbox/production (terenkripsi
+              AES-GCM di D1), aktivasi environment, dan uji kredensial lewat getPaymentMethod.
+            </li>
+            <li>
+              <strong>Audit</strong> — 100 aksi admin terakhir tanpa nilai secret.
+            </li>
           </ul>
           <p>
             Setiap aksi admin dicatat di <code>admin_audit</code>. Tanpa Zero Trust, aktor dicatat
@@ -648,6 +655,38 @@ if (!hash_equals($expected, $parts["v1"])) {
                   <code>POST /admin/webhooks/:id/retry</code>
                 </td>
                 <td>Jadwalkan ulang percobaan (attempt 1, jatuh tempo sekarang).</td>
+              </tr>
+              <tr>
+                <td>
+                  <code>GET /admin/settings</code>
+                </td>
+                <td>Status kredensial sandbox/production + callback URL.</td>
+              </tr>
+              <tr>
+                <td>
+                  <code>PUT /admin/settings/:environment</code>
+                </td>
+                <td>
+                  Simpan merchant code/API key (API key opsional saat update).
+                </td>
+              </tr>
+              <tr>
+                <td>
+                  <code>POST /admin/settings/:environment/activate</code>
+                </td>
+                <td>Jadikan environment aktif untuk transaksi baru.</td>
+              </tr>
+              <tr>
+                <td>
+                  <code>POST /admin/settings/:environment/test</code>
+                </td>
+                <td>Uji kredensial lewat getPaymentMethod.</td>
+              </tr>
+              <tr>
+                <td>
+                  <code>GET /admin/audit</code>
+                </td>
+                <td>Jejak aksi admin.</td>
               </tr>
             </tbody>
           </table>

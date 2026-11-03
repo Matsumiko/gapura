@@ -7,11 +7,13 @@ import { registerAdminRoutes } from "./routes/admin";
 import { registerCallbackRoute } from "./routes/callback";
 import { registerPaymentMethodRoutes } from "./routes/payment-methods";
 import { registerPaymentRoutes } from "./routes/payments";
+import { registerSettingsRoutes } from "./routes/settings";
 import type { CallbackService } from "./services/callbacks";
 import type { PaymentsService } from "./services/payments";
 import type { WebhookForwarder } from "./services/webhooks";
 import type { AdminService } from "./services/admin";
 import type { PaymentMethodsService } from "./services/payment-methods";
+import type { SettingsService } from "./services/settings";
 
 import type { AppEnv, AuthDeps } from "./types";
 
@@ -23,6 +25,7 @@ export interface AppDeps extends AuthDeps {
   admin: AdminService;
   adminToken?: string;
   paymentMethods: PaymentMethodsService;
+  settings: SettingsService;
 }
 
 export function buildApp(deps: AppDeps): Hono<AppEnv> {
@@ -63,6 +66,7 @@ export function buildApp(deps: AppDeps): Hono<AppEnv> {
   registerCallbackRoute(app, deps);
   app.use("/admin/*", requireAdminToken(deps.adminToken));
   registerAdminRoutes(app, deps);
+  registerSettingsRoutes(app, deps);
 
   app.notFound((c) => jsonError(c, 404, "NOT_FOUND", "Endpoint tidak ditemukan."));
 

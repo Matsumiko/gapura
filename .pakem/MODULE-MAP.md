@@ -25,6 +25,11 @@ Worker (Cloudflare):
 - `apps/worker/src/services/retry-policy.ts` — batas 8 percobaan dan jeda 1m/5m/15m/1j/6j.
 - `apps/worker/src/services/retries.ts` — pemroses retry: ambil jatuh tempo, klaim lease, kirim, catat percobaan berikutnya, tandai DEAD.
 - `apps/worker/src/services/sync.ts` — sinkronisasi transaksi PENDING lama via `transactionStatus` Duitku; hanya transisi yang berubah diteruskan.
+- `apps/worker/src/services/credentials.ts` — cipher AES-GCM untuk API key.
+- `apps/worker/src/services/credential-resolver.ts` — kredensial aktif dari D1 atau fallback secret Worker.
+- `apps/worker/src/services/settings.ts` — simpan/aktifkan/uji kredensial + audit.
+- `apps/worker/src/providers/managed.ts` — provider dinamis mengikuti environment dan versi kredensial.
+- `apps/worker/src/routes/settings.ts` — endpoint `/admin/settings`.
 - `apps/worker/src/services/retention.ts` — memangkas riwayat `webhook_logs` selesai yang lebih tua dari 30 hari.
 - `apps/worker/src/cron.ts` — urutan Cron: retry lalu sinkronisasi, mengembalikan ringkasan.
 - `apps/worker/src/index.ts` — juga mengekspor handler `scheduled` yang menjalankan Cron.
@@ -32,11 +37,13 @@ Worker (Cloudflare):
 - `apps/worker/src/repositories/projects.ts` — query D1 untuk auth project.
 - `apps/worker/src/repositories/transactions.ts` — satu-satunya tempat SQL transaksi; update status bersyarat `WHERE status = 'PENDING'`.
 - `apps/worker/src/repositories/webhook-logs.ts` — mencatat percobaan forward.
+- `apps/worker/src/repositories/settings.ts` — kredensial Duitku per environment (enkripsi AES-GCM).
 - `apps/worker/src/http.ts` — bentuk error JSON yang seragam.
 - `apps/worker/src/types.ts` — Env, record domain, interface repository/service.
 - `apps/worker/migrations/0001_init.sql` — skema D1: projects, transactions, webhook_logs + index.
 - `apps/worker/migrations/0002_payment_artifacts.sql` — kolom `va_number` dan `qr_string`.
 - `apps/worker/migrations/0003_admin_audit.sql` — tabel `admin_audit` untuk jejak aksi admin.
+- `apps/worker/migrations/0004_merchant_settings.sql` — kredensial per environment.
 
 Shared (dipakai Worker dan panel):
 - `packages/shared/src/crypto.ts` — sha256Hex, generator API key dan webhook secret.
@@ -58,6 +65,8 @@ Panel:
 - `apps/panel/src/pages/TransactionsPage.tsx` — daftar transaksi dengan filter dan paging.
 - `apps/panel/src/pages/TransactionDetailPage.tsx` — detail transaksi + riwayat webhook + retry.
 - `apps/panel/src/pages/WebhooksPage.tsx` — antrean FAILED/DEAD dan kirim ulang.
+- `apps/panel/src/pages/SettingsPage.tsx` — kelola merchant key sandbox/production, aktivasi, uji.
+- `apps/panel/src/pages/AuditPage.tsx` — jejak aksi admin.
 - `apps/panel/src/pages/DocsPage.tsx` — dokumentasi in-app: integrasi project, katalog metode pembayaran, API, webhook + verifikasi signature, status, error, admin API, troubleshooting.
 
 Test:
@@ -72,6 +81,9 @@ Test:
 - `apps/worker/test/retry-policy.test.ts` — urutan backoff dan batas percobaan.
 - `apps/worker/test/retries.test.ts` — klaim, pengiriman ulang, backoff, DEAD.
 - `apps/worker/test/sync.test.ts` — pemetaan 00/01/02, transaksi lama vs baru, kegagalan provider.
+- `apps/worker/test/settings.test.ts` — cipher, simpan/aktifkan/uji kredensial, audit.
+- `apps/worker/test/settings-routes.test.ts` — otorisasi dan endpoint pengaturan.
+- `apps/worker/test/managed-provider.test.ts` — pemilihan environment dan rotasi kredensial.
 - `apps/worker/test/retention.test.ts` — pemangkasan hanya untuk baris terminal lama.
 - `apps/worker/test/admin.test.ts` — otorisasi token, CRUD project, rotasi kredensial, ringkasan, filter transaksi, retry webhook, audit.
 - `apps/worker/test/schema.test.ts` — constraint dan index migrasi.

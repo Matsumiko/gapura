@@ -8,12 +8,16 @@ import { TransactionsPage } from "./pages/TransactionsPage";
 import { TransactionDetailPage } from "./pages/TransactionDetailPage";
 import { WebhooksPage } from "./pages/WebhooksPage";
 import { DocsPage } from "./pages/DocsPage";
+import { SettingsPage } from "./pages/SettingsPage";
+import { AuditPage } from "./pages/AuditPage";
 
 const links = [
   { to: "/", label: "Ringkasan", end: true },
   { to: "/projects", label: "Project" },
   { to: "/transactions", label: "Transaksi" },
   { to: "/webhooks", label: "Webhook gagal" },
+  { to: "/settings", label: "Pengaturan" },
+  { to: "/audit", label: "Audit" },
   { to: "/docs", label: "Dokumentasi" },
 ];
 
@@ -68,6 +72,8 @@ export default function App() {
             <Route path="/transactions" element={<TransactionsPage />} />
             <Route path="/transactions/:merchantOrderId" element={<TransactionDetailPage />} />
             <Route path="/webhooks" element={<WebhooksPage />} />
+            <Route path="/settings" element={<SettingsPage />} />
+            <Route path="/audit" element={<AuditPage />} />
             <Route path="/docs" element={<DocsPage />} />
           </Routes>
         </main>

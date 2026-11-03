@@ -40,7 +40,15 @@ export function createTestDatabase(schemaSql: string): D1Database {
   const db = new DatabaseSync(":memory:");
   db.exec("PRAGMA foreign_keys = ON;");
   db.exec(schemaSql);
+  const prepare = (sql: string) => new TestStatement(db, sql);
   return {
-    prepare: (sql: string) => new TestStatement(db, sql),
+    prepare,
+    batch: async (statements: TestStatement[]) => {
+      const results = [];
+      for (const statement of statements) {
+        results.push(await statement.run());
+      }
+      return results;
+    },
   } as unknown as D1Database;
 }

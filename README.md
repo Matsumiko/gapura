@@ -6,7 +6,7 @@ Spesifikasi produk: [PRD.md](PRD.md). Keputusan arsitektur: [docs/adr](docs/adr)
 
 ## Status
 
-Fase 1-3 berjalan dan **staging live** di `https://pay.example.com` (D1 `gapura-sandbox`, Cron aktif, kredensial sandbox asli). Panel admin live di `https://admin.example.com` dan API `/admin/*` di `https://pay.example.com/admin/*`, dilindungi token admin (Bearer). Total 185 test. Kredensial sandbox asli sudah dipakai; pembayaran sandbox lewat demo Duitku berhasil dan callback asli membuat transaksi PAID.
+Fase 1-3 berjalan dan **staging live** di `https://pay.example.com` (D1 `gapura-sandbox`, Cron aktif, kredensial sandbox asli). Panel admin live di `https://admin.example.com` dan API `/admin/*` di `https://pay.example.com/admin/*`, dilindungi token admin (Bearer). Total 202 test. Kredensial sandbox asli sudah dipakai; pembayaran sandbox lewat demo Duitku berhasil dan callback asli membuat transaksi PAID.
 
 ## Struktur
 
@@ -52,7 +52,9 @@ Semua endpoint `/v1/*` memakai header `X-Gapura-Key` (API key project). Error se
 | `GET /v1/payments/:orderId` | status transaksi milik project sendiri |
 | `GET /v1/payment-methods?amount=` | channel aktif + biaya dari Duitku (cache 5 menit per nominal) |
 | `POST /callback/duitku` | callback Duitku; verifikasi HMAC-SHA256 + nominal, forward asinkron |
-| `GET /admin/*`, `POST /admin/*`, `PATCH /admin/*` | panel admin; wajib `Authorization: Bearer <ADMIN_TOKEN>` |
+| `GET /admin/*`, `POST /admin/*`, `PATCH /admin/*`, `PUT /admin/*` | panel admin; wajib `Authorization: Bearer <ADMIN_TOKEN>` |
+| `GET /admin/settings`, `PUT /admin/settings/:env`, `POST /admin/settings/:env/activate`, `POST /admin/settings/:env/test` | kredensial Duitku per environment (terenkripsi) |
+| `GET /admin/audit` | jejak aksi admin |
 
 Contoh:
 
@@ -81,7 +83,7 @@ SPA React di `apps/panel` + endpoint `/admin/*` di Worker. Endpoint admin memban
 pnpm --filter @gapura/panel dev   # http://127.0.0.1:5173
 ```
 
-Halaman: Ringkasan (total PAID hari/bulan), Project (buat, edit nama/webhook URL, aktif/nonaktif, rotasi API key & webhook secret — kredensial tampil sekali; prefix tidak bisa diubah karena menempel di order ID Duitku), Transaksi (filter + detail + riwayat webhook), Webhook gagal (retry manual), dan Dokumentasi in-app (kontrak API + webhook + verifikasi signature + admin API). Setiap aksi admin dicatat di tabel `admin_audit` dengan email pelaku dari JWT.
+Halaman: Ringkasan, Project (buat/edit/aktif/nonaktif/rotasi), Transaksi, Webhook gagal, **Pengaturan** (merchant code + API key sandbox/production, terenkripsi AES-GCM; aktivasi environment; uji kredensial; callback URL), **Audit** (100 aksi terakhir), dan Dokumentasi in-app. Setiap aksi admin dicatat di tabel `admin_audit` dengan email pelaku dari JWT.
 
 Panel sudah dideploy di `https://admin.example.com` (Pages) dengan layar login token; alias `your-project.pages.dev` menampilkan login yang sama. API admin memakai Bearer `ADMIN_TOKEN`; request tanpa token ditolak 401. Langkah lengkap ada di `DEPLOYMENT.md`. Detail keputusan: [ADR-0007](docs/adr/0007-admin-memakai-token-bearer-tanpa-zero-trust.md).
 

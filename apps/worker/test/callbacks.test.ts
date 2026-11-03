@@ -47,8 +47,7 @@ async function setup() {
 
   const callbacks = createCallbackService({
     transactions: memory.repo,
-    merchantCode: MERCHANT_CODE,
-    apiKey: API_KEY,
+    credentials: async () => ({ merchantCode: MERCHANT_CODE, apiKey: API_KEY }),
     now: NOW,
   });
   const forwards: ForwardInstruction[] = [];

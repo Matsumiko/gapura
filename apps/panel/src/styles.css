@@ -386,3 +386,16 @@ button.ghost {
   font-size: inherit;
   overflow-wrap: normal;
 }
+
+.section-head {
+  align-items: baseline;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.6rem;
+  justify-content: space-between;
+  margin-bottom: 0.75rem;
+}
+
+.section-head h2 {
+  margin: 0;
+}

@@ -299,6 +299,29 @@ export function createAdminRepository(db: D1Database): AdminRepository {
       }));
     },
 
+    async listAudit(limit: number): Promise<AuditEntry[]> {
+      const rows = await db
+        .prepare(
+          `SELECT actor_email, action, target, detail, created_at
+             FROM admin_audit ORDER BY id DESC LIMIT ?`,
+        )
+        .bind(limit)
+        .all<{
+          actor_email: string;
+          action: string;
+          target: string | null;
+          detail: string | null;
+          created_at: string;
+        }>();
+      return rows.results.map((row) => ({
+        actorEmail: row.actor_email,
+        action: row.action,
+        target: row.target,
+        detail: row.detail,
+        createdAt: row.created_at,
+      }));
+    },
+
     async insertAudit(entry: AuditEntry): Promise<void> {
       await db
         .prepare(

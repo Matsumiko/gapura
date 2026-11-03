@@ -122,6 +122,42 @@ export function apiPost<T>(path: string, body?: unknown): Promise<T> {
   });
 }
 
+export function apiPut<T>(path: string, body: unknown): Promise<T> {
+  return request<T>(path, { method: "PUT", body: JSON.stringify(body) });
+}
+
 export function apiPatch<T>(path: string, body: unknown): Promise<T> {
   return request<T>(path, { method: "PATCH", body: JSON.stringify(body) });
+}
+
+export type MerchantEnvironment = "sandbox" | "production";
+
+export interface MerchantSettingsView {
+  environment: MerchantEnvironment;
+  merchantCode: string;
+  apiKeySet: boolean;
+  isActive: boolean;
+  updatedAt: string | null;
+  updatedBy: string | null;
+}
+
+export interface SettingsOverview {
+  activeEnvironment: MerchantEnvironment | null;
+  callbackUrl: string;
+  credentialsKeyConfigured: boolean;
+  items: MerchantSettingsView[];
+}
+
+export interface SettingsTestResult {
+  environment: MerchantEnvironment;
+  count: number;
+  sample: Array<{ code: string; name: string; totalFee: string }>;
+}
+
+export interface AuditLog {
+  actorEmail: string;
+  action: string;
+  target: string | null;
+  detail: string | null;
+  createdAt: string;
 }

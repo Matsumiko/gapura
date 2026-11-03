@@ -2,7 +2,7 @@ import { generateApiKey, generateWebhookSecret, sha256Hex } from "@gapura/shared
 import type { Hono } from "hono";
 import { buildApp } from "./app";
 import { createCronRunner, type CronRunner } from "./cron";
-import { createDuitkuProvider } from "./providers/duitku";
+import { createManagedDuitkuProvider } from "./providers/managed";
 import { createAdminRepository } from "./repositories/admin";
 import { createProjectsRepository } from "./repositories/projects";
 import { createTransactionRepository } from "./repositories/transactions";
@@ -15,6 +15,10 @@ import { createRetention } from "./services/retention";
 import { createRetryProcessor } from "./services/retries";
 import { createPendingSync } from "./services/sync";
 import { createWebhookForwarder, deliverWebhook, type DeliverFn } from "./services/webhooks";
+import { createCredentialCipher, type CredentialCipher } from "./services/credentials";
+import { createCredentialResolver } from "./services/credential-resolver";
+import { createSettingsService } from "./services/settings";
+import { createSettingsRepository } from "./repositories/settings";
 import type { AppEnv, Env } from "./types";
 
 interface Runtime {
@@ -36,12 +40,27 @@ function runtimeFor(env: Env): Runtime {
   const fetchImpl = fetch.bind(globalThis);
   const transactions = createTransactionRepository(env.DB);
   const logs = createWebhookLogRepository(env.DB);
-  const provider = createDuitkuProvider({
-    merchantCode: env.DUITKU_MERCHANT_CODE ?? "",
-    apiKey: env.DUITKU_API_KEY ?? "",
-    baseUrl: env.DUITKU_BASE_URL ?? "https://sandbox.duitku.com",
-    fetch: fetchImpl,
+
+  let cipherPromise: Promise<CredentialCipher> | null = null;
+  const getCipher = (): Promise<CredentialCipher | null> => {
+    if (!env.CREDENTIALS_KEY) {
+      return Promise.resolve(null);
+    }
+    cipherPromise ??= createCredentialCipher(env.CREDENTIALS_KEY);
+    return cipherPromise;
+  };
+
+  const adminRepo = createAdminRepository(env.DB);
+  const settingsRepo = createSettingsRepository({ db: env.DB, getCipher });
+  const resolver = createCredentialResolver({
+    store: settingsRepo,
+    fallback: {
+      merchantCode: env.DUITKU_MERCHANT_CODE ?? "",
+      apiKey: env.DUITKU_API_KEY ?? "",
+      environment: "sandbox",
+    },
   });
+  const provider = createManagedDuitkuProvider({ fetch: fetchImpl, resolver });
   const forwarder = createWebhookForwarder({ fetch: fetchImpl, logs, now });
   const deliver: DeliverFn = (project, payload) =>
     deliverWebhook({ fetch: fetchImpl, project, payload, now });
@@ -58,13 +77,15 @@ function runtimeFor(env: Env): Runtime {
     }),
     callbacks: createCallbackService({
       transactions,
-      merchantCode: env.DUITKU_MERCHANT_CODE ?? "",
-      apiKey: env.DUITKU_API_KEY ?? "",
+      credentials: async () => {
+        const active = await resolver.getActive();
+        return active ? { merchantCode: active.merchantCode, apiKey: active.apiKey } : null;
+      },
       now,
     }),
     forwarder,
     admin: createAdminService({
-      admin: createAdminRepository(env.DB),
+      admin: adminRepo,
       now,
       generateApiKey,
       generateWebhookSecret,
@@ -72,6 +93,14 @@ function runtimeFor(env: Env): Runtime {
     }),
     adminToken: env.ADMIN_TOKEN,
     paymentMethods: createPaymentMethodsService({ provider }),
+    settings: createSettingsService({
+      repo: settingsRepo,
+      now,
+      cipherConfigured: Boolean(env.CREDENTIALS_KEY),
+      publicBaseUrl: env.PUBLIC_BASE_URL ?? "",
+      fetch: fetchImpl,
+      insertAudit: (entry) => adminRepo.insertAudit(entry),
+    }),
   });
 
   const cron = createCronRunner({

@@ -17,6 +17,7 @@ Diperbarui: 2026-11-03. Berlaku untuk Worker staging `gapura-sandbox`.
 | Data pribadi di log | Kebocoran nama/email | Log hanya memuat merchant order id, kode error, dan ringkasan cron | Ada |
 | Panel admin terekspos | Aksi admin tanpa izin | `/admin/*` wajib Bearer `ADMIN_TOKEN` (dibandingkan waktu-konstan, fail closed bila kosong); panel login token di sessionStorage | Ada + test; live |
 | Dependency rentan | RCE/data leak | `pnpm audit` bersih per 2026-11-03; jalankan sebelum rilis | Ada (manual) |
+| Kredensial Duitku disimpan di D1 | Bocor bila D1/master key bocor | API key dienkripsi AES-GCM; master key 32 byte hanya di Worker secret `CREDENTIALS_KEY`; panel tidak pernah menampilkan kembali API key | Ada + test |
 | Secret masuk repo | Kredensial bocor | `.dev.vars`/`.env` di-.gitignore; secret produksi lewat `wrangler secret put`; config gitleaks tersedia | Ada + config |
 | Log webhook tumbuh tanpa batas | Kuota D1 penuh | Retensi 30 hari untuk baris `DELIVERED`/`DEAD`; retry terjadwal tidak dipangkas | Ada + test |
 

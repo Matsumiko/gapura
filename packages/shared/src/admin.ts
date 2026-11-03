@@ -23,6 +23,15 @@ export const updateProjectInputSchema = z
 
 export type UpdateProjectInput = z.infer<typeof updateProjectInputSchema>;
 
+export const merchantSettingsInputSchema = z
+  .object({
+    merchantCode: z.string().min(1).max(50),
+    apiKey: z.string().min(8).max(200).optional(),
+  })
+  .strict();
+
+export type MerchantSettingsInput = z.infer<typeof merchantSettingsInputSchema>;
+
 export const TRANSACTION_STATUS_VALUES = ["PENDING", "PAID", "FAILED", "EXPIRED"] as const;
 
 export const adminTransactionFilterSchema = z

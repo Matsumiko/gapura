@@ -6,6 +6,7 @@ import type {
   AdminTransaction,
   AdminTransactionQuery,
   AdminWebhookLog,
+  AuditEntry,
 } from "../types";
 
 export class AdminConflictError extends Error {
@@ -50,6 +51,7 @@ export interface AdminService {
   getTransaction(merchantOrderId: string): Promise<TransactionDetail | null>;
   listWebhooks(status: "FAILED" | "DEAD" | null, limit: number): Promise<AdminWebhookLog[]>;
   retryWebhook(id: number, actor: string): Promise<boolean>;
+  listAudit(limit: number): Promise<AuditEntry[]>;
 }
 
 export interface AdminServiceDeps {
@@ -212,6 +214,10 @@ export function createAdminService(deps: AdminServiceDeps): AdminService {
       limit: number,
     ): Promise<AdminWebhookLog[]> {
       return deps.admin.listWebhookLogs(status, limit);
+    },
+
+    async listAudit(limit: number): Promise<AuditEntry[]> {
+      return deps.admin.listAudit(limit);
     },
 
     async retryWebhook(id: number, actor: string): Promise<boolean> {

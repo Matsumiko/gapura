@@ -22,8 +22,7 @@ export interface CallbackService {
 
 export interface CallbackDeps {
   transactions: TransactionRepository;
-  merchantCode: string;
-  apiKey: string;
+  credentials: () => Promise<{ merchantCode: string; apiKey: string } | null>;
   now: () => Date;
 }
 
@@ -34,11 +33,17 @@ export function createCallbackService(deps: CallbackDeps): CallbackService {
       if (!merchantCode || !amount || !merchantOrderId || !resultCode || !signature) {
         return { outcome: "bad_parameter" };
       }
-      if (!deps.merchantCode || merchantCode !== deps.merchantCode) {
+      const credentials = await deps.credentials();
+      if (!credentials || merchantCode !== credentials.merchantCode) {
         return { outcome: "bad_signature" };
       }
 
-      const expected = await callbackSignature(deps.merchantCode, amount, merchantOrderId, deps.apiKey);
+      const expected = await callbackSignature(
+        credentials.merchantCode,
+        amount,
+        merchantOrderId,
+        credentials.apiKey,
+      );
       if (!secureEqual(expected, signature.toLowerCase())) {
         return { outcome: "bad_signature" };
       }

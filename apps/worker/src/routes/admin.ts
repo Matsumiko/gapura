@@ -127,6 +127,11 @@ export function registerAdminRoutes(app: Hono<AppEnv>, deps: AdminRouteDeps): vo
     return c.json(detail);
   });
 
+  app.get("/admin/audit", async (c) => {
+    const limit = clampLimit(c.req.query("limit"), 50);
+    return c.json({ items: await deps.admin.listAudit(limit) });
+  });
+
   app.get("/admin/webhooks", async (c) => {
     const status = c.req.query("status");
     if (status && status !== "FAILED" && status !== "DEAD") {
