@@ -20,7 +20,7 @@ wrangler d1 create gapura-sandbox          # catat database_id → wrangler.toml
 wrangler d1 migrations apply gapura-sandbox --remote
 
 # 3. Deploy
-wrangler deploy                            # https://gapura-sandbox.<subdomain>.workers.dev
+wrangler deploy                            # https://pay.example.com (custom domain)
 
 # 4. Variabel publik
 #    PUBLIC_BASE_URL di wrangler.toml = URL Worker (dipakai sebagai callbackUrl Duitku),
@@ -81,7 +81,7 @@ Langkah yang sudah dijalankan:
 4. Panel dibangun dengan `VITE_API_URL=https://pay.example.com` lalu `wrangler pages deploy apps/panel/dist --project-name gapura-admin --branch main`.
 5. Custom domain Pages `admin-pay.example.com` ditambahkan, plus CNAME proxied ke `your-project.pages.dev`.
 
-Verifikasi: request tanpa sesi ke `/admin/*`, panel, `your-project.pages.dev`, dan preview `*.your-project.pages.dev` menghasilkan 302 ke login Access; `/health` tetap publik. Worker `workers.dev` tetap bisa diakses langsung, tetapi `/admin/*` di sana menolak tanpa JWT (401). Bila `ACCESS_AUD` diganti, deploy ulang Worker. Jangan menonaktifkan policy Access saat panel dipakai.
+Verifikasi: request tanpa sesi ke `/admin/*`, panel, `your-project.pages.dev`, dan preview `*.your-project.pages.dev` menghasilkan 302 ke login Access; `/health` tetap publik. `workers_dev = false`, jadi Worker hanya bisa diakses lewat `pay.example.com` (workers.dev menjawab 404). Bila `ACCESS_AUD` diganti, deploy ulang Worker. Jangan menonaktifkan policy Access saat panel dipakai.
 
 ## Produksi (belum dilakukan)
 

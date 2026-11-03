@@ -1,7 +1,7 @@
 name = "gapura-sandbox"
 main = "src/index.ts"
 compatibility_date = "2026-11-01"
-workers_dev = true
+workers_dev = false
 
 routes = [
   { pattern = "pay.example.com", custom_domain = true }
