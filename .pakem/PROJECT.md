@@ -25,7 +25,7 @@ reason.modular:
 Backend gerbang pembayaran di Cloudflare Workers: banyak project memakai satu akun merchant Duitku tanpa berbagi kredensial. Spesifikasi produk ada di `PRD.md`; keputusan arsitektur di `docs/adr/`.
 
 ## Ringkasan
-Gapura membuat transaksi Duitku atas nama project pemanggil, menerima callback Duitku (verifikasi signature + nominal), menyimpan status di D1, lalu meneruskan status ke webhook project dengan HMAC. Panel admin (SPA React di Cloudflare Pages) dipakai owner untuk mengelola project dan memantau transaksi. Fase 1-3 berjalan dan staging live; Fase 6 (admin API + panel) live dengan token admin. Total 206 test.
+Gapura membuat transaksi Duitku atas nama project pemanggil, menerima callback Duitku (verifikasi signature + nominal), menyimpan status di D1, lalu meneruskan status ke webhook project dengan HMAC. Panel admin (SPA React di Cloudflare Pages) dipakai owner untuk mengelola project dan memantau transaksi. Fase 1-3 berjalan dan staging live; Fase 6 (admin API + panel) live dengan token admin. Total 221 test.
 
 ## Stack
 - Runtime API: Cloudflare Workers, TypeScript, Hono 4.
@@ -38,6 +38,7 @@ Gapura membuat transaksi Duitku atas nama project pemanggil, menerima callback D
 - Monorepo: pnpm workspaces — `apps/worker`, `apps/panel`, `packages/shared`.
 - Toolchain lokal: Node >= 22 (dikembangkan di 22.22), pnpm 12 lewat corepack.
 - Biaya: hanya layanan Cloudflare free tier. Queues, R2, dan layanan berbayar tidak dipakai; Durable Objects/KV hanya bila ADR baru membuktikan kebutuhannya.
+- Auth admin sedang migrasi ke sesi opaque + TOTP + RBAC + step-up (ADR-0010); fase fondasi (skema 0005, Argon2id, TOTP) selesai, `ADMIN_TOKEN` masih dipakai sampai fase 2 selesai.
 - Secret: Worker secrets `DUITKU_MERCHANT_CODE`, `DUITKU_API_KEY`, `ADMIN_TOKEN`, dan `CREDENTIALS_KEY`; kredensial Duitku dari panel disimpan terenkripsi di D1 (ADR-0008); API key project disimpan sebagai hash SHA-256.
 
 ## Perintah

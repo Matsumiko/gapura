@@ -26,6 +26,8 @@ Worker (Cloudflare):
 - `apps/worker/src/services/retries.ts` — pemroses retry: ambil jatuh tempo, klaim lease, kirim, catat percobaan berikutnya, tandai DEAD.
 - `apps/worker/src/services/sync.ts` — sinkronisasi transaksi PENDING lama via `transactionStatus` Duitku; hanya transisi yang berubah diteruskan.
 - `apps/worker/src/services/credentials.ts` — cipher AES-GCM untuk API key.
+- `apps/worker/src/services/totp.ts` — TOTP RFC 6238 + base32.
+- `apps/worker/src/services/admin-password.ts` — hash/verify Argon2id.
 - `apps/worker/src/services/credential-resolver.ts` — kredensial aktif dari D1 atau fallback secret Worker.
 - `apps/worker/src/services/settings.ts` — simpan/aktifkan/uji kredensial + audit.
 - `apps/worker/src/providers/managed.ts` — provider dinamis mengikuti environment dan versi kredensial.
@@ -44,6 +46,7 @@ Worker (Cloudflare):
 - `apps/worker/migrations/0002_payment_artifacts.sql` — kolom `va_number` dan `qr_string`.
 - `apps/worker/migrations/0003_admin_audit.sql` — tabel `admin_audit` untuk jejak aksi admin.
 - `apps/worker/migrations/0004_merchant_settings.sql` — kredensial per environment.
+- `apps/worker/migrations/0005_admin_auth.sql` — admin_users, admin_sessions, admin_login_attempts (auth baru, belum aktif).
 
 Shared (dipakai Worker dan panel):
 - `packages/shared/src/crypto.ts` — sha256Hex, generator API key dan webhook secret.
@@ -81,6 +84,8 @@ Test:
 - `apps/worker/test/retry-policy.test.ts` — urutan backoff dan batas percobaan.
 - `apps/worker/test/retries.test.ts` — klaim, pengiriman ulang, backoff, DEAD.
 - `apps/worker/test/sync.test.ts` — pemetaan 00/01/02, transaksi lama vs baru, kegagalan provider.
+- `apps/worker/test/totp.test.ts` — vektor RFC dan replay.
+- `apps/worker/test/admin-password.test.ts` — Argon2id PHC.
 - `apps/worker/test/settings.test.ts` — cipher, simpan/aktifkan/uji kredensial, audit.
 - `apps/worker/test/settings-routes.test.ts` — otorisasi dan endpoint pengaturan.
 - `apps/worker/test/managed-provider.test.ts` — pemilihan environment dan rotasi kredensial.
