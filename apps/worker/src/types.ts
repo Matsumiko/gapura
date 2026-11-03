@@ -80,6 +80,7 @@ export interface TransactionRepository {
   markStatus(merchantOrderId: string, status: PaymentStatus, updatedAt: string): Promise<boolean>;
   findByProjectOrder(projectId: string, projectOrderId: string): Promise<TransactionRecord | null>;
   findWithProject(merchantOrderId: string): Promise<TransactionWithProject | null>;
+  findPendingWithProjectBefore(cutoffIso: string, limit: number): Promise<TransactionWithProject[]>;
   deletePending(merchantOrderId: string): Promise<void>;
 }
 
@@ -89,12 +90,24 @@ export interface WebhookLogEntry {
   httpStatus: number | null;
   error: string | null;
   nextAttemptAt: string | null;
-  status: "PENDING" | "DELIVERED" | "DEAD";
+  status: "FAILED" | "DELIVERED" | "DEAD";
   createdAt: string;
+}
+
+export interface DueWebhookAttempt {
+  id: number;
+  merchantOrderId: string;
+  attempt: number;
+  nextAttemptAt: string;
 }
 
 export interface WebhookLogRepository {
   insertAttempt(entry: WebhookLogEntry): Promise<void>;
+  findDue(nowIso: string, limit: number): Promise<DueWebhookAttempt[]>;
+  /** true bila baris masih pada jadwal yang sama (tidak diambil proses lain). */
+  claim(id: number, expectedNextAttemptAt: string, leaseUntil: string): Promise<boolean>;
+  clearSchedule(id: number): Promise<void>;
+  markDead(id: number): Promise<void>;
 }
 
 export type AppEnv = {

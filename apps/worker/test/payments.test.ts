@@ -50,6 +50,9 @@ function fakeProvider(result: CreateInvoiceResponse | Error): {
         }
         return result;
       },
+      async getStatus() {
+        return { statusCode: "01", reference: null, amount: null };
+      },
     },
   };
 }

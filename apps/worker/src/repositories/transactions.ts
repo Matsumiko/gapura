@@ -154,6 +154,35 @@ export function createTransactionRepository(db: D1Database): TransactionReposito
       };
     },
 
+    async findPendingWithProjectBefore(
+      cutoffIso: string,
+      limit: number,
+    ): Promise<TransactionWithProject[]> {
+      const rows = await db
+        .prepare(
+          `SELECT t.merchant_order_id, t.project_id, t.project_order_id, t.amount, t.payment_method,
+                  t.status, t.payment_url, t.duitku_reference, t.va_number, t.qr_string,
+                  t.created_at, t.updated_at,
+                  p.webhook_url, p.webhook_secret, p.is_active
+             FROM transactions t
+             JOIN projects p ON p.id = t.project_id
+            WHERE t.status = 'PENDING' AND t.created_at <= ?
+            ORDER BY t.created_at
+            LIMIT ?`,
+        )
+        .bind(cutoffIso, limit)
+        .all<JoinedRow>();
+      return rows.results.map((row) => ({
+        transaction: toRecord(row),
+        project: {
+          id: row.project_id,
+          webhookUrl: row.webhook_url,
+          webhookSecret: row.webhook_secret,
+          isActive: row.is_active === 1,
+        },
+      }));
+    },
+
     async deletePending(merchantOrderId: string): Promise<void> {
       await db
         .prepare("DELETE FROM transactions WHERE merchant_order_id = ? AND status = 'PENDING'")

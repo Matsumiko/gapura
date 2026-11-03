@@ -27,7 +27,17 @@ export interface CreateInvoiceResponse {
   qrString: string | null;
 }
 
-export interface PaymentProvider {
+export interface TransactionStatusResult {
+  statusCode: string;
+  reference: string | null;
+  amount: number | null;
+}
+
+export interface StatusProvider {
+  getStatus(merchantOrderId: string): Promise<TransactionStatusResult>;
+}
+
+export interface PaymentProvider extends StatusProvider {
   createInvoice(request: CreateInvoiceRequest): Promise<CreateInvoiceResponse>;
 }
 
@@ -159,6 +169,55 @@ export function createDuitkuProvider(config: DuitkuConfig): PaymentProvider {
         paymentUrl: payload.paymentUrl,
         vaNumber: typeof payload.vaNumber === "string" ? payload.vaNumber : null,
         qrString: typeof payload.qrString === "string" ? payload.qrString : null,
+      };
+    },
+
+    async getStatus(merchantOrderId: string): Promise<TransactionStatusResult> {
+      if (!config.merchantCode || !config.apiKey) {
+        throw new PaymentProviderError(
+          "PROVIDER_NOT_CONFIGURED",
+          "DUITKU_MERCHANT_CODE/DUITKU_API_KEY belum diset.",
+        );
+      }
+
+      let response: Response;
+      try {
+        response = await config.fetch(`${config.baseUrl}/webapi/api/merchant/transactionStatus`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            merchantCode: config.merchantCode,
+            merchantOrderId,
+            signature: await transactionStatusSignature(
+              config.merchantCode,
+              merchantOrderId,
+              config.apiKey,
+            ),
+          }),
+          signal: AbortSignal.timeout(15_000),
+        });
+      } catch {
+        throw new PaymentProviderError("NETWORK", "Tidak bisa menghubungi Duitku.");
+      }
+
+      if (!response.ok) {
+        throw new PaymentProviderError(`HTTP_${response.status}`, "Duitku menolak cek status.");
+      }
+
+      const payload = (await response.json().catch(() => null)) as {
+        statusCode?: unknown;
+        reference?: unknown;
+        amount?: unknown;
+      } | null;
+      if (!payload || typeof payload.statusCode !== "string") {
+        throw new PaymentProviderError("INVALID_RESPONSE", "Respons cek status tidak valid.");
+      }
+
+      const amount = payload.amount === undefined ? null : Number(payload.amount);
+      return {
+        statusCode: payload.statusCode,
+        reference: typeof payload.reference === "string" ? payload.reference : null,
+        amount: amount !== null && Number.isFinite(amount) ? amount : null,
       };
     },
   };

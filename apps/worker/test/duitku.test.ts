@@ -148,6 +148,45 @@ describe("createInvoice", () => {
     });
   });
 
+  describe("getStatus", () => {
+    it("mengirim signature cek status dan memetakan respons", async () => {
+      const { provider, calls } = setup(() =>
+        response({
+          merchantOrderId: "PRJA-INV123",
+          reference: "REF-1",
+          amount: "150000",
+          fee: "0.00",
+          statusCode: "00",
+          statusMessage: "SUCCESS",
+        }),
+      );
+
+      const result = await provider.getStatus("PRJA-INV123");
+
+      expect(calls[0]?.url).toBe(`${BASE_URL}/webapi/api/merchant/transactionStatus`);
+      expect(JSON.parse(String(calls[0]?.init?.body))).toEqual({
+        merchantCode: MERCHANT_CODE,
+        merchantOrderId: "PRJA-INV123",
+        signature: "de78bdbc960a3381e13040eb4b1ccad9a19dc4d637ba427553973fe40cead09b",
+      });
+      expect(result).toEqual({ statusCode: "00", reference: "REF-1", amount: 150000 });
+    });
+
+    it("melempar HTTP_<status> untuk respons non-2xx", async () => {
+      const { provider } = setup(() => response({ Message: "error" }, 502));
+
+      await expect(provider.getStatus("PRJA-INV123")).rejects.toMatchObject({ code: "HTTP_502" });
+    });
+
+    it("melempar INVALID_RESPONSE bila statusCode tidak ada", async () => {
+      const { provider } = setup(() => response({ reference: "REF-1" }));
+
+      await expect(provider.getStatus("PRJA-INV123")).rejects.toMatchObject({
+        code: "INVALID_RESPONSE",
+      });
+    });
+  });
+
   it("melempar NETWORK bila fetch gagal", async () => {
     const { provider } = setup(() => {
       throw new Error("connection reset");

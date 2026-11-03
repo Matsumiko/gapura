@@ -1,7 +1,7 @@
 import { hmacSha256Hex } from "@gapura/shared/hmac";
 import { describe, expect, it } from "vitest";
 import { createWebhookForwarder, webhookSignaturePayload } from "../src/services/webhooks";
-import type { WebhookLogEntry, WebhookLogRepository } from "../src/types";
+import { createMemoryWebhookLogs } from "./support/memory-logs";
 
 const NOW = new Date("2026-11-03T10:00:00.000Z");
 const PROJECT = {
@@ -26,12 +26,7 @@ interface CapturedRequest {
 }
 
 function setup(response: Response | Error) {
-  const logs: WebhookLogEntry[] = [];
-  const repository: WebhookLogRepository = {
-    async insertAttempt(entry) {
-      logs.push(entry);
-    },
-  };
+  const logs = createMemoryWebhookLogs();
   let captured: CapturedRequest | undefined;
   const forwarder = createWebhookForwarder({
     fetch: async (input, init) => {
@@ -41,15 +36,15 @@ function setup(response: Response | Error) {
       }
       return response;
     },
-    logs: repository,
+    logs: logs.repo,
     now: () => NOW,
   });
-  return { forwarder, logs, captured: () => captured };
+  return { forwarder, entries: logs.entries, captured: () => captured };
 }
 
 describe("webhook forwarder", () => {
   it("mengirim body bertanda tangan HMAC dengan timestamp", async () => {
-    const { forwarder, logs, captured } = setup(new Response("ok", { status: 200 }));
+    const { forwarder, entries, captured } = setup(new Response("ok", { status: 200 }));
 
     await forwarder.forward({ project: PROJECT, payload: PAYLOAD });
 
@@ -69,8 +64,9 @@ describe("webhook forwarder", () => {
     );
     expect(headers["X-Gapura-Signature"]).toBe(`t=${timestamp},v1=${expectedSignature}`);
 
-    expect(logs).toEqual([
+    expect(entries).toEqual([
       {
+        id: 1,
         merchantOrderId: "PRJA-INV123",
         attempt: 1,
         httpStatus: 200,
@@ -82,13 +78,14 @@ describe("webhook forwarder", () => {
     ]);
   });
 
-  it("menjadwalkan retry saat project membalas non-2xx", async () => {
-    const { forwarder, logs } = setup(new Response("boom", { status: 500 }));
+  it("menjadwalkan retry pertama saat project membalas non-2xx", async () => {
+    const { forwarder, entries } = setup(new Response("boom", { status: 500 }));
 
     await forwarder.forward({ project: PROJECT, payload: PAYLOAD });
 
-    expect(logs[0]).toMatchObject({
-      status: "PENDING",
+    expect(entries[0]).toMatchObject({
+      attempt: 1,
+      status: "FAILED",
       httpStatus: 500,
       error: "HTTP 500",
       nextAttemptAt: "2026-11-03T10:01:00.000Z",
@@ -96,12 +93,12 @@ describe("webhook forwarder", () => {
   });
 
   it("menjadwalkan retry saat koneksi gagal dan tidak melempar error", async () => {
-    const { forwarder, logs } = setup(new Error("connection refused"));
+    const { forwarder, entries } = setup(new Error("connection refused"));
 
     await expect(forwarder.forward({ project: PROJECT, payload: PAYLOAD })).resolves.toBeUndefined();
 
-    expect(logs[0]).toMatchObject({
-      status: "PENDING",
+    expect(entries[0]).toMatchObject({
+      status: "FAILED",
       httpStatus: null,
       error: "connection refused",
       nextAttemptAt: "2026-11-03T10:01:00.000Z",

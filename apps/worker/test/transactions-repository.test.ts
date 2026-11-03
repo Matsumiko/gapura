@@ -102,6 +102,25 @@ describe("transactions repository", () => {
     });
   });
 
+  it("mengambil transaksi PENDING lama beserta project untuk sinkronisasi", async () => {
+    const { db, repo } = await setup();
+    await db
+      .prepare(
+        `INSERT INTO transactions
+           (merchant_order_id, project_id, project_order_id, amount, payment_method, status, created_at, updated_at)
+         VALUES ('PRJA-LAMA', 'proja', 'LAMA', 1000, 'VA', 'PENDING', '2026-11-03T09:00:00.000Z', '2026-11-03T09:00:00.000Z'),
+                ('PRJA-BARU', 'proja', 'BARU', 2000, 'VA', 'PENDING', '2026-11-03T09:59:00.000Z', '2026-11-03T09:59:00.000Z'),
+                ('PRJA-LUNAS', 'proja', 'LUNAS', 3000, 'VA', 'PAID', '2026-11-03T08:00:00.000Z', '2026-11-03T08:30:00.000Z')`,
+      )
+      .run();
+
+    const rows = await repo.findPendingWithProjectBefore("2026-11-03T09:30:00.000Z", 10);
+
+    expect(rows).toHaveLength(1);
+    expect(rows[0]?.transaction.merchantOrderId).toBe("PRJA-LAMA");
+    expect(rows[0]?.project.webhookSecret).toBe("whsec_a");
+  });
+
   it("hanya menghapus transaksi yang masih PENDING", async () => {
     const { repo } = await setup();
     await repo.insertPending(NEW_TRANSACTION);

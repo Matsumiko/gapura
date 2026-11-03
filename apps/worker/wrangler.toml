@@ -17,3 +17,7 @@ PANEL_ORIGIN = "http://localhost:5173"
 # URL publik Worker, dipakai sebagai callbackUrl transaksi Duitku.
 PUBLIC_BASE_URL = "http://127.0.0.1:8787"
 DUITKU_BASE_URL = "https://sandbox.duitku.com"
+
+[triggers]
+# Pemroses retry webhook dan sinkronisasi transaksi PENDING.
+crons = ["* * * * *"]

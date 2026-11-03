@@ -1,7 +1,7 @@
 import { secureEqual } from "@gapura/shared/hmac";
 import { callbackSignature } from "../providers/duitku";
-import type { PaymentWebhookPayload } from "./webhooks";
-import type { ProjectWebhookTarget, TransactionRepository } from "../types";
+import type { ForwardInstruction } from "./payload";
+import type { TransactionRepository } from "../types";
 
 export type CallbackOutcome =
   | "ok"
@@ -10,11 +10,6 @@ export type CallbackOutcome =
   | "ignored"
   | "amount_mismatch"
   | "duplicate";
-
-export interface ForwardInstruction {
-  project: ProjectWebhookTarget;
-  payload: PaymentWebhookPayload;
-}
 
 export interface CallbackResult {
   outcome: CallbackOutcome;

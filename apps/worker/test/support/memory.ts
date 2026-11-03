@@ -90,6 +90,20 @@ export function createMemoryTransactionRepository(
       return { transaction: { ...row }, project };
     },
 
+    async findPendingWithProjectBefore(cutoffIso, limit): Promise<TransactionWithProject[]> {
+      return [...rows.values()]
+        .filter((row) => row.status === "PENDING" && row.createdAt <= cutoffIso)
+        .sort((left, right) => left.createdAt.localeCompare(right.createdAt))
+        .slice(0, limit)
+        .map((row) => {
+          const project = projects[row.projectId];
+          if (!project) {
+            throw new Error(`project ${row.projectId} tidak ada di fixture`);
+          }
+          return { transaction: { ...row }, project };
+        });
+    },
+
     async deletePending(merchantOrderId): Promise<void> {
       if (rows.get(merchantOrderId)?.status === "PENDING") {
         rows.delete(merchantOrderId);

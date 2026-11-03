@@ -6,7 +6,7 @@ Spesifikasi produk: [PRD.md](PRD.md). Keputusan arsitektur: [docs/adr](docs/adr)
 
 ## Status
 
-Fase 1 dan 2 berjalan lokal: Worker Hono dengan auth API key, create/cek payment, callback Duitku bertanda tangan, forward webhook bertanda tangan, skema D1, panel shell, dan 105 test. **Belum ada deploy** dan **belum ada transaksi ke sandbox Duitku sungguhan** (kredensial merchant belum tersedia). Retry otomatis (Cron) masuk Fase 3.
+Fase 1 sampai 3 berjalan lokal: Worker Hono dengan auth API key, create/cek payment, callback Duitku bertanda tangan, forward webhook bertanda tangan, retry Cron, sinkronisasi transaksi pending, skema D1, panel shell, dan 129 test. **Belum ada deploy** dan **belum ada transaksi ke sandbox Duitku sungguhan** (kredensial merchant belum tersedia).
 
 ## Struktur
 
@@ -83,6 +83,20 @@ X-Gapura-Signature: t=<unix-seconds>,v1=<hex>
 `v1 = HMAC_SHA256(<t> + "." + <body>, webhook_secret_project)`, body adalah byte JSON persis. Project wajib menolak timestamp di luar toleransi (disarankan 5 menit) dan memproses idempotent. Respons 2xx dianggap terkirim; selain itu dicatat di `webhook_logs` dengan jadwal retry (pemrosesnya menyusul di Fase 3).
 
 Detail kontrak: [ADR-0004](docs/adr/0004-kontrak-integrasi-duitku-v2-dan-webhook-keluar.md).
+
+## Retry dan sinkronisasi
+
+Cron Trigger berjalan tiap menit (`[triggers]` di `wrangler.toml`) dan mengerjakan dua hal:
+
+1. **Retry webhook** — baris `FAILED` yang `next_attempt_at`-nya lewat diklaim, dikirim ulang, lalu dicatat sebagai percobaan berikutnya. Jeda: 1m, 5m, 15m, 1j, 6j; percobaan ke-8 yang gagal menjadi `DEAD`. Pengiriman at-least-once — project wajib idempotent.
+2. **Sinkronisasi pending** — transaksi `PENDING` lebih dari 10 menit dicek ke Duitku (`transactionStatus`): `00` → `PAID`, `02` → `EXPIRED`, `01` → tetap. Hanya perubahan yang diteruskan ke webhook.
+
+Detail: [ADR-0005](docs/adr/0005-retry-webhook-dan-sinkronisasi-status-via-cron.md). Uji Cron lokal:
+
+```sh
+pnpm --filter @gapura/worker dev -- --test-scheduled
+curl "http://127.0.0.1:8787/__scheduled?cron=*+*+*+*+*"
+```
 
 ## Test dan verifikasi
 
