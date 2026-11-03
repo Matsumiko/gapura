@@ -1,0 +1,16 @@
+name = "gapura"
+main = "src/index.ts"
+compatibility_date = "2026-11-01"
+workers_dev = true
+
+# Ganti database_id dengan UUID D1 yang sebenarnya (wrangler d1 create gapura).
+# Placeholder UUID ini hanya agar build --dry-run bisa berjalan tanpa akun.
+[[d1_databases]]
+binding = "DB"
+database_name = "gapura"
+database_id = "00000000-0000-0000-0000-000000000000"
+migrations_dir = "migrations"
+
+[vars]
+ENVIRONMENT = "development"
+PANEL_ORIGIN = "http://localhost:5173"

@@ -1,0 +1,14 @@
+{
+  "name": "gapura",
+  "private": true,
+  "packageManager": "pnpm@12.16.1",
+  "engines": {
+    "node": ">=22.0.0"
+  },
+  "scripts": {
+    "test": "pnpm --filter @gapura/shared test && pnpm --filter @gapura/worker test",
+    "typecheck": "pnpm -r run typecheck",
+    "build": "pnpm --filter @gapura/panel build && pnpm --filter @gapura/worker build",
+    "verify": "pnpm typecheck && pnpm test && pnpm build"
+  }
+}

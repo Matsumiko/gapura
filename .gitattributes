@@ -1,0 +1,5 @@
+# Normalisasi line ending untuk file teks; lockfile tidak perlu diff.
+* text=auto eol=lf
+*.sql text
+*.toml text
+pnpm-lock.yaml -diff

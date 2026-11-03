@@ -1,0 +1,8 @@
+node_modules/
+dist/
+.wrangler/
+.dev.vars
+*.local
+.pakem/sessions/
+coverage/
+.DS_Store

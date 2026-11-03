@@ -1,0 +1,24 @@
+{
+  "name": "@gapura/worker",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "wrangler dev",
+    "deploy": "wrangler deploy",
+    "build": "wrangler deploy --dry-run --outdir dist",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run",
+    "db:migrate:local": "wrangler d1 migrations apply gapura --local"
+  },
+  "dependencies": {
+    "@gapura/shared": "workspace:*",
+    "hono": "^4.13.16"
+  },
+  "devDependencies": {
+    "@cloudflare/workers-types": "^5.20261102.1",
+    "typescript": "^7.0.2",
+    "vitest": "^5.0.5",
+    "wrangler": "^4.156.1"
+  }
+}
