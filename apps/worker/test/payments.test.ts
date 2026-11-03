@@ -24,7 +24,7 @@ const VALID_BODY = {
 };
 
 interface ErrorBody {
-  error: { code: string };
+  error: { code: string; message: string };
 }
 
 interface PaymentBody {
@@ -148,6 +148,24 @@ describe("POST /v1/payments", () => {
       "INVALID_REQUEST",
     );
     expect(calls).toHaveLength(0);
+  });
+
+  it("menolak orderId yang membuat merchantOrderId melebihi 50 karakter", async () => {
+    const { app, calls } = await setup();
+
+    const response = await postPayment(app, { ...VALID_BODY, orderId: "X".repeat(47) });
+
+    expect(response.status).toBe(400);
+    expect((await readJson<ErrorBody>(response)).error.message).toContain("50 karakter");
+    expect(calls).toHaveLength(0);
+  });
+
+  it("menerima orderId yang membuat merchantOrderId tepat 50 karakter", async () => {
+    const { app } = await setup();
+
+    const response = await postPayment(app, { ...VALID_BODY, orderId: "Y".repeat(45) });
+
+    expect(response.status).toBe(201);
   });
 
   it("membuang baris PENDING bila Duitku gagal, supaya project bisa mencoba lagi", async () => {

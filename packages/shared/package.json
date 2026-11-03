@@ -12,7 +12,8 @@
     "./status": "./src/status.ts",
     "./payment": "./src/payment.ts",
     "./hmac": "./src/hmac.ts",
-    "./admin": "./src/admin.ts"
+    "./admin": "./src/admin.ts",
+    "./payment-methods": "./src/payment-methods.ts"
   },
   "scripts": {
     "typecheck": "tsc --noEmit",

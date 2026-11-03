@@ -2,7 +2,12 @@ import type { Hono } from "hono";
 import { createPaymentInputSchema } from "@gapura/shared/payment";
 import { jsonError } from "../http";
 import { PaymentProviderError } from "../providers/duitku";
-import { DuplicateOrderError, toPaymentResponse, type PaymentsService } from "../services/payments";
+import {
+  DuplicateOrderError,
+  PaymentValidationError,
+  toPaymentResponse,
+  type PaymentsService,
+} from "../services/payments";
 import type { AppEnv } from "../types";
 
 export interface PaymentRouteDeps {
@@ -25,6 +30,9 @@ export function registerPaymentRoutes(app: Hono<AppEnv>, deps: PaymentRouteDeps)
       const record = await deps.payments.create(c.get("project"), parsed.data);
       return c.json(toPaymentResponse(record), 201);
     } catch (error) {
+      if (error instanceof PaymentValidationError) {
+        return jsonError(c, 400, "INVALID_REQUEST", error.message);
+      }
       if (error instanceof DuplicateOrderError) {
         return jsonError(c, 409, "DUPLICATE_ORDER", "orderId sudah dipakai project ini.");
       }

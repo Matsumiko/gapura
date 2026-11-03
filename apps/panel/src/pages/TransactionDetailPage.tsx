@@ -1,5 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Link, useParams } from "react-router-dom";
+import { paymentChannelByCode } from "@gapura/shared/payment-methods";
 import { apiGet, apiPost, type TransactionDetail, type WebhookLog } from "../api";
 import { ErrorNote, formatRupiah, formatTime } from "../components";
 
@@ -51,7 +52,13 @@ export function TransactionDetailPage() {
           <dt>Nominal</dt>
           <dd>{formatRupiah(transaction.amount)}</dd>
           <dt>Metode</dt>
-          <dd>{transaction.paymentMethod ?? "-"}</dd>
+          <dd>
+            {transaction.paymentMethod
+              ? `${transaction.paymentMethod} · ${
+                  paymentChannelByCode(transaction.paymentMethod)?.name ?? "channel tidak dikenal"
+                }`
+              : "-"}
+          </dd>
           <dt>Status</dt>
           <dd>
             <span className={`badge status-${transaction.status.toLowerCase()}`}>

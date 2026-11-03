@@ -41,7 +41,8 @@ Shared (dipakai Worker dan panel):
 - `packages/shared/src/hmac.ts` — hmacSha256Hex dan secureEqual untuk signature Duitku dan webhook keluar.
 - `packages/shared/src/order.ts` — build/parse merchant order id (`PREFIX-orderId`).
 - `packages/shared/src/status.ts` — daftar status dan aturan transisi hanya maju.
-- `packages/shared/src/payment.ts` — skema Zod body create payment (termasuk kode metode 2 karakter).
+- `packages/shared/src/payment.ts` — skema Zod body create payment (kode metode 2 karakter, nominal ≥ Rp10.000).
+- `packages/shared/src/payment-methods.ts` — katalog 32 channel Duitku (sistem, kode, expiry, void, account link) untuk label panel dan referensi.
 - `packages/shared/src/index.ts` — re-export; Worker mengimpor subpath agar Zod hanya masuk bundle saat dipakai.
 
 Panel:
@@ -55,7 +56,7 @@ Panel:
 - `apps/panel/src/pages/TransactionsPage.tsx` — daftar transaksi dengan filter dan paging.
 - `apps/panel/src/pages/TransactionDetailPage.tsx` — detail transaksi + riwayat webhook + retry.
 - `apps/panel/src/pages/WebhooksPage.tsx` — antrean FAILED/DEAD dan kirim ulang.
-- `apps/panel/src/pages/DocsPage.tsx` — dokumentasi in-app: integrasi project, API, webhook + verifikasi signature, status, error, admin API, troubleshooting.
+- `apps/panel/src/pages/DocsPage.tsx` — dokumentasi in-app: integrasi project, katalog metode pembayaran, API, webhook + verifikasi signature, status, error, admin API, troubleshooting.
 
 Test:
 - `apps/worker/test/app.test.ts` — auth, CORS, routing lewat `app.request`.

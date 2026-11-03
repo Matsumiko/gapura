@@ -13,10 +13,12 @@ export const createPaymentInputSchema = z
       .min(1)
       .max(128)
       .refine((value) => value.trim() === value, { message: "orderId tanpa spasi di awal/akhir" }),
-    amount: z.number().int().positive().max(Number.MAX_SAFE_INTEGER),
+    // Duitku menolak nominal di bawah Rp10.000 (HTTP 400 Minimum Payment).
+    amount: z.number().int().min(10_000).max(Number.MAX_SAFE_INTEGER),
     productDetails: z.string().min(1).max(255),
     customerName: z.string().min(1).max(255),
-    email: z.email().max(255),
+    // Vendor menulis 255 di tabel, tetapi daftar error menyebut batas 50; pakai yang lebih ketat.
+    email: z.email().max(50),
     paymentMethod: z.string().regex(/^[A-Z0-9]{2}$/, { message: "kode metode pembayaran Duitku 2 karakter" }),
     returnUrl: httpUrl,
   })

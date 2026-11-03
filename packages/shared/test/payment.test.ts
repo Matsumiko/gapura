@@ -12,14 +12,23 @@ const validInput = {
 };
 
 describe("createPaymentInputSchema", () => {
+  it("menerima nominal minimum Rp10.000", () => {
+    expect(createPaymentInputSchema.safeParse({ ...validInput, amount: 10000 }).success).toBe(true);
+  });
+
   it("menerima contoh request PRD", () => {
     expect(createPaymentInputSchema.parse(validInput)).toEqual(validInput);
   });
 
-  it("menolak nominal pecahan, nol, negatif, dan string", () => {
-    for (const amount of [150000.5, 0, -1, "150000"]) {
+  it("menolak nominal di bawah Rp10.000, pecahan, dan string", () => {
+    for (const amount of [150000.5, 9999, 0, -1, "150000"]) {
       expect(createPaymentInputSchema.safeParse({ ...validInput, amount }).success).toBe(false);
     }
+  });
+
+  it("menolak email lebih dari 50 karakter", () => {
+    const email = `${"a".repeat(46)}@b.co`;
+    expect(createPaymentInputSchema.safeParse({ ...validInput, email }).success).toBe(false);
   });
 
   it("menolak email tidak valid", () => {

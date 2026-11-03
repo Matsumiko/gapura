@@ -25,7 +25,7 @@ reason.modular:
 Backend gerbang pembayaran di Cloudflare Workers: banyak project memakai satu akun merchant Duitku tanpa berbagi kredensial. Spesifikasi produk ada di `PRD.md`; keputusan arsitektur di `docs/adr/`.
 
 ## Ringkasan
-Gapura membuat transaksi Duitku atas nama project pemanggil, menerima callback Duitku (verifikasi signature + nominal), menyimpan status di D1, lalu meneruskan status ke webhook project dengan HMAC. Panel admin (SPA React di Cloudflare Pages) dipakai owner untuk mengelola project dan memantau transaksi. Fase 1-3 berjalan dan staging live; Fase 6 (admin API + panel) live dengan token admin. Total 153 test.
+Gapura membuat transaksi Duitku atas nama project pemanggil, menerima callback Duitku (verifikasi signature + nominal), menyimpan status di D1, lalu meneruskan status ke webhook project dengan HMAC. Panel admin (SPA React di Cloudflare Pages) dipakai owner untuk mengelola project dan memantau transaksi. Fase 1-3 berjalan dan staging live; Fase 6 (admin API + panel) live dengan token admin. Total 162 test.
 
 ## Stack
 - Runtime API: Cloudflare Workers, TypeScript, Hono 4.
@@ -33,6 +33,7 @@ Gapura membuat transaksi Duitku atas nama project pemanggil, menerima callback D
 - Panel: Vite + React 19 + TanStack Query; routing/tabel/grafik menyusul di Fase 6.
 - Validasi: Zod (hanya di `packages/shared/src/payment.ts`).
 - Test: Vitest; migrasi SQL diuji dengan `node:sqlite` (ADR-0003).
+- Referensi vendor: `docs/reference/duitku-api.md` dan `docs/reference/duitku-payment-methods.md`; katalog channel di `packages/shared/src/payment-methods.ts`.
 - Integrasi Duitku: API v2 dengan signature HMAC-SHA256 (ADR-0004).
 - Monorepo: pnpm workspaces — `apps/worker`, `apps/panel`, `packages/shared`.
 - Toolchain lokal: Node >= 22 (dikembangkan di 22.22), pnpm 12 lewat corepack.

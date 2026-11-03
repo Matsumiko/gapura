@@ -1,4 +1,9 @@
 import type { ReactNode } from "react";
+import {
+  PAYMENT_SYSTEMS,
+  channelsBySystem,
+  type PaymentChannel,
+} from "@gapura/shared/payment-methods";
 
 const API_BASE = "https://pay.example.com";
 const PANEL_URL = "https://admin.example.com";
@@ -6,6 +11,7 @@ const PANEL_URL = "https://admin.example.com";
 const SECTIONS = [
   { id: "mulai", label: "Mulai" },
   { id: "auth", label: "Autentikasi project" },
+  { id: "metode-pembayaran", label: "Metode pembayaran" },
   { id: "buat-pembayaran", label: "Buat pembayaran" },
   { id: "cek-status", label: "Cek status" },
   { id: "siklus-status", label: "Siklus status" },
@@ -106,6 +112,71 @@ export function DocsPage() {
           </p>
         </Section>
 
+        <Section id="metode-pembayaran" title="Metode pembayaran">
+          <p>
+            Duitku memisahkan <strong>sistem pembayaran</strong> (Bank Transfer, E-Wallet, Retail,
+            Credit Card, QRIS, PayLater, E-Banking, E-Commerce) dari <strong>channel</strong>.
+            Gapura meneruskan kode channel dua karakter sebagai <code>paymentMethod</code>; tidak
+            ada kode sistem terpisah di API.
+          </p>
+          <p>
+            Channel yang bisa dipakai adalah yang aktif di akun merchant Duitku, bukan seluruh tabel.
+            Daftar aktif beserta biayanya diambil dari{" "}
+            <code>POST /webapi/api/merchant/paymentmethod/getpaymentmethod</code> (lihat{" "}
+            <code>docs/reference/duitku-api.md</code>). Katalog di bawah adalah referensi vendor.
+          </p>
+          {PAYMENT_SYSTEMS.map((system) => (
+            <div key={system}>
+              <h3>{system}</h3>
+              <table>
+                <thead>
+                  <tr>
+                    <th>Kode</th>
+                    <th>Channel</th>
+                    <th>Expiry default / maks</th>
+                    <th>Catatan</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {channelsBySystem(system).map((channel: PaymentChannel) => (
+                    <tr key={channel.code}>
+                      <td>
+                        <code>{channel.code}</code>
+                      </td>
+                      <td>{channel.name}</td>
+                      <td>
+                        {channel.defaultExpiryMinutes === undefined
+                          ? "-"
+                          : `${channel.defaultExpiryMinutes} menit / ${
+                              channel.maxExpiryMinutes === null
+                                ? "> default"
+                                : channel.maxExpiryMinutes === undefined
+                                  ? "-"
+                                  : `${channel.maxExpiryMinutes} menit`
+                            }`}
+                      </td>
+                      <td>
+                        {[
+                          channel.supportsVoid ? "dukung void" : null,
+                          channel.requiresAccountLink ? "butuh accountLink" : null,
+                          channel.note ?? null,
+                        ]
+                          .filter(Boolean)
+                          .join("; ") || "-"}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          ))}
+          <p>
+            Batas penting: nominal minimal <strong>Rp10.000</strong> dan{" "}
+            <code>merchantOrderId</code> (PREFIX-orderId) maksimal <strong>50 karakter</strong>.
+            Gapura menolak keduanya di awal dengan 400, bukan meneruskannya ke Duitku.
+          </p>
+        </Section>
+
         <Section id="buat-pembayaran" title="Buat pembayaran">
           <p>
             <code>POST /v1/payments</code> — body JSON, hanya field di bawah yang diterima (field
@@ -123,13 +194,13 @@ export function DocsPage() {
                 <td>
                   <code>orderId</code>
                 </td>
-                <td>1–128 karakter, tanpa spasi di awal/akhir, unik per project.</td>
+                <td>1–128 karakter (ditolak 400 bila PREFIX-orderId &gt; 50), tanpa spasi di awal/akhir, unik per project.</td>
               </tr>
               <tr>
                 <td>
                   <code>amount</code>
                 </td>
-                <td>Integer rupiah positif, tanpa desimal.</td>
+                <td>Integer rupiah, minimal Rp10.000, tanpa desimal.</td>
               </tr>
               <tr>
                 <td>
@@ -149,7 +220,7 @@ export function DocsPage() {
                 <td>
                   <code>email</code>
                 </td>
-                <td>Email valid, maksimal 255 karakter.</td>
+                <td>Email valid, maksimal 50 karakter (batas error Duitku; tabel vendor menulis 255).</td>
               </tr>
               <tr>
                 <td>

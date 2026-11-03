@@ -6,7 +6,7 @@ Spesifikasi produk: [PRD.md](PRD.md). Keputusan arsitektur: [docs/adr](docs/adr)
 
 ## Status
 
-Fase 1-3 berjalan dan **staging live** di `https://pay.example.com` (D1 `gapura-sandbox`, Cron aktif, kredensial sandbox asli). Panel admin live di `https://admin.example.com` dan API `/admin/*` di `https://pay.example.com/admin/*`, dilindungi token admin (Bearer). Total 153 test. Kredensial sandbox asli sudah dipakai; pembayaran sandbox lewat demo Duitku berhasil dan callback asli membuat transaksi PAID.
+Fase 1-3 berjalan dan **staging live** di `https://pay.example.com` (D1 `gapura-sandbox`, Cron aktif, kredensial sandbox asli). Panel admin live di `https://admin.example.com` dan API `/admin/*` di `https://pay.example.com/admin/*`, dilindungi token admin (Bearer). Total 162 test. Kredensial sandbox asli sudah dipakai; pembayaran sandbox lewat demo Duitku berhasil dan callback asli membuat transaksi PAID.
 
 ## Struktur
 
@@ -83,6 +83,16 @@ pnpm --filter @gapura/panel dev   # http://127.0.0.1:5173
 Halaman: Ringkasan (total PAID hari/bulan), Project (buat, edit nama/webhook URL, aktif/nonaktif, rotasi API key & webhook secret — kredensial tampil sekali; prefix tidak bisa diubah karena menempel di order ID Duitku), Transaksi (filter + detail + riwayat webhook), Webhook gagal (retry manual), dan Dokumentasi in-app (kontrak API + webhook + verifikasi signature + admin API). Setiap aksi admin dicatat di tabel `admin_audit` dengan email pelaku dari JWT.
 
 Panel sudah dideploy di `https://admin.example.com` (Pages) dengan layar login token; alias `your-project.pages.dev` menampilkan login yang sama. API admin memakai Bearer `ADMIN_TOKEN`; request tanpa token ditolak 401. Langkah lengkap ada di `DEPLOYMENT.md`. Detail keputusan: [ADR-0007](docs/adr/0007-admin-memakai-token-bearer-tanpa-zero-trust.md).
+
+## Referensi Duitku
+
+Kontrak vendor dipelajari dan dicatat supaya tidak menebak:
+
+- [docs/reference/duitku-api.md](docs/reference/duitku-api.md) — endpoint, signature HMAC, parameter inquiry/callback/cek transaksi, kode error, pemetaan ke Gapura.
+- [docs/reference/duitku-payment-methods.md](docs/reference/duitku-payment-methods.md) — 32 channel per sistem, expiry, void, account link, channel aktif sandbox, batas nominal/order ID.
+- Katalog machine-readable: `packages/shared/src/payment-methods.ts` (dipakai panel untuk label channel).
+
+Batas yang ditegakkan Gapura: nominal minimal Rp10.000, `merchantOrderId` maks 50 karakter, email maks 50 karakter, `paymentMethod` 2 karakter.
 
 ## Webhook keluar
 

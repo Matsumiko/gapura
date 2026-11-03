@@ -8,6 +8,13 @@ import type {
   TransactionRepository,
 } from "../types";
 
+export class PaymentValidationError extends Error {
+  constructor(message: string) {
+    super(message);
+    this.name = "PaymentValidationError";
+  }
+}
+
 export class DuplicateOrderError extends Error {
   constructor() {
     super("orderId sudah dipakai project ini");
@@ -69,6 +76,11 @@ export function createPaymentsService(deps: PaymentsDeps): PaymentsService {
 
       const createdAt = deps.now().toISOString();
       const merchantOrderId = buildMerchantOrderId(project.prefix, input.orderId);
+      if (merchantOrderId.length > 50) {
+        throw new PaymentValidationError(
+          "orderId terlalu panjang: merchantOrderId (PREFIX-orderId) maksimal 50 karakter.",
+        );
+      }
       const inserted = await deps.transactions.insertPending({
         merchantOrderId,
         projectId: project.id,

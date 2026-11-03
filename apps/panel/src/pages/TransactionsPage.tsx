@@ -1,6 +1,7 @@
 import { useQuery } from "@tanstack/react-query";
 import { useState } from "react";
 import { Link } from "react-router-dom";
+import { paymentChannelByCode } from "@gapura/shared/payment-methods";
 import {
   apiGet,
   type PaymentStatus,
@@ -103,7 +104,11 @@ export function TransactionsPage() {
                       </td>
                       <td>{item.projectName}</td>
                       <td>{formatRupiah(item.amount)}</td>
-                      <td>{item.paymentMethod ?? "-"}</td>
+                      <td title={item.paymentMethod ?? ""}>
+                        {item.paymentMethod
+                          ? (paymentChannelByCode(item.paymentMethod)?.name ?? item.paymentMethod)
+                          : "-"}
+                      </td>
                       <td>
                         <span className={`badge status-${item.status.toLowerCase()}`}>
                           {item.status}
