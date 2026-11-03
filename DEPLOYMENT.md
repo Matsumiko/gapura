@@ -63,8 +63,8 @@ Migrasi D1 bersifat maju saja; rollback kode tidak membatalkan migrasi. Untuk pe
 
 - `/sandbox/*` → binding `DB_SANDBOX` (`gapura-sandbox`), callback `https://pay.example.com/sandbox/callback/duitku`.
 - `/production/*` → binding `DB_PRODUCTION` (`gapura-production`), callback `https://pay.example.com/production/callback/duitku`.
-- Migrasi harus dijalankan untuk **kedua** database:
-  `wrangler d1 migrations apply gapura-sandbox --remote` dan `wrangler d1 migrations apply gapura-production --remote`.
+- Migrasi sudah dijalankan untuk **kedua** database (`gapura-sandbox` dan `gapura-production`).
+- Status live: `/sandbox` memakai kredensial sandbox dari panel; `/production` kosong sampai kredensial production diisi.
 - Panel memilih environment di header; semua request admin diberi prefix env.
 - Path lama `/v1`, `/callback/duitku`, `/admin` tetap sandbox (kompatibilitas).
 

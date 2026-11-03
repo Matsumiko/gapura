@@ -39,13 +39,6 @@ function EnvCard({
     },
   });
 
-  const activate = useMutation({
-    mutationFn: () => apiPost<MerchantSettingsView>(`/admin/settings/${view.environment}/activate`),
-    onSuccess: async () => {
-      await onChanged();
-    },
-  });
-
   const test = useMutation({
     mutationFn: () => apiPost<SettingsTestResult>(`/admin/settings/${view.environment}/test`),
     onSuccess: (result) => setTestResult(result),
@@ -58,7 +51,6 @@ function EnvCard({
       <div className="section-head">
         <h2>
           {label}{" "}
-          {view.isActive ? <span className="badge good">aktif</span> : null}
           {view.apiKeySet ? <span className="badge">api key tersimpan</span> : null}
         </h2>
         <span className="muted">
@@ -103,14 +95,6 @@ function EnvCard({
           <button
             type="button"
             className="ghost"
-            onClick={() => activate.mutate()}
-            disabled={activate.isPending || !view.apiKeySet || view.isActive}
-          >
-            {view.isActive ? "Sedang aktif" : "Aktifkan"}
-          </button>
-          <button
-            type="button"
-            className="ghost"
             onClick={() => test.mutate()}
             disabled={test.isPending || !view.apiKeySet}
           >
@@ -119,7 +103,7 @@ function EnvCard({
         </div>
       </form>
 
-      <ErrorNote error={save.error ?? activate.error ?? test.error} />
+      <ErrorNote error={save.error ?? test.error} />
       {testResult ? (
         <p className="muted">
           {testResult.count} channel aktif · contoh:{" "}
@@ -160,16 +144,17 @@ export function SettingsPage() {
       <article className="card">
         <h2>Kredensial Duitku</h2>
         <p className="muted">
-          Kredensial disimpan terenkripsi AES-GCM di D1. Hanya environment aktif yang dipakai untuk
-          transaksi baru; callback memverifikasi dengan kredensial yang sama.
+          Environment dipilih dari header. Kredensial di halaman ini hanya berlaku untuk environment
+          tersebut dan disimpan terenkripsi AES-GCM di database environment itu. Callback memverifikasi
+          dengan kredensial yang sama.
         </p>
         <dl className="details">
           <dt>Callback URL</dt>
           <dd>
             <code>{data.callbackUrl}</code>
           </dd>
-          <dt>Environment aktif</dt>
-          <dd>{data.activeEnvironment ?? "belum ada"}</dd>
+          <dt>Environment</dt>
+          <dd>{data.items[0]?.environment ?? "-"}</dd>
           <dt>Master key</dt>
           <dd>
             {data.credentialsKeyConfigured
@@ -183,10 +168,6 @@ export function SettingsPage() {
             kredensial dari panel. Transaksi masih memakai fallback secret environmen bila ada.
           </p>
         ) : null}
-        <p className="muted">
-          Production sebaiknya memakai deployment dan D1 terpisah. Mengaktifkan production di sini
-          membuat transaksi baru memakai kredensial produksi pada D1 yang sama.
-        </p>
       </article>
 
       {data.items.map((view) => (
