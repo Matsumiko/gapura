@@ -66,6 +66,13 @@ wrangler d1 execute gapura-sandbox --remote --json --command \
 - Retensi otomatis memangkas `DELIVERED`/`DEAD` lebih dari 30 hari; `FAILED` terjadwal sengaja disimpan.
 - Turunkan `DEFAULT_RETENTION_MS` di `apps/worker/src/services/retention.ts` bila perlu, dengan test.
 
+## Panel admin
+
+- `503 ADMIN_NOT_CONFIGURED`: `ACCESS_TEAM_DOMAIN`/`ACCESS_AUD` belum diset atau Access belum aktif. Panel memang tidak bisa dipakai.
+- `401 ADMIN_UNAUTHORIZED`: sesi Access habis atau domain/AUD tidak cocok. Login ulang lewat Access; cek `aud` application.
+- Halaman kosong/`403`: policy Access tidak mengizinkan email tersebut.
+- Tombol kirim ulang webhook mengubah baris `DEAD`/`FAILED` menjadi jadwal baru (attempt 1, jatuh tempo sekarang); Cron berikutnya mengirim.
+
 ## Eskalasi
 
 Owner tunggal. Untuk insiden yang menyentuh uang atau data pembeli: hentikan rollout project baru, rollback bila perlu, lalu catat di `BUG-HISTORY`/`INCIDENTS` setelah pulih.

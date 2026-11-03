@@ -6,7 +6,7 @@ Spesifikasi produk: [PRD.md](PRD.md). Keputusan arsitektur: [docs/adr](docs/adr)
 
 ## Status
 
-Fase 1-3 berjalan dan **staging sudah live** di `https://pay.example.com` (D1 `gapura-sandbox`, Cron aktif). Auth API key, create/cek payment, callback Duitku bertanda tangan, forward webhook bertanda tangan, retry Cron, sinkronisasi transaksi pending, retensi log, skema D1, panel shell, dan 132 test. **Belum ada transaksi ke sandbox Duitku sungguhan**: secret staging masih placeholder (`D0001`/`placeholder-api-key`) sampai kredensial merchant tersedia.
+Fase 1-3 berjalan dan **staging sudah live** di `https://pay.example.com` (D1 `gapura-sandbox`, Cron aktif, kredensial sandbox asli). Fase 6 (admin API + panel) berjalan lokal dengan JWT Cloudflare Access, **belum dideploy** karena Access belum aktif di akun. Total 158 test. **Belum ada transaksi ke sandbox Duitku sungguhan**: secret staging masih placeholder (`D0001`/`placeholder-api-key`) sampai kredensial merchant tersedia.
 
 ## Struktur
 
@@ -51,6 +51,7 @@ Semua endpoint `/v1/*` memakai header `X-Gapura-Key` (API key project). Error se
 | `POST /v1/payments` | buat transaksi Duitku, simpan `PENDING`, kembalikan `paymentUrl`/`vaNumber`/`qrString` |
 | `GET /v1/payments/:orderId` | status transaksi milik project sendiri |
 | `POST /callback/duitku` | callback Duitku; verifikasi HMAC-SHA256 + nominal, forward asinkron |
+| `GET /admin/*`, `POST /admin/*`, `PATCH /admin/*` | panel admin; wajib JWT Cloudflare Access (`Cf-Access-Jwt-Assertion` atau cookie `CF_Authorization`) |
 
 Contoh:
 
@@ -70,6 +71,18 @@ curl -X POST http://127.0.0.1:8787/v1/payments \
 ```
 
 `paymentMethod` adalah kode 2 karakter Duitku (`VC`, `VA`, `OV`, `DA`, ...). Order ID yang dikirim ke Duitku berbentuk `PREFIX-orderId` dan unik global.
+
+## Panel admin
+
+SPA React di `apps/panel` + endpoint `/admin/*` di Worker. Semua endpoint admin memverifikasi JWT Cloudflare Access (RS256, `aud`, `iss`, `exp`); tanpa `ACCESS_TEAM_DOMAIN`/`ACCESS_AUD` endpoint menjawab `503 ADMIN_NOT_CONFIGURED` (fail closed).
+
+```sh
+pnpm --filter @gapura/panel dev   # http://127.0.0.1:5173
+```
+
+Halaman: Ringkasan (total PAID hari/bulan), Project (buat, aktif/nonaktif, rotasi API key & webhook secret — kredensial tampil sekali), Transaksi (filter + detail + riwayat webhook), Webhook gagal (retry manual). Setiap aksi admin dicatat di tabel `admin_audit` dengan email pelaku dari JWT.
+
+Panel **belum dideploy**: akun Cloudflare belum mengaktifkan Access, dan panel tidak boleh publik tanpa proteksi. Langkah deploy ada di `DEPLOYMENT.md`. Detail keputusan: [ADR-0006](docs/adr/0006-admin-api-dan-panel-dilindungi-cloudflare-access-j.md).
 
 ## Webhook keluar
 

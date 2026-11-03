@@ -1,5 +1,7 @@
 import { sha256Hex } from "@gapura/shared/crypto";
 import { buildApp, type AppDeps } from "../../src/app";
+import type { AdminService } from "../../src/services/admin";
+import type { AccessVerifier } from "../../src/providers/access";
 import type { CallbackService } from "../../src/services/callbacks";
 import type { PaymentsService } from "../../src/services/payments";
 import type { WebhookForwarder } from "../../src/services/webhooks";
@@ -69,6 +71,39 @@ const unusedCallbacks: CallbackService = {
   },
 };
 
+const unusedAdmin = {
+  async summary() {
+    throw new Error("admin.summary tidak diharapkan di test ini");
+  },
+  async listProjects() {
+    throw new Error("admin.listProjects tidak diharapkan di test ini");
+  },
+  async createProject() {
+    throw new Error("admin.createProject tidak diharapkan di test ini");
+  },
+  async setProjectActive() {
+    throw new Error("admin.setProjectActive tidak diharapkan di test ini");
+  },
+  async rotateApiKey() {
+    throw new Error("admin.rotateApiKey tidak diharapkan di test ini");
+  },
+  async rotateWebhookSecret() {
+    throw new Error("admin.rotateWebhookSecret tidak diharapkan di test ini");
+  },
+  async listTransactions() {
+    throw new Error("admin.listTransactions tidak diharapkan di test ini");
+  },
+  async getTransaction() {
+    throw new Error("admin.getTransaction tidak diharapkan di test ini");
+  },
+  async listWebhooks() {
+    throw new Error("admin.listWebhooks tidak diharapkan di test ini");
+  },
+  async retryWebhook() {
+    throw new Error("admin.retryWebhook tidak diharapkan di test ini");
+  },
+} satisfies AdminService;
+
 const unusedForwarder: WebhookForwarder = {
   async forward() {
     throw new Error("forwarder.forward tidak diharapkan di test ini");
@@ -95,6 +130,8 @@ export async function createTestApp(
     payments: unusedPayments,
     callbacks: unusedCallbacks,
     forwarder: unusedForwarder,
+    admin: unusedAdmin,
+    adminVerifier: null as AccessVerifier | null,
     ...overrides,
   };
   const background: Promise<unknown>[] = [];

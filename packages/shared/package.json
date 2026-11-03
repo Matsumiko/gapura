@@ -11,7 +11,8 @@
     "./order": "./src/order.ts",
     "./status": "./src/status.ts",
     "./payment": "./src/payment.ts",
-    "./hmac": "./src/hmac.ts"
+    "./hmac": "./src/hmac.ts",
+    "./admin": "./src/admin.ts"
   },
   "scripts": {
     "typecheck": "tsc --noEmit",

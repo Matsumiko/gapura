@@ -12,6 +12,11 @@ Worker (Cloudflare):
 - `apps/worker/src/middleware/auth.ts` — membaca `X-Gapura-Key`, mencocokkan hash, menolak project nonaktif.
 - `apps/worker/src/routes/payments.ts` — `POST /v1/payments` dan `GET /v1/payments/:orderId`, menerjemahkan error domain ke status HTTP.
 - `apps/worker/src/routes/callback.ts` — `POST /callback/duitku`: parse form, verifikasi lewat service, jadwalkan forward asinkron.
+- `apps/worker/src/routes/admin.ts` — endpoint `/admin/*`: ringkasan, project, transaksi, webhook retry; menerjemahkan error domain ke HTTP.
+- `apps/worker/src/middleware/admin-auth.ts` — wajib JWT Access valid; fail closed bila Access belum dikonfigurasi.
+- `apps/worker/src/providers/access.ts` — verifikasi JWT RS256 via JWKS Access, cache kunci, ambil email admin.
+- `apps/worker/src/repositories/admin.ts` — SQL khusus admin: daftar/mutasi project, daftar transaksi + filter, riwayat webhook, ringkasan, audit.
+- `apps/worker/src/services/admin.ts` — operasi admin (buat project, rotasi kredensial, ringkasan, retry webhook) + penulisan audit.
 - `apps/worker/src/services/payments.ts` — orkestrasi buat transaksi: order ID, simpan PENDING, panggil provider, simpan artefak; membuang baris PENDING bila vendor gagal sebelum transaksi dibuat.
 - `apps/worker/src/services/callbacks.ts` — verifikasi signature/nominal/merchant, transisi status hanya sekali, menyusun payload forward.
 - `apps/worker/src/services/webhooks.ts` — satu percobaan kirim bertanda tangan HMAC + timestamp; forwarder mencatat percobaan pertama dan menjadwalkan retry.
@@ -30,6 +35,7 @@ Worker (Cloudflare):
 - `apps/worker/src/types.ts` — Env, record domain, interface repository/service.
 - `apps/worker/migrations/0001_init.sql` — skema D1: projects, transactions, webhook_logs + index.
 - `apps/worker/migrations/0002_payment_artifacts.sql` — kolom `va_number` dan `qr_string`.
+- `apps/worker/migrations/0003_admin_audit.sql` — tabel `admin_audit` untuk jejak aksi admin.
 
 Shared (dipakai Worker dan panel):
 - `packages/shared/src/crypto.ts` — sha256Hex, generator API key dan webhook secret.
@@ -42,7 +48,13 @@ Shared (dipakai Worker dan panel):
 Panel:
 - `apps/panel/src/main.tsx` — bootstrap React + QueryClient.
 - `apps/panel/src/App.tsx` — halaman status API.
-- `apps/panel/src/api.ts` — base URL dari `VITE_API_URL` dan fetch health.
+- `apps/panel/src/api.ts` — base URL `VITE_API_URL`, tipe admin, dan fetch dengan cookie Access.
+- `apps/panel/src/App.tsx` — layout + React Router untuk Ringkasan/Project/Transaksi/Webhook.
+- `apps/panel/src/pages/SummaryPage.tsx` — total PAID hari/bulan per project.
+- `apps/panel/src/pages/ProjectsPage.tsx` — buat project, aktif/nonaktif, rotasi key/secret (tampil sekali).
+- `apps/panel/src/pages/TransactionsPage.tsx` — daftar transaksi dengan filter dan paging.
+- `apps/panel/src/pages/TransactionDetailPage.tsx` — detail transaksi + riwayat webhook + retry.
+- `apps/panel/src/pages/WebhooksPage.tsx` — antrean FAILED/DEAD dan kirim ulang.
 
 Test:
 - `apps/worker/test/app.test.ts` — auth, CORS, routing lewat `app.request`.
@@ -56,6 +68,8 @@ Test:
 - `apps/worker/test/retries.test.ts` — klaim, pengiriman ulang, backoff, DEAD.
 - `apps/worker/test/sync.test.ts` — pemetaan 00/01/02, transaksi lama vs baru, kegagalan provider.
 - `apps/worker/test/retention.test.ts` — pemangkasan hanya untuk baris terminal lama.
+- `apps/worker/test/access.test.ts` — verifikasi JWT Access (valid, kedaluwarsa, aud/iss salah, signature diubah, cache JWKS).
+- `apps/worker/test/admin.test.ts` — otorisasi admin, CRUD project, rotasi kredensial, ringkasan, filter transaksi, retry webhook, audit.
 - `apps/worker/test/schema.test.ts` — constraint dan index migrasi.
 - `apps/worker/test/support/` — harness HTTP, repository in-memory, adapter D1→SQLite. Bukan test.
 - `packages/shared/test/` — unit test crypto, hmac, order id, status, dan skema payment.
@@ -70,6 +84,8 @@ Menambah endpoint Worker:
 5. Tambah test di `apps/worker/test/` memakai harness (`apps/worker/test/support/harness.ts`) atau SQL asli untuk repository.
 
 Menambah tabel/kolom: buat file migrasi baru bernomor di `apps/worker/migrations/`, jangan mengedit yang sudah ada; tambah test constraint di `apps/worker/test/schema.test.ts`; perbarui PRD bagian 7.
+
+Menambah endpoint admin: taruh operasi di `apps/worker/src/services/admin.ts`, SQL di `apps/worker/src/repositories/admin.ts`, validasi Zod di `packages/shared/src/admin.ts`, dan pastikan setiap mutasi menulis audit.
 
 Menambah pekerjaan periodik: letakkan logika di `apps/worker/src/services/`, panggil dari `apps/worker/src/cron.ts`, dan pastikan idempotent karena Cron bisa tumpang tindih; klaim baris dengan update bersyarat, jangan asumsikan satu eksekusi.
 

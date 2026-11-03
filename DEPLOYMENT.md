@@ -59,6 +59,20 @@ wrangler rollback <version-id>
 
 Migrasi D1 bersifat maju saja; rollback kode tidak membatalkan migrasi. Untuk perubahan skema yang merusak, buat migrasi baru yang memperbaiki, bukan mengedit migrasi lama.
 
+## Panel admin (menunggu Access)
+
+Akun Cloudflare saat ini belum mengaktifkan Access, jadi langkah ini belum dijalankan:
+
+1. Aktifkan Zero Trust/Access di dashboard, lalu buat Access application untuk domain panel dan path `/admin/*` pada Worker (satu application, policy email owner).
+2. Ambil Application Audience (AUD) dan team domain (`<team>.cloudflareaccess.com`).
+3. Set variabel Worker: `ACCESS_TEAM_DOMAIN` dan `ACCESS_AUD` di `wrangler.toml`, lalu deploy ulang.
+4. Terapkan migrasi `0003_admin_audit.sql`: `wrangler d1 migrations apply gapura-sandbox --remote`.
+5. Build panel: `pnpm --filter @gapura/panel build`.
+6. Deploy Pages: `wrangler pages deploy apps/panel/dist --project-name gapura-admin` (set `VITE_API_URL` saat build ke URL Worker).
+7. Pastikan `_redirects` SPA ikut terunggah dan panel hanya bisa dibuka setelah login Access.
+
+Tanpa langkah 1–3, `/admin/*` menjawab `503 ADMIN_NOT_CONFIGURED`; jangan deploy panel tanpa Access.
+
 ## Produksi (belum dilakukan)
 
 1. Buat D1 terpisah (`gapura-production`) dan ganti `database_id`/`database_name`.

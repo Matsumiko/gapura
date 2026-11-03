@@ -15,7 +15,7 @@ Diperbarui: 2026-11-03. Berlaku untuk Worker staging `gapura-sandbox`.
 | SQL injection | Baca/ubah data | Semua query D1 memakai `.bind()` parameter | Ada |
 | SSRF lewat `webhook_url` | Worker memanggil host internal | URL hanya diisi owner lewat admin (Fase 6); belum ada validasi host khusus | Tertunda (belum ada input eksternal) |
 | Data pribadi di log | Kebocoran nama/email | Log hanya memuat merchant order id, kode error, dan ringkasan cron | Ada |
-| Panel admin terekspos | Aksi admin tanpa izin | Panel belum dibangun/dideploy; wajib Cloudflare Access + verifikasi JWT saat dibuat | Tertunda (Fase 6) |
+| Panel admin terekspos | Aksi admin tanpa izin | `/admin/*` memverifikasi JWT Cloudflare Access (RS256, aud/iss/exp) dan fail closed bila Access belum diset; panel belum dideploy | Ada + test; deploy menunggu Access |
 | Dependency rentan | RCE/data leak | `pnpm audit` bersih per 2026-11-03; jalankan sebelum rilis | Ada (manual) |
 | Secret masuk repo | Kredensial bocor | `.dev.vars`/`.env` di-.gitignore; secret produksi lewat `wrangler secret put`; config gitleaks tersedia | Ada + config |
 | Log webhook tumbuh tanpa batas | Kuota D1 penuh | Retensi 30 hari untuk baris `DELIVERED`/`DEAD`; retry terjadwal tidak dipangkas | Ada + test |
@@ -32,8 +32,9 @@ Diperbarui: 2026-11-03. Berlaku untuk Worker staging `gapura-sandbox`.
 - [x] Test jalur gagal (signature salah, nominal salah, akses ditolak, order tak dikenal, retry DEAD).
 - [x] `pnpm audit` bersih sebelum deploy staging (2026-11-03).
 - [ ] Rate limit per project (FR-10, P1) — belum; andalkan Cloudflare/WAF sebelum produksi.
-- [ ] Cloudflare Access + verifikasi JWT untuk `/admin/*` — menunggu panel Fase 6.
-- [ ] Rotasi API key lewat panel — Fase 6.
+- [x] Endpoint `/admin/*` memverifikasi JWT Cloudflare Access; panel belum dideploy sampai Access aktif.
+- [x] Rotasi API key dan webhook secret lewat panel; kredensial tampil sekali.
+- [x] Aksi admin dicatat di `admin_audit` (email pelaku, aksi, target).
 - [ ] Pemindaian secret otomatis di CI — config ada, CI belum dipasang.
 
 ## Catatan operasional

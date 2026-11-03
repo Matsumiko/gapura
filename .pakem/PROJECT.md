@@ -25,7 +25,7 @@ reason.modular:
 Backend gerbang pembayaran di Cloudflare Workers: banyak project memakai satu akun merchant Duitku tanpa berbagi kredensial. Spesifikasi produk ada di `PRD.md`; keputusan arsitektur di `docs/adr/`.
 
 ## Ringkasan
-Gapura membuat transaksi Duitku atas nama project pemanggil, menerima callback Duitku (verifikasi signature + nominal), menyimpan status di D1, lalu meneruskan status ke webhook project dengan HMAC. Panel admin (SPA React di Cloudflare Pages) dipakai owner untuk mengelola project dan memantau transaksi. Fase 1 sampai 3 berjalan, plus deploy staging: auth project, create/cek payment, callback, forward bertanda tangan, retry Cron, sinkronisasi transaksi pending, retensi log, dan 132 test.
+Gapura membuat transaksi Duitku atas nama project pemanggil, menerima callback Duitku (verifikasi signature + nominal), menyimpan status di D1, lalu meneruskan status ke webhook project dengan HMAC. Panel admin (SPA React di Cloudflare Pages) dipakai owner untuk mengelola project dan memantau transaksi. Fase 1-3 berjalan dan staging live; Fase 6 (admin API + panel) berjalan lokal dengan Access JWT. Total 158 test.
 
 ## Stack
 - Runtime API: Cloudflare Workers, TypeScript, Hono 4.
@@ -78,14 +78,15 @@ Checklist keamanan (aktif karena `sensitive: true`):
 - Ada test untuk jalur gagal (signature salah, nominal tidak cocok, akses ditolak, order tak dikenal).
 
 ## Status & artefak yang ditunda
-Fase sekarang: Fase 4 (staging). Worker live di `https://pay.example.com` dengan D1 `gapura-sandbox`, kedua migrasi terpasang, trigger Cron aktif, dan retensi `webhook_logs` 30 hari. Smoke remote membuktikan `/health`, auth lewat D1 remote, create payment mencapai Duitku sandbox (502 dengan kredensial placeholder), callback HMAC menghasilkan `PAID`, dan forward tercatat. Secret staging masih placeholder (`D0001`/`placeholder-api-key`) sampai kredensial sandbox asli ada. Belum ada transaksi sandbox nyata, panel fungsional, CI, atau deploy produksi.
+Fase sekarang: Fase 6 selesai di kode, staging live untuk API pembayaran. Worker `https://pay.example.com` memakai D1 `gapura-sandbox`, migrasi 0001-0002 remote (0003 menunggu deploy admin), Cron aktif, retensi 30 hari, dan kredensial sandbox asli. Pembayaran sandbox nyata lewat demo Duitku berhasil: callback asli membuat transaksi PAID dan webhook project DELIVERED. Admin API (`/admin/*`) dan panel React sudah berjalan lokal dengan verifikasi JWT Access (diuji memakai JWKS lokal), tetapi **belum dideploy**: Access belum diaktifkan di akun Cloudflare sehingga panel tidak boleh dipublikasikan tanpa proteksi. Deploy produksi juga belum.
 
 Ditunda (pemicunya belum ada):
 - Deploy produksi: butuh D1 produksi terpisah dan kredensial Duitku asli setelah Fase 0 disetujui.
 - CI, `DEPLOYMENT.md`, `RUNBOOK.md`: dibuat saat deploy staging pertama; flag `deploy` dinaikkan saat itu.
 - CI (`pakem ci`/GitHub Actions): belum ada remote GitHub; workflow dibuat saat repo punya remote.
-- Rate limit per project (FR-10): ditunda; andalkan Cloudflare/WAF sebelum produksi (lihat `docs/SECURITY_CHECKLIST.md`).
+- Rate limit per project dan admin (FR-10): ditunda; andalkan Cloudflare/WAF sebelum produksi (lihat `docs/SECURITY_CHECKLIST.md`).
 - Retensi `webhook_logs`: selesai (30 hari untuk DELIVERED/DEAD, lihat ADR-0005 dan `apps/worker/src/services/retention.ts`).
+- Deploy panel admin: menunggu Access diaktifkan + domain panel; sampai itu `/admin/*` staging menjawab 503 (fail closed). Migrasi `0003_admin_audit.sql` diterapkan saat deploy admin.
 - Transaksi sandbox Duitku sungguhan: butuh kredensial merchant sandbox dan jawaban Fase 0.
 - Makefile/justfile: perintah sudah pendek lewat `pnpm` dan tercatat di README; dibuat bila perintah harian mulai berulang.
 - Fase 0 (konfirmasi tertulis Duitku) masih terbuka dan wajib sebelum kredensial produksi dipakai.

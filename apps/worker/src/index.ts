@@ -1,11 +1,14 @@
-import { sha256Hex } from "@gapura/shared/crypto";
+import { generateApiKey, generateWebhookSecret, sha256Hex } from "@gapura/shared/crypto";
 import type { Hono } from "hono";
 import { buildApp } from "./app";
 import { createCronRunner, type CronRunner } from "./cron";
+import { createAccessVerifier } from "./providers/access";
 import { createDuitkuProvider } from "./providers/duitku";
+import { createAdminRepository } from "./repositories/admin";
 import { createProjectsRepository } from "./repositories/projects";
 import { createTransactionRepository } from "./repositories/transactions";
 import { createWebhookLogRepository } from "./repositories/webhook-logs";
+import { createAdminService } from "./services/admin";
 import { createCallbackService } from "./services/callbacks";
 import { createPaymentsService } from "./services/payments";
 import { createRetention } from "./services/retention";
@@ -43,6 +46,14 @@ function runtimeFor(env: Env): Runtime {
   const deliver: DeliverFn = (project, payload) =>
     deliverWebhook({ fetch: fetchImpl, project, payload, now });
 
+  const adminVerifier =
+    env.ACCESS_TEAM_DOMAIN && env.ACCESS_AUD
+      ? createAccessVerifier({
+          config: { teamDomain: env.ACCESS_TEAM_DOMAIN, audience: env.ACCESS_AUD },
+          fetch: fetchImpl,
+        })
+      : null;
+
   const app = buildApp({
     projects: createProjectsRepository(env.DB),
     sha256Hex,
@@ -60,6 +71,14 @@ function runtimeFor(env: Env): Runtime {
       now,
     }),
     forwarder,
+    admin: createAdminService({
+      admin: createAdminRepository(env.DB),
+      now,
+      generateApiKey,
+      generateWebhookSecret,
+      sha256Hex,
+    }),
+    adminVerifier,
   });
 
   const cron = createCronRunner({

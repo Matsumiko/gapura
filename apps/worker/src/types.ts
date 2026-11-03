@@ -6,6 +6,8 @@ export interface Env {
   DUITKU_BASE_URL?: string;
   DUITKU_MERCHANT_CODE?: string;
   DUITKU_API_KEY?: string;
+  ACCESS_TEAM_DOMAIN?: string;
+  ACCESS_AUD?: string;
 }
 
 export interface ProjectRecord {
@@ -112,7 +114,94 @@ export interface WebhookLogRepository {
   pruneTerminalBefore(cutoffIso: string): Promise<number>;
 }
 
+export interface AdminProject {
+  id: string;
+  name: string;
+  prefix: string;
+  webhookUrl: string;
+  isActive: boolean;
+  createdAt: string;
+}
+
+export interface AdminTransaction {
+  merchantOrderId: string;
+  projectId: string;
+  projectName: string;
+  projectOrderId: string;
+  amount: number;
+  paymentMethod: string | null;
+  status: PaymentStatus;
+  paymentUrl: string | null;
+  reference: string | null;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface AdminWebhookLog {
+  id: number;
+  merchantOrderId: string;
+  projectName: string;
+  attempt: number;
+  httpStatus: number | null;
+  error: string | null;
+  nextAttemptAt: string | null;
+  status: "FAILED" | "DELIVERED" | "DEAD";
+  createdAt: string;
+}
+
+export interface AdminSummaryRow {
+  projectId: string;
+  projectName: string;
+  todayCount: number;
+  todayAmount: number;
+  monthCount: number;
+  monthAmount: number;
+}
+
+export interface AdminTransactionQuery {
+  projectId?: string;
+  status?: PaymentStatus;
+  from?: string;
+  to?: string;
+  limit: number;
+  offset: number;
+}
+
+export interface AuditEntry {
+  actorEmail: string;
+  action: string;
+  target: string | null;
+  detail: string | null;
+  createdAt: string;
+}
+
+export interface AdminRepository {
+  listProjects(): Promise<AdminProject[]>;
+  findProject(id: string): Promise<AdminProject | null>;
+  insertProject(input: {
+    id: string;
+    name: string;
+    prefix: string;
+    apiKeyHash: string;
+    webhookUrl: string;
+    webhookSecret: string;
+    createdAt: string;
+  }): Promise<boolean>;
+  setProjectActive(id: string, active: boolean): Promise<boolean>;
+  updateProjectApiKeyHash(id: string, hash: string): Promise<boolean>;
+  updateProjectWebhookSecret(id: string, secret: string): Promise<boolean>;
+  listTransactions(
+    query: AdminTransactionQuery,
+  ): Promise<{ items: AdminTransaction[]; total: number }>;
+  findTransaction(merchantOrderId: string): Promise<AdminTransaction | null>;
+  listWebhookLogsFor(merchantOrderId: string): Promise<AdminWebhookLog[]>;
+  listWebhookLogs(status: "FAILED" | "DEAD" | null, limit: number): Promise<AdminWebhookLog[]>;
+  requeueWebhook(id: number, nowIso: string): Promise<boolean>;
+  summary(dayStartIso: string, monthStartIso: string): Promise<AdminSummaryRow[]>;
+  insertAudit(entry: AuditEntry): Promise<void>;
+}
+
 export type AppEnv = {
   Bindings: Env;
-  Variables: { project: ProjectRecord };
+  Variables: { project: ProjectRecord; adminEmail: string };
 };
