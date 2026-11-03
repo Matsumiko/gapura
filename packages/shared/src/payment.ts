@@ -17,7 +17,7 @@ export const createPaymentInputSchema = z
     productDetails: z.string().min(1).max(255),
     customerName: z.string().min(1).max(255),
     email: z.email().max(255),
-    paymentMethod: z.string().min(1).max(32),
+    paymentMethod: z.string().regex(/^[A-Z0-9]{2}$/, { message: "kode metode pembayaran Duitku 2 karakter" }),
     returnUrl: httpUrl,
   })
   .strict();

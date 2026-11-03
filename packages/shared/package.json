@@ -10,7 +10,8 @@
     "./crypto": "./src/crypto.ts",
     "./order": "./src/order.ts",
     "./status": "./src/status.ts",
-    "./payment": "./src/payment.ts"
+    "./payment": "./src/payment.ts",
+    "./hmac": "./src/hmac.ts"
   },
   "scripts": {
     "typecheck": "tsc --noEmit",

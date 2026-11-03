@@ -25,7 +25,7 @@ reason.modular:
 Backend gerbang pembayaran di Cloudflare Workers: banyak project memakai satu akun merchant Duitku tanpa berbagi kredensial. Spesifikasi produk ada di `PRD.md`; keputusan arsitektur di `docs/adr/`.
 
 ## Ringkasan
-Gapura membuat transaksi Duitku atas nama project pemanggil, menerima callback Duitku (verifikasi signature + nominal), menyimpan status di D1, lalu meneruskan status ke webhook project dengan HMAC. Panel admin (SPA React di Cloudflare Pages) dipakai owner untuk mengelola project dan memantau transaksi. Fase 1 (fondasi: Worker, D1, auth API key, panel shell) sudah berjalan lokal; transaksi Duitku baru masuk Fase 2.
+Gapura membuat transaksi Duitku atas nama project pemanggil, menerima callback Duitku (verifikasi signature + nominal), menyimpan status di D1, lalu meneruskan status ke webhook project dengan HMAC. Panel admin (SPA React di Cloudflare Pages) dipakai owner untuk mengelola project dan memantau transaksi. Fase 1 dan 2 sudah berjalan lokal: auth project, create/cek payment, callback, forward bertanda tangan, dan 105 test.
 
 ## Stack
 - Runtime API: Cloudflare Workers, TypeScript, Hono 4.
@@ -33,6 +33,7 @@ Gapura membuat transaksi Duitku atas nama project pemanggil, menerima callback D
 - Panel: Vite + React 19 + TanStack Query; routing/tabel/grafik menyusul di Fase 6.
 - Validasi: Zod (hanya di `packages/shared/src/payment.ts`).
 - Test: Vitest; migrasi SQL diuji dengan `node:sqlite` (ADR-0003).
+- Integrasi Duitku: API v2 dengan signature HMAC-SHA256 (ADR-0004).
 - Monorepo: pnpm workspaces — `apps/worker`, `apps/panel`, `packages/shared`.
 - Toolchain lokal: Node >= 22 (dikembangkan di 22.22), pnpm 12 lewat corepack.
 - Biaya: hanya layanan Cloudflare free tier. Queues, R2, dan layanan berbayar tidak dipakai; Durable Objects/KV hanya bila ADR baru membuktikan kebutuhannya.
@@ -44,7 +45,7 @@ Gapura membuat transaksi Duitku atas nama project pemanggil, menerima callback D
 - Jalankan API: `pnpm --filter @gapura/worker dev` (default `127.0.0.1:8787`).
 - Jalankan panel: `pnpm --filter @gapura/panel dev` (`127.0.0.1:5173`).
 - Verify: `pnpm verify` — typecheck semua paket, test shared + worker, build panel, dan bundel Worker lewat `wrangler deploy --dry-run`.
-- Smoke manual: jalankan `wrangler dev`, lalu `curl` endpoint; seed project memakai `wrangler d1 execute gapura --local`.
+- Smoke manual: jalankan `wrangler dev`, lalu `curl` endpoint; seed project memakai `wrangler d1 execute gapura --local`. Untuk callback, hitung signature dengan kunci di `apps/worker/.dev.vars` (lihat ADR-0004).
 
 ## Konvensi
 - Bahasa kode dan nama API: Inggris; dokumen dan pesan error ke pengguna: Indonesia.
@@ -54,11 +55,14 @@ Gapura membuat transaksi Duitku atas nama project pemanggil, menerima callback D
 - `packages/shared` tidak mengimpor app mana pun; Worker mengimpor subpath (`@gapura/shared/crypto`, dst.), bukan root, agar Zod tidak masuk bundle sebelum dipakai.
 - Test tinggal di `apps/*/test` dan `packages/*/test` (Vitest). Tidak ada folder `test/` kedua di tempat lain.
 - Panel mengambil base URL dari `VITE_API_URL` dan data lewat TanStack Query.
-- Status transaksi hanya maju (PENDING → PAID/FAILED/EXPIRED); perubahan status harus idempotent.
+- Status transaksi hanya maju (PENDING → PAID/FAILED/EXPIRED) lewat update bersyarat `WHERE status = 'PENDING'`; forward hanya dikirim saat transisi benar-benar terjadi.
+- Signature Duitku memakai HMAC-SHA256 dengan urutan parameter vendor (ADR-0004); `amount` pada callback dibandingkan sebagai string mentah yang ditandatangani.
+- Webhook keluar: header `X-Gapura-Signature: t=<unix>,v1=<hex>` atas `<t>.<body>` dengan secret project.
+- Timestamp di database disimpan sebagai ISO 8601 UTC (`toISOString`).
 - Secret hanya dari Worker secrets/`.dev.vars`; daftar variabel di `.env.example`.
 
 ## Definisi selesai
-`pnpm verify` lolos; perubahan jalur HTTP/D1 juga dibuktikan smoke `wrangler dev` + D1 lokal; aplikasi bisa dijalankan dari nol mengikuti README; tidak ada secret di repo; `.pakem/` diperbarui (MODULE-MAP bila struktur berubah, DECISIONS bila ada keputusan, BUG-HISTORY bila memperbaiki bug).
+`pnpm verify` lolos; perubahan jalur HTTP/D1 juga dibuktikan smoke `wrangler dev` + D1 lokal, dan perubahan callback/forward dibuktikan dengan receiver webhook lokal yang memverifikasi signature; aplikasi bisa dijalankan dari nol mengikuti README; tidak ada secret di repo; `.pakem/` diperbarui (MODULE-MAP bila struktur berubah, DECISIONS bila ada keputusan, BUG-HISTORY bila memperbaiki bug).
 
 Checklist keamanan (aktif karena `sensitive: true`):
 - Input dari project divalidasi dengan Zod di batas sistem.
@@ -72,13 +76,14 @@ Checklist keamanan (aktif karena `sensitive: true`):
 - Ada test untuk jalur gagal (signature salah, nominal tidak cocok, akses ditolak, order tak dikenal).
 
 ## Status & artefak yang ditunda
-Fase sekarang: akhir Fase 1. Sudah ada Worker (Hono) dengan `/health` dan `/v1/me`, auth API key dari D1, skema tiga tabel, panel shell, test, dan `verify` hidup. Belum ada deploy, transaksi Duitku, callback, retry, maupun panel fungsional.
+Fase sekarang: Fase 2 selesai di kode. Sudah ada `/health`, `/v1/me`, `POST /v1/payments`, `GET /v1/payments/:orderId`, `POST /callback/duitku`, forward webhook bertanda tangan, migrasi dua file, dan 105 test. Smoke nyata (wrangler dev + D1 lokal + receiver webhook lokal) membuktikan callback PAID, forward 2xx dengan signature HMAC yang cocok, dan log `DELIVERED`. Belum ada transaksi ke sandbox Duitku sungguhan (kredensial merchant belum ada) dan belum ada deploy, retry Cron, atau panel fungsional.
 
 Ditunda (pemicunya belum ada):
 - Deploy staging (gate Fase 1): butuh akun Cloudflare dan `database_id` D1 asli; `wrangler.toml` masih memakai UUID placeholder.
 - CI, `DEPLOYMENT.md`, `RUNBOOK.md`: dibuat saat deploy staging pertama; flag `deploy` dinaikkan saat itu.
 - `SECURITY.md`: repo privat tanpa pelapor eksternal; dibuat saat repo dibuka atau ada kontributor luar.
 - Threat model/checklist keamanan dan secret/dependency scan: checklist sudah dicatat di atas; dokumen terpisah dibuat sebelum rilis produksi (Fase 4), saat jalur pembayaran lengkap.
-- Cron Trigger: baru didaftarkan di Fase 3 bersama pemroses retry; mendaftarkannya sekarang hanya handler kosong.
+- Cron Trigger: baru didaftarkan di Fase 3 bersama pemroses retry; mendaftarkannya sekarang hanya handler kosong. Retry pertama sudah dijadwalkan di `webhook_logs.next_attempt_at`.
+- Transaksi sandbox Duitku sungguhan: butuh kredensial merchant sandbox dan jawaban Fase 0.
 - Makefile/justfile: perintah sudah pendek lewat `pnpm` dan tercatat di README; dibuat bila perintah harian mulai berulang.
 - Fase 0 (konfirmasi tertulis Duitku) masih terbuka dan wajib sebelum kredensial produksi dipakai.

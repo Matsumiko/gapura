@@ -1,4 +1,5 @@
 export { generateApiKey, generateWebhookSecret, hexEncode, sha256Hex } from "./crypto";
+export { hmacSha256Hex, secureEqual } from "./hmac";
 export {
   ORDER_PREFIX_PATTERN,
   buildMerchantOrderId,
