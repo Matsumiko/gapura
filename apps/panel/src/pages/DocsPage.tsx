@@ -232,7 +232,11 @@ export function DocsPage() {
                 <td>
                   <code>orderId</code>
                 </td>
-                <td>1-128 karakter (ditolak 400 bila PREFIX-orderId &gt; 50), tanpa spasi di awal/akhir, unik per project.</td>
+                <td>
+                  1-128 karakter (ditolak 400 bila PREFIX-orderId &gt; 50), tanpa spasi di awal/akhir.
+                  Satu transaksi per <code>orderId</code> project; request ulang dengan payload sama
+                  mengembalikan transaksi lama, bukan membuat pembayaran baru.
+                </td>
               </tr>
               <tr>
                 <td>
@@ -325,6 +329,16 @@ export function DocsPage() {
             Arahkan pembeli ke <code>paymentUrl</code>. <code>vaNumber</code>/<code>qrString</code>{" "}
             hanya terisi sesuai metode. Bila Duitku menolak sebelum transaksi dibuat, baris{" "}
             <code>PENDING</code> dihapus sehingga <code>orderId</code> yang sama boleh dicoba lagi.
+          </p>
+          <p>
+            <strong>Idempoten:</strong> retry dengan <code>orderId</code>, <code>amount</code>, dan{" "}
+            <code>paymentMethod</code> yang sama mengembalikan HTTP <code>200</code> +{" "}
+            <code>Idempotent-Replayed: true</code> berisi transaksi lama; Duitku tidak dipanggil ulang.
+            Payload berbeda ditolak <code>409 DUPLICATE_ORDER</code>. Bila invoice masih dibuat,
+            balasan <code>409 ORDER_IN_PROGRESS</code> + <code>Retry-After: 2</code>: ulangi request
+            yang sama. Status terminal dikembalikan apa adanya; untuk pembayaran baru gunakan{" "}
+            <code>orderId</code> baru. <code>reference</code> Duitku hanya jejak, bukan kunci
+            idempotensi.
           </p>
         </Section>
 
@@ -523,7 +537,18 @@ if (!hash_equals($expected, $parts["v1"])) {
                   <code>DUPLICATE_ORDER</code>
                 </td>
                 <td>
-                  <code>orderId</code> sudah dipakai project.
+                  <code>orderId</code> sudah dipakai dengan <code>amount</code> atau{" "}
+                  <code>paymentMethod</code> berbeda.
+                </td>
+              </tr>
+              <tr>
+                <td>409</td>
+                <td>
+                  <code>ORDER_IN_PROGRESS</code>
+                </td>
+                <td>
+                  Invoice untuk <code>orderId</code> ini masih dibuat; ulangi request yang sama
+                  setelah <code>Retry-After</code>.
                 </td>
               </tr>
               <tr>
