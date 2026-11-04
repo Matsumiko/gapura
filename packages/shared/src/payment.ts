@@ -62,6 +62,48 @@ export const accountLinkSchema = z
 
 export type AccountLink = z.infer<typeof accountLinkSchema>;
 
+const optionalText = (max: number) => z.string().max(max).optional();
+
+/** Alamat mengikuti objek `billingAddress`/`shippingAddress` Duitku; semua field opsional. */
+export const customerAddressSchema = z
+  .object({
+    firstName: optionalText(255),
+    lastName: optionalText(255),
+    address: optionalText(255),
+    city: optionalText(255),
+    postalCode: optionalText(20),
+    phone: optionalText(50),
+    countryCode: optionalText(10),
+  })
+  .strict();
+
+export type CustomerAddress = z.infer<typeof customerAddressSchema>;
+
+/** Detail pelanggan opsional; vendor memakai bentuk ini untuk sebagian channel. */
+export const customerDetailSchema = z
+  .object({
+    firstName: optionalText(255),
+    lastName: optionalText(255),
+    email: z.email().max(255).optional(),
+    phoneNumber: optionalText(50),
+    billingAddress: customerAddressSchema.optional(),
+    shippingAddress: customerAddressSchema.optional(),
+  })
+  .strict();
+
+export type CustomerDetail = z.infer<typeof customerDetailSchema>;
+
+/** Rincian item; total `price × quantity` wajib sama dengan amount. */
+export const itemDetailSchema = z
+  .object({
+    name: z.string().min(1).max(255),
+    price: z.number().int().min(0).max(Number.MAX_SAFE_INTEGER),
+    quantity: z.number().int().min(1).max(1_000_000),
+  })
+  .strict();
+
+export type ItemDetail = z.infer<typeof itemDetailSchema>;
+
 export const createPaymentInputSchema = z
   .object({
     orderId: z
@@ -80,9 +122,29 @@ export const createPaymentInputSchema = z
     expiryPeriod: z.number().int().min(1).max(10080).optional(),
     creditCardDetail: creditCardDetailSchema.optional(),
     accountLink: accountLinkSchema.optional(),
+    // Field opsional Duitku; hanya dikirim bila project mengisinya.
+    additionalParam: optionalText(255),
+    merchantUserInfo: optionalText(255),
+    phoneNumber: optionalText(50),
+    itemDetails: z.array(itemDetailSchema).min(1).max(100).optional(),
+    customerDetail: customerDetailSchema.optional(),
   })
   .strict()
   .superRefine((value, ctx) => {
+    if (value.itemDetails) {
+      const total = value.itemDetails.reduce(
+        (sum, item) => sum + item.price * item.quantity,
+        0,
+      );
+      if (!Number.isSafeInteger(total) || total !== value.amount) {
+        ctx.addIssue({
+          code: "custom",
+          path: ["itemDetails"],
+          message: "total itemDetails (price × quantity) harus sama dengan amount",
+        });
+      }
+    }
+
     const channel = paymentChannelByCode(value.paymentMethod);
     if (
       value.expiryPeriod !== undefined &&

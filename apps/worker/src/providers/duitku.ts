@@ -1,4 +1,4 @@
-import type { AccountLink } from "@gapura/shared/payment";
+import type { AccountLink, CustomerDetail, ItemDetail } from "@gapura/shared/payment";
 import { hmacSha256Hex } from "@gapura/shared/hmac";
 
 export type FetchLike = (input: RequestInfo | URL, init?: RequestInit) => Promise<Response>;
@@ -23,6 +23,11 @@ export interface CreateInvoiceRequest {
   callbackUrl: string;
   expiryPeriod?: number;
   creditCardDetail?: { acquirer?: string; binWhitelist?: string[] };
+  additionalParam?: string;
+  merchantUserInfo?: string;
+  phoneNumber?: string;
+  itemDetails?: ItemDetail[];
+  customerDetail?: CustomerDetail;
   /**
    * Hanya untuk channel `OL`/`SL`. `credentialCode` adalah kredensial akun tertaut
    * milik pemanggil; provider meneruskannya apa adanya tanpa menyimpan atau mencatat.
@@ -133,6 +138,11 @@ interface InquiryBody {
   signature: string;
   expiryPeriod?: number;
   creditCardDetail?: { acquirer?: string; binWhitelist?: string[] };
+  additionalParam?: string;
+  merchantUserInfo?: string;
+  phoneNumber?: string;
+  itemDetails?: ItemDetail[];
+  customerDetail?: CustomerDetail;
   accountLink?: {
     credentialCode: string;
     ovo?: { paymentDetails: Array<{ paymentType: "CASH"; amount: number }> };
@@ -202,6 +212,15 @@ export function createDuitkuProvider(config: DuitkuConfig): PaymentProvider {
         ),
         ...(request.expiryPeriod !== undefined ? { expiryPeriod: request.expiryPeriod } : {}),
         ...(request.creditCardDetail ? { creditCardDetail: request.creditCardDetail } : {}),
+        ...(request.additionalParam !== undefined
+          ? { additionalParam: request.additionalParam }
+          : {}),
+        ...(request.merchantUserInfo !== undefined
+          ? { merchantUserInfo: request.merchantUserInfo }
+          : {}),
+        ...(request.phoneNumber !== undefined ? { phoneNumber: request.phoneNumber } : {}),
+        ...(request.itemDetails ? { itemDetails: request.itemDetails } : {}),
+        ...(request.customerDetail ? { customerDetail: request.customerDetail } : {}),
         ...(request.accountLink ? { accountLink: toInquiryAccountLink(request.accountLink) } : {}),
       };
 

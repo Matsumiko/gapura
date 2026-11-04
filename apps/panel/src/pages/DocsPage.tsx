@@ -297,6 +297,49 @@ export function DocsPage() {
                   <code>binWhitelist</code> 3/6 digit maksimal 25.
                 </td>
               </tr>
+              <tr>
+                <td>
+                  <code>phoneNumber</code>
+                </td>
+                <td>Opsional, maksimal 50 karakter; nomor pelanggan.</td>
+              </tr>
+              <tr>
+                <td>
+                  <code>additionalParam</code>
+                </td>
+                <td>
+                  Opsional, maksimal 255 karakter; nilai ini dikembalikan di callback. Cocok untuk ID
+                  internal project.
+                </td>
+              </tr>
+              <tr>
+                <td>
+                  <code>merchantUserInfo</code>
+                </td>
+                <td>Opsional, maksimal 255 karakter; ID user di sistem project.</td>
+              </tr>
+              <tr>
+                <td>
+                  <code>itemDetails</code>
+                </td>
+                <td>
+                  Opsional, array <code>{`{name, price, quantity}`}</code> maksimal 100 item. Total{" "}
+                  <code>price × quantity</code> wajib sama dengan <code>amount</code>; bila tidak,
+                  request ditolak <code>400</code> sebelum memanggil Duitku.
+                </td>
+              </tr>
+              <tr>
+                <td>
+                  <code>customerDetail</code>
+                </td>
+                <td>
+                  Opsional: <code>firstName</code>, <code>lastName</code>, <code>email</code>,{" "}
+                  <code>phoneNumber</code>, <code>billingAddress</code>,{" "}
+                  <code>shippingAddress</code>. Alamat berisi <code>firstName</code>,{" "}
+                  <code>lastName</code>, <code>address</code>, <code>city</code>,{" "}
+                  <code>postalCode</code>, <code>phone</code>, <code>countryCode</code>.
+                </td>
+              </tr>
             </tbody>
           </table></DocTable>
           <Code>{`curl -X POST ${API_BASE}/sandbox/v1/payments \\

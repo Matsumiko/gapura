@@ -49,6 +49,65 @@ describe("createPaymentInputSchema", () => {
     ).toBe(false);
   });
 
+  it("menerima field pelanggan dan item opsional yang lengkap", () => {
+    const address = {
+      firstName: "Budi",
+      lastName: "Santoso",
+      address: "Jl. Kembangan Raya",
+      city: "Jakarta",
+      postalCode: "11530",
+      phone: "08123456789",
+      countryCode: "ID",
+    };
+    const full = {
+      ...validInput,
+      additionalParam: "internal-123",
+      merchantUserInfo: "user-9",
+      phoneNumber: "08123456789",
+      itemDetails: [
+        { name: "Paket Premium", price: 50000, quantity: 3 },
+        { name: "Biaya admin", price: 0, quantity: 1 },
+      ],
+      customerDetail: {
+        firstName: "Budi",
+        lastName: "Santoso",
+        email: "budi@example.com",
+        phoneNumber: "08123456789",
+        billingAddress: address,
+        shippingAddress: { ...address, city: "Bandung" },
+      },
+    };
+    expect(createPaymentInputSchema.parse(full)).toEqual(full);
+  });
+
+  it("menolak itemDetails yang totalnya tidak sama dengan amount", () => {
+    for (const itemDetails of [
+      [{ name: "Paket", price: 149999, quantity: 1 }],
+      [{ name: "Paket", price: 50000, quantity: 2 }],
+      [{ name: "Paket", price: Number.MAX_SAFE_INTEGER, quantity: 2 }],
+      [],
+      [{ name: "Paket", price: 150000, quantity: 0 }],
+      [{ name: "Paket", price: 150000.5, quantity: 1 }],
+      [{ name: "Paket", price: 150000, quantity: 1, extra: true }],
+    ]) {
+      expect(createPaymentInputSchema.safeParse({ ...validInput, itemDetails }).success).toBe(false);
+    }
+  });
+
+  it("menolak customerDetail, phoneNumber, atau additionalParam yang tidak valid", () => {
+    for (const extra of [
+      { phoneNumber: "1".repeat(51) },
+      { additionalParam: "x".repeat(256) },
+      { merchantUserInfo: "x".repeat(256) },
+      { customerDetail: { email: "bukan-email" } },
+      { customerDetail: { extra: true } },
+      { customerDetail: { billingAddress: { countryCode: "x".repeat(11) } } },
+      { customerDetail: { billingAddress: { unknown: "x" } } },
+    ]) {
+      expect(createPaymentInputSchema.safeParse({ ...validInput, ...extra }).success).toBe(false);
+    }
+  });
+
   it("menerima expiryPeriod dalam batas channel", () => {
     expect(createPaymentInputSchema.safeParse({ ...validInput, expiryPeriod: 60 }).success).toBe(true);
     expect(

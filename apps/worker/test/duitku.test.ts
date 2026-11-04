@@ -106,6 +106,56 @@ describe("createInvoice", () => {
     });
   });
 
+  it("meneruskan data pelanggan dan item opsional bila dikirim", async () => {
+    const { provider, calls } = setup(() =>
+      response({
+        reference: "REF-1",
+        paymentUrl: "https://sandbox.duitku.com/topup/REF-1",
+        statusCode: "00",
+      }),
+    );
+    const address = {
+      firstName: "Budi",
+      lastName: "Santoso",
+      address: "Jl. Kembangan Raya",
+      city: "Jakarta",
+      postalCode: "11530",
+      phone: "08123456789",
+      countryCode: "ID",
+    };
+    await provider.createInvoice({
+      ...REQUEST,
+      additionalParam: "internal-123",
+      merchantUserInfo: "user-9",
+      phoneNumber: "08123456789",
+      itemDetails: [{ name: "Paket Premium", price: 150000, quantity: 1 }],
+      customerDetail: {
+        firstName: "Budi",
+        lastName: "Santoso",
+        email: "budi@example.com",
+        phoneNumber: "08123456789",
+        billingAddress: address,
+        shippingAddress: address,
+      },
+    });
+
+    const body = JSON.parse(String(calls[0]?.init?.body)) as Record<string, unknown>;
+    expect(body).toMatchObject({
+      additionalParam: "internal-123",
+      merchantUserInfo: "user-9",
+      phoneNumber: "08123456789",
+      itemDetails: [{ name: "Paket Premium", price: 150000, quantity: 1 }],
+      customerDetail: {
+        firstName: "Budi",
+        lastName: "Santoso",
+        email: "budi@example.com",
+        phoneNumber: "08123456789",
+        billingAddress: address,
+        shippingAddress: address,
+      },
+    });
+  });
+
   it("meneruskan expiryPeriod dan creditCardDetail bila dikirim", async () => {
     const { provider, calls } = setup(() =>
       response({

@@ -138,6 +138,15 @@ export function createPaymentsService(deps: PaymentsDeps): PaymentsService {
           ...(input.expiryPeriod !== undefined ? { expiryPeriod: input.expiryPeriod } : {}),
           ...(input.creditCardDetail ? { creditCardDetail: input.creditCardDetail } : {}),
           ...(input.accountLink ? { accountLink: input.accountLink } : {}),
+          ...(input.additionalParam !== undefined
+            ? { additionalParam: input.additionalParam }
+            : {}),
+          ...(input.merchantUserInfo !== undefined
+            ? { merchantUserInfo: input.merchantUserInfo }
+            : {}),
+          ...(input.phoneNumber !== undefined ? { phoneNumber: input.phoneNumber } : {}),
+          ...(input.itemDetails ? { itemDetails: input.itemDetails } : {}),
+          ...(input.customerDetail ? { customerDetail: input.customerDetail } : {}),
         });
       } catch (error) {
         // Belum ada transaksi di Duitku, jadi baris PENDING dibuang agar project bisa mencoba lagi.

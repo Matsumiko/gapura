@@ -83,6 +83,18 @@ curl -X POST http://127.0.0.1:8787/v1/payments \
 - Status terminal (`PAID`, `FAILED`, `EXPIRED`) dikembalikan apa adanya. Untuk pembayaran baru setelah gagal/kedaluwarsa, pakai `orderId` baru.
 - `reference` Duitku disimpan untuk jejak dan webhook, bukan kunci idempotensi; nilainya baru ada setelah inquiry berhasil.
 
+Field pelanggan/order lanjutan bersifat **opsional** dan diteruskan apa adanya bila diisi:
+
+| Field | Bentuk |
+|---|---|
+| `phoneNumber` | string maks. 50 |
+| `additionalParam` | string maks. 255; dikembalikan di callback |
+| `merchantUserInfo` | string maks. 255 |
+| `itemDetails` | array `{name, price, quantity}`; total `price × quantity` wajib sama dengan `amount` |
+| `customerDetail` | `{firstName, lastName, email, phoneNumber, billingAddress, shippingAddress}`; alamat berisi `firstName,lastName,address,city,postalCode,phone,countryCode` |
+
+Tidak ada field yang wajib ditambahkan; project yang hanya butuh data dasar tetap memakai body lama.
+
 ## Panel admin
 
 SPA React di `apps/panel` + endpoint `/admin/*` di Worker. Login memakai email + password Argon2id + kode TOTP. Worker mengirim token sesi 32 byte lewat cookie `__Host-gapura_admin` (`HttpOnly`, `Secure`, `SameSite=Strict`); D1 hanya menyimpan hash token dan hash CSRF. Panel tidak menyimpan token sesi di JavaScript: hanya CSRF token untuk header `X-CSRF-Token` yang disimpan di `sessionStorage`. Request baca boleh untuk semua role (`owner`/`admin`/`viewer`); write butuh `owner`/`admin`; aksi sensitif butuh TOTP ulang dalam 15 menit (`reauthenticated_at`). Bootstrap owner pertama memakai `ADMIN_SETUP_TOKEN` dan hanya bisa sekali.

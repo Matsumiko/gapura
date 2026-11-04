@@ -212,6 +212,42 @@ describe("POST /v1/payments", () => {
     expect(calls[0]?.creditCardDetail).toEqual({ acquirer: "014", binWhitelist: ["014", "400000"] });
   });
 
+  it("meneruskan data pelanggan dan item opsional ke provider", async () => {
+    const { app, calls } = await setup();
+    const body = {
+      ...VALID_BODY,
+      additionalParam: "internal-123",
+      merchantUserInfo: "user-9",
+      phoneNumber: "08123456789",
+      itemDetails: [{ name: "Paket Premium", price: 150000, quantity: 1 }],
+      customerDetail: {
+        firstName: "Budi",
+        lastName: "Santoso",
+        email: "budi@example.com",
+        billingAddress: { city: "Jakarta", countryCode: "ID" },
+      },
+    };
+
+    expect((await postPayment(app, body)).status).toBe(201);
+    expect(calls[0]).toMatchObject({
+      additionalParam: "internal-123",
+      merchantUserInfo: "user-9",
+      phoneNumber: "08123456789",
+      itemDetails: [{ name: "Paket Premium", price: 150000, quantity: 1 }],
+      customerDetail: body.customerDetail,
+    });
+  });
+
+  it("menolak itemDetails yang totalnya tidak sama dengan amount", async () => {
+    const { app, calls } = await setup();
+    const response = await postPayment(app, {
+      ...VALID_BODY,
+      itemDetails: [{ name: "Paket", price: 100000, quantity: 1 }],
+    });
+    expect(response.status).toBe(400);
+    expect(calls).toHaveLength(0);
+  });
+
   it("menolak creditCardDetail untuk channel selain VC", async () => {
     const { app, calls } = await setup();
 

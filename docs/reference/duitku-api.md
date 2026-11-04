@@ -93,7 +93,7 @@ Response:
 | `accountLink` | object | Wajib untuk `OL` (OVO) dan `SL` (ShopeePay link); lihat [Account link](#account-link-ovo-dan-shopeepay) |
 | `creditCardDetail` | object | `acquirer` (`014` BCA, `022` CIMB), `binWhitelist` maks 25 |
 
-`itemDetails`: bila dikirim dan total `price × quantity` tidak sama dengan `paymentAmount`, Duitku membalas 409 `Payment amount must be equal to all item price`. Gapura saat ini tidak mengirim `itemDetails`, jadi tidak terkena aturan ini.
+`itemDetails`: bila dikirim dan total `price × quantity` tidak sama dengan `paymentAmount`, Duitku membalas 409 `Payment amount must be equal to all item price`. Gapura memvalidasi total ini sebelum inquiry, sehingga request tidak valid ditolak `400 INVALID_REQUEST` tanpa memanggil Duitku.
 
 ### Response sukses
 
@@ -249,7 +249,9 @@ Response: `merchantOrderId`, `reference`, `amount`, `fee`, `statusCode`, `status
 | Cek transaksi + Cron pending sync | Dipakai |
 | `getPaymentMethod` | Dipakai lewat `GET /v1/payment-methods`, cache 5 menit per nominal |
 | `expiryPeriod` | Dipakai opsional; divalidasi 1–10080 menit dan batas maksimum channel |
-| `itemDetails`, `customerDetail`, `phoneNumber` | Belum dikirim |
+| `phoneNumber`, `additionalParam`, `merchantUserInfo` | Dipakai opsional; hanya dikirim bila project mengisi |
+| `itemDetails` | Dipakai opsional; divalidasi totalnya sama dengan `paymentAmount` |
+| `customerDetail` (termasuk billing/shipping) | Dipakai opsional; struktur divalidasi ketat |
 | `accountLink` (OL/SL) | Dipakai opsional (pass-through) untuk `OL`/`SL`; divalidasi ketat, tidak disimpan/dilog |
 | `creditCardDetail` | Dipakai opsional untuk `VC`; `acquirer` 014/022 dan `binWhitelist` maks 25 |
 | Fixed VA (SNAP API) | Tidak didukung di v2 — SNAP-only, lihat [Fixed VA](#fixed-va--snap-only-tidak-didukung-di-api-v2) |
