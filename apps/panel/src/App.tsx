@@ -40,6 +40,13 @@ interface ReauthRequest {
 export default function App() {
   const queryClient = useQueryClient();
   const [environment, setEnvironment] = useState<ApiEnvironment>(() => getApiEnvironment());
+  const [theme, setTheme] = useState<"light" | "dark">(() => {
+    const stored = localStorage.getItem("gapura.theme");
+    if (stored === "light" || stored === "dark") {
+      return stored;
+    }
+    return window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light";
+  });
   const [status, setStatus] = useState<AuthStatus | null>(null);
   const [identity, setIdentity] = useState<AdminIdentity | null>(null);
   const [checking, setChecking] = useState(true);
@@ -60,6 +67,11 @@ export default function App() {
       setChecking(false);
     }
   }, []);
+
+  useEffect(() => {
+    document.documentElement.dataset.theme = theme;
+    localStorage.setItem("gapura.theme", theme);
+  }, [theme]);
 
   useEffect(() => {
     void refresh();
@@ -207,6 +219,13 @@ export default function App() {
               <span className="badge role">{identity.role}</span>
               {canWrite ? null : <span className="account__read">hanya baca</span>}
             </div>
+            <button
+              type="button"
+              className="button button--quiet console__theme"
+              onClick={() => setTheme(theme === "dark" ? "light" : "dark")}
+            >
+              {theme === "dark" ? "Mode terang" : "Mode gelap"}
+            </button>
             <button type="button" className="button button--quiet console__logout" onClick={() => void logout()}>
               Keluar
             </button>
