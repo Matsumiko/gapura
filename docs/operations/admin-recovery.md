@@ -39,8 +39,8 @@ Admin tidak bisa menonaktifkan dirinya sendiri; dengan begitu minimal satu owner
   `{ email, password, recoveryCode }`. Password tetap wajib; TOTP tidak dimatikan.
   Respons sama dengan login biasa (cookie sesi + CSRF), dan percobaan dibatasi
   5 kegagalan per 15 menit seperti login TOTP.
-- Panel: buka `/recovery` saat tidak login. Halaman login TOTP normal tidak diubah;
-  tautan "Pulihkan akses" dapat ditambahkan di LoginPage bila diinginkan.
+- Panel: buka `/recovery` saat tidak login. Halaman login TOTP normal menautkan
+  "Masuk dengan recovery code" ke halaman ini.
 
 Alur kehilangan perangkat:
 

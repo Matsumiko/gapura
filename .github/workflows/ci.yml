@@ -21,5 +21,7 @@ jobs:
           node-version: "22"
           cache: pnpm
       - run: pnpm install --frozen-lockfile
+      - name: Prepare local config
+        run: cp apps/worker/wrangler.toml.example apps/worker/wrangler.toml
       - name: Pakem gates + verify
         run: python3 .pakem/pakem.py check

@@ -20,12 +20,12 @@ Mekanik yang harus diikuti implementasi:
 - Forward pertama tetap dilakukan asinkron dari callback (`waitUntil`) supaya Duitku tetap dibalas di bawah 2 detik.
 - Jika forward gagal, catat percobaan ke-`n` di `webhook_logs` dengan `next_attempt_at = sekarang + backoff[n]` dan `status = 'PENDING'`; setelah percobaan ke-8 gagal, `status = 'DEAD'`.
 - Cron mengambil batch kecil (mis. `LIMIT 50`) baris `PENDING` dengan `next_attempt_at <= sekarang` lewat index, lalu mengirim.
-- Klaim baris sebelum kirim dengan update bersyarat (`... WHERE id = ? AND next_attempt_at <= ?`) dan lanjut hanya bila jumlah baris terubah = 1, agar dua run Cron yang tumpang tindih tidak mengirim ganda. Pengiriman tetap at-least-once; project wajib idempotent (sudah disyaratkan PRD).
+- Klaim baris sebelum kirim dengan update bersyarat (`... WHERE id = ? AND next_attempt_at <= ?`) dan lanjut hanya bila jumlah baris terubah = 1, agar dua run Cron yang tumpang tindih tidak mengirim ganda. Pengiriman tetap at-least-once; project wajib idempotent (sudah disyaratkan spesifikasi awal).
 
 ## Konsekuensi
 - Positif: nol layanan berbayar dan nol binding baru; seluruh riwayat forward dan jadwal retry ada di database yang sama dengan transaksi; dead-letter cukup query `status = 'DEAD'` untuk panel admin.
 - Positif: presisi retry 1 menit, cocok dengan backoff minimum 1 menit; 1440 invocation Cron per hari, jauh di bawah kuota harian free tier.
 - Negatif: retry bergantung pada Cron Worker yang sama. Jika Worker gagal total, retry baru berjalan setelah pulih — jadwalnya tetap tersimpan di D1, jadi tidak hilang, hanya tertunda.
 - Negatif: keterlambatan pengiriman maksimum sekitar satu menit ditambah durasi batch; tidak ada push instan seperti antrean.
-- Yang harus dijaga: index pada (`status`, `next_attempt_at`), batas batch, klaim bersyarat, dan pemangkasan `webhook_logs` lama (kebijakan retensi ditetapkan di Fase 3) agar kuota D1 free tier tidak penuh.
+- Yang harus dijaga: index pada (`status`, `next_attempt_at`), batas batch, klaim bersyarat, dan pemangkasan `webhook_logs` lama (kebijakan retensi ditetapkan di tahap retry) agar kuota D1 free tier tidak penuh.
 - Durable Objects dan KV tidak dipakai sekarang. Bila nanti butuh penjadwalan presisi per transaksi atau fan-out besar, buat ADR baru yang menggantikan keputusan ini.

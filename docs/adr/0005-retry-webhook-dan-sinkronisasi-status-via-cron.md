@@ -4,7 +4,7 @@
 - Tanggal: 2026-11-03
 
 ## Konteks
-Fase 2 sudah mencatat jadwal retry di `webhook_logs.next_attempt_at`, tetapi belum ada pemrosesnya. PRD meminta retry exponential backoff (1m, 5m, 15m, 1j, 6j), dead-letter setelah 8 percobaan, dan sinkronisasi transaksi pending ke Duitku agar callback yang hilang tidak membuat status menggantung. Batasan tetap sama: hanya layanan Cloudflare free tier (tanpa Queues), dan Cron Trigger memiliki granularitas minimum satu menit.
+tahap integrasi Duitku sudah mencatat jadwal retry di `webhook_logs.next_attempt_at`, tetapi belum ada pemrosesnya. Spesifikasi awal meminta retry exponential backoff (1m, 5m, 15m, 1j, 6j), dead-letter setelah 8 percobaan, dan sinkronisasi transaksi pending ke Duitku agar callback yang hilang tidak membuat status menggantung. Batasan tetap sama: hanya layanan Cloudflare free tier (tanpa Queues), dan Cron Trigger memiliki granularitas minimum satu menit.
 
 ## Opsi yang dipertimbangkan
 1. **Cloudflare Queues** — retry bawaan dan presisi, tetapi berbayar; sudah ditolak di ADR-0002.
@@ -33,7 +33,7 @@ Pakai opsi 3.
 Cron menjalankan retry, lalu sinkronisasi, lalu retensi. Hasil ringkas dicatat sebagai log terstruktur `cron_done`; tidak ada data pribadi di log.
 
 ## Konsekuensi
-- Positif: tanpa layanan berbayar, tanpa binding baru; riwayat percobaan dan jadwal ada di satu tempat; dead-letter cukup query `status = 'DEAD'` untuk panel admin (Fase 6).
+- Positif: tanpa layanan berbayar, tanpa binding baru; riwayat percobaan dan jadwal ada di satu tempat; dead-letter cukup query `status = 'DEAD'` untuk panel admin (tahap panel admin).
 - Positif: 1440 invocation Cron per hari, jauh di bawah kuota free tier; batch 10 menjaga durasi eksekusi.
 - Negatif: keterlambatan retry minimal satu menit ditambah durasi batch; tidak ada presisi detik.
 - Negatif: duplikasi kirim mungkin terjadi bila proses mati setelah kirim sebelum menulis hasil (at-least-once).

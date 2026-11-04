@@ -1,6 +1,6 @@
 # Checklist keamanan & threat model ringkas
 
-Diperbarui: 2026-11-04. Berlaku untuk Worker staging `gapura-sandbox`.
+Diperbarui: 2026-11-04. Berlaku untuk deployment Worker Gapura.
 
 ## Ancaman dan mitigasi saat ini
 
@@ -10,10 +10,10 @@ Diperbarui: 2026-11-04. Berlaku untuk Worker staging `gapura-sandbox`.
 | Callback diubah nominalnya | Status untuk nominal lain | Nominal callback (string mentah yang ditandatangani) dibandingkan dengan nominal tersimpan | Ada + test |
 | Callback berulang | Status ganda / forward ganda | Transisi hanya dari `PENDING` lewat update bersyarat; forward hanya saat berubah | Ada + test |
 | Replay webhook keluar | Project memproses ulang | Header `t` + `v1` HMAC atas `t.body`; project wajib menolak timestamp lama | Ada; toleransi di sisi project |
-| API key project bocor | Transaksi atas nama project | Hash SHA-256 di D1, rotasi key (Fase 6), rate limit belum ada | Sebagian; rate limit tertunda |
+| API key project bocor | Transaksi atas nama project | Hash SHA-256 di D1, rotasi key (tahap panel admin), rate limit belum ada | Sebagian; rate limit tertunda |
 | Order ID bentrok antar project | Status tertukar | Prefix 3-6 huruf unik + `UNIQUE (project_id, project_order_id)` + `merchant_order_id` PK | Ada + test |
 | SQL injection | Baca/ubah data | Semua query D1 memakai `.bind()` parameter | Ada |
-| SSRF lewat `webhook_url` | Worker memanggil host internal | URL hanya diisi owner lewat admin (Fase 6); belum ada validasi host khusus | Tertunda (belum ada input eksternal) |
+| SSRF lewat `webhook_url` | Worker memanggil host internal | URL hanya diisi owner lewat admin (tahap panel admin); belum ada validasi host khusus | Tertunda (belum ada input eksternal) |
 | Data pribadi di log | Kebocoran nama/email | Log hanya memuat merchant order id, kode error, dan ringkasan cron | Ada |
 | Panel admin terekspos | Aksi admin tanpa izin | `/admin/*` wajib sesi opaque (cookie HttpOnly), password Argon2id + TOTP, RBAC owner/admin/viewer, CSRF untuk write, dan reauth 15 menit untuk aksi sensitif; token sesi hanya hash di D1; alias `pages.dev` dialihkan ke domain kanonik | Ada + test; live |
 | Dependency rentan | RCE/data leak | `pnpm audit` bersih per 2026-11-03; jalankan sebelum rilis | Ada (manual) |
@@ -45,5 +45,5 @@ Diperbarui: 2026-11-04. Berlaku untuk Worker staging `gapura-sandbox`.
 
 ## Catatan operasional
 
-- Secret staging saat ini **placeholder** (`D0001` / `placeholder-api-key`) untuk menguji callback; ganti dengan kredensial sandbox Duitku asli sebelum uji transaksi nyata.
+- Jangan pernah memakai kredensial contoh di production. Isi secret Duitku lewat `wrangler secret put` atau panel, dan gunakan kredensial sandbox untuk uji transaksi.
 - Jangan menurunkan `sensitive`/menaikkan `exposure` tanpa meninjau ulang dokumen ini.

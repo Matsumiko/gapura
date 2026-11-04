@@ -4,10 +4,10 @@
 - Tanggal: 2026-11-03
 
 ## Konteks
-PRD bagian 6 meminta panel admin terpisah (SPA React) yang dilindungi Cloudflare Access, dengan `/admin/*` di Worker tetap aman walau URL Worker diakses langsung. Akun Cloudflare saat ini **belum mengaktifkan Access**, sehingga application/policy belum bisa dibuat lewat API. Panel juga tidak boleh dideploy ke `pages.dev` tanpa proteksi, karena berisi aksi sensitif (membuat project, rotasi key, kirim ulang webhook).
+Spesifikasi awal meminta panel admin terpisah (SPA React) yang dilindungi Cloudflare Access, dengan `/admin/*` di Worker tetap aman walau URL Worker diakses langsung. Bila Access belum diaktifkan di akun Cloudflare, application/policy belum bisa dibuat lewat API. Panel juga tidak boleh dideploy ke `pages.dev` tanpa proteksi, karena berisi aksi sensitif (membuat project, rotasi key, kirim ulang webhook).
 
 ## Opsi yang dipertimbangkan
-1. **API key admin statis** — sederhana, tetapi bertentangan dengan PRD, sulit dicabut per orang, dan tidak punya jejak email pelaku.
+1. **API key admin statis** — sederhana, tetapi bertentangan dengan spesifikasi awal, sulit dicabut per orang, dan tidak punya jejak email pelaku.
 2. **Session login buatan sendiri di Worker** — menambah pengelolaan sesi, password, dan CSRF yang tidak perlu.
 3. **Verifikasi JWT Cloudflare Access di Worker + SPA di balik Access (dipilih)** — identitas dari Access, tanpa sesi sendiri; Worker tetap menolak request tanpa JWT valid.
 

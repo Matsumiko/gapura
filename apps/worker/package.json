@@ -10,7 +10,7 @@
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
     "bench:argon2": "node --experimental-strip-types scripts/bench-admin-password.ts",
-    "db:migrate:local": "wrangler d1 migrations apply gapura --local"
+    "db:migrate:local": "wrangler d1 migrations apply gapura-auth --local && wrangler d1 migrations apply gapura-sandbox --local && wrangler d1 migrations apply gapura-production --local"
   },
   "dependencies": {
     "@gapura/shared": "workspace:*",

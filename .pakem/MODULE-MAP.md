@@ -68,7 +68,9 @@ Shared (dipakai Worker dan panel):
 - `packages/shared/src/index.ts` — re-export; Worker mengimpor subpath agar Zod hanya masuk bundle saat dipakai.
 
 Panel:
-- `apps/panel/src/main.tsx` — bootstrap React + QueryClient.
+- `apps/panel/src/main.tsx` — bootstrap React + QueryClient + host guard.
+- `apps/panel/src/hostGuard.ts` — redirect host alias panel memakai `VITE_CANONICAL_ORIGIN`/`VITE_ALIAS_HOST`.
+- `packages/shared/src/host-guard.ts` — fungsi murni redirect host alias.
 - `apps/panel/src/App.tsx` — cek sesi, gate bootstrap/login, layout React Router, role-aware write, modal reauth TOTP, env selector, logout.
 - `apps/panel/src/api.ts` — base URL `VITE_API_URL`, tipe admin, fetch `credentials: include`, CSRF di sessionStorage, retry otomatis setelah reauth, handler 401.
 - `apps/panel/src/pages/LoginPage.tsx` — form bootstrap owner (setup token + email/password + secret/otpauth TOTP) dan login email/password/TOTP.
@@ -116,7 +118,7 @@ Menambah endpoint Worker:
 4. Daftarkan route di `apps/worker/src/routes/`, sambungkan di `apps/worker/src/app.ts`.
 5. Tambah test di `apps/worker/test/` memakai harness (`apps/worker/test/support/harness.ts`) atau SQL asli untuk repository.
 
-Menambah tabel/kolom: buat file migrasi baru bernomor di `apps/worker/migrations/`, jangan mengedit yang sudah ada; tambah test constraint di `apps/worker/test/schema.test.ts`; perbarui PRD bagian 7.
+Menambah tabel/kolom: buat file migrasi baru bernomor di `apps/worker/migrations/`, jangan mengedit yang sudah ada; tambah test constraint di `apps/worker/test/schema.test.ts`; perbarui dokumentasi kontrak API terkait.
 
 Menambah endpoint admin: taruh operasi di `apps/worker/src/services/admin.ts`, SQL di `apps/worker/src/repositories/admin.ts`, validasi Zod di `packages/shared/src/admin.ts`, dan pastikan setiap mutasi menulis audit.
 

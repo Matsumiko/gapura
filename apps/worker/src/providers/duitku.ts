@@ -116,7 +116,7 @@ function duitkuDatetime(epochMs: number): string {
   );
 }
 
-/** stringToSign = merchantCode + merchantOrderId (cek transaksi, dipakai Fase 3). */
+/** stringToSign = merchantCode + merchantOrderId (cek transaksi, dipakai tahap retry). */
 export function transactionStatusSignature(
   merchantCode: string,
   merchantOrderId: string,

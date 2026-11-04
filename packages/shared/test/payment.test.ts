@@ -16,7 +16,7 @@ describe("createPaymentInputSchema", () => {
     expect(createPaymentInputSchema.safeParse({ ...validInput, amount: 10000 }).success).toBe(true);
   });
 
-  it("menerima contoh request PRD", () => {
+  it("menerima contoh request", () => {
     expect(createPaymentInputSchema.parse(validInput)).toEqual(validInput);
   });
 

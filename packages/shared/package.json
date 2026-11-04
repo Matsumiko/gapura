@@ -13,7 +13,8 @@
     "./payment": "./src/payment.ts",
     "./hmac": "./src/hmac.ts",
     "./admin": "./src/admin.ts",
-    "./payment-methods": "./src/payment-methods.ts"
+    "./payment-methods": "./src/payment-methods.ts",
+    "./host-guard": "./src/host-guard.ts"
   },
   "scripts": {
     "typecheck": "tsc --noEmit",

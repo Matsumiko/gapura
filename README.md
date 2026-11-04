@@ -2,11 +2,11 @@
 
 Backend gerbang pembayaran di Cloudflare Workers. Banyak project memakai satu akun merchant Duitku lewat Gapura; kredensial Duitku hanya ada di Gapura.
 
-Spesifikasi produk: [PRD.md](PRD.md). Keputusan arsitektur: [docs/adr](docs/adr).
+Keputusan arsitektur: [docs/adr](docs/adr).
 
 ## Status
 
-Fase 1-3 berjalan dan **staging live** di `https://pay.example.com` dengan dua environment terpisah (`/sandbox` dan `/production`, masing-masing D1 sendiri) (D1 `gapura-sandbox`, Cron aktif, kredensial sandbox asli). Panel admin live di `https://admin.example.com` dan API `/admin/*` di `https://pay.example.com/admin/*`, dilindungi sesi opaque + TOTP + RBAC + step-up. Total 243 test. Kredensial sandbox asli sudah dipakai; pembayaran sandbox lewat demo Duitku berhasil dan callback asli membuat transaksi PAID.
+Berjalan di Cloudflare Workers + D1. Dua environment (`/sandbox` dan `/production`) memakai database terpisah; admin auth memakai satu database bersama. Panel React tersedia untuk operasi admin. Jalankan `pnpm verify` untuk memastikan typecheck, test, build panel, dan bundel Worker lolos.
 
 ## Struktur
 
@@ -18,27 +18,52 @@ packages/shared kode bersama: crypto, hmac, order id, status, skema Zod
 
 ## Prasyarat
 
-- Node >= 22
+- Node.js >= 22
 - pnpm 12 (`corepack enable pnpm` bila belum ada)
+- Akun Cloudflare dengan Workers + D1 (untuk deploy; dev lokal tidak perlu akun)
+- Akun merchant Duitku (sandbox/production) untuk transaksi nyata
 
 ## Setup
 
 ```sh
 pnpm install
+
+# Konfigurasi Worker lokal
+cp apps/worker/wrangler.toml.example apps/worker/wrangler.toml
+cp .env.example apps/worker/.dev.vars
+# edit apps/worker/.dev.vars: isi DUITKU_MERCHANT_CODE, DUITKU_API_KEY,
+# CREDENTIALS_KEY (openssl rand -base64 32), ADMIN_SETUP_TOKEN (openssl rand -hex 32)
+
+# Konfigurasi panel lokal
+cp apps/panel/.env.example apps/panel/.env.local
+
+# Skema D1 lokal
+pnpm --filter @gapura/worker db:migrate:local
 ```
 
-Variabel: lihat [.env.example](.env.example). Panel memakai `VITE_API_URL` di `apps/panel/.env.local`; Worker memakai `apps/worker/.dev.vars` untuk `wrangler dev` (di-.gitignore). `PUBLIC_BASE_URL` dan `DUITKU_BASE_URL` diatur di `apps/worker/wrangler.toml`.
+`apps/worker/wrangler.toml` dan semua file `.env`/`.dev.vars` diabaikan Git; hanya file `.example` yang dilacak. Untuk deploy, buat tiga database D1 dan ganti `database_id` di `wrangler.toml`:
+
+```sh
+cd apps/worker
+wrangler login
+wrangler d1 create gapura-auth
+wrangler d1 create gapura-sandbox
+wrangler d1 create gapura-production
+```
+
+`CREDENTIALS_KEY` wajib untuk enkripsi kredensial Duitku dan secret TOTP admin. `ADMIN_SETUP_TOKEN` hanya dipakai sekali untuk membuat owner pertama; hapus secret itu setelah bootstrap.
 
 ## Jalankan
 
 ```sh
-# API
-pnpm --filter @gapura/worker db:migrate:local   # sekali, atau setelah migrasi baru
+# API (terminal 1)
 pnpm --filter @gapura/worker dev                # http://127.0.0.1:8787
 
-# Panel (terminal lain)
+# Panel (terminal 2)
 pnpm --filter @gapura/panel dev                 # http://127.0.0.1:5173
 ```
+
+Buka panel, isi setup token + email + password, lalu daftarkan secret TOTP. Setelah owner aktif, buat project pertama dari halaman Project — API key hanya ditampilkan sekali.
 
 ## API
 
@@ -105,7 +130,7 @@ pnpm --filter @gapura/panel dev   # http://127.0.0.1:5173
 
 Halaman: Ringkasan, Project (buat/edit/aktif/nonaktif/rotasi), Transaksi, Webhook gagal, **Pengaturan** (merchant code + API key sandbox/production, terenkripsi AES-GCM; aktivasi environment; uji kredensial; callback URL), **Audit** (100 aksi terakhir), dan Dokumentasi in-app. Panel menampilkan email + role sesi; role `viewer` melihat data tanpa tombol write. Setiap aksi admin dicatat di tabel `admin_audit` dengan email aktor sesi.
 
-Panel sudah dideploy di `https://admin.example.com` (Pages) dengan login email + password + TOTP; alias `your-project.pages.dev` hanya untuk redirect ke domain kanonik karena cookie `SameSite=Strict`. Request admin tanpa sesi ditolak 401; write tanpa CSRF ditolak 403 `CSRF_INVALID`; aksi sensitif dengan reauth kedaluwarsa ditolak 403 `REAUTH_REQUIRED`. Langkah lengkap ada di `DEPLOYMENT.md`. Detail keputusan: [ADR-0010](docs/adr/0010-admin-auth-sesi-opaque-totp-step-up.md).
+Panel dapat dideploy ke Cloudflare Pages. Set `VITE_API_URL` dan `VITE_PANEL_URL` saat build; bila memakai host alias, isi `VITE_CANONICAL_ORIGIN` dan `VITE_ALIAS_HOST` agar panel mengalihkan ke domain kanonik sebelum React dimuat. Request admin tanpa sesi ditolak 401; write tanpa CSRF ditolak 403 `CSRF_INVALID`; aksi sensitif dengan reauth kedaluwarsa ditolak 403 `REAUTH_REQUIRED`. Langkah lengkap ada di `DEPLOYMENT.md`. Detail keputusan: [ADR-0010](docs/adr/0010-admin-auth-sesi-opaque-totp-step-up.md).
 
 ## Referensi Duitku
 
@@ -126,7 +151,7 @@ X-Gapura-Event: payment.status
 X-Gapura-Signature: t=<unix-seconds>,v1=<hex>
 ```
 
-`v1 = HMAC_SHA256(<t> + "." + <body>, webhook_secret_project)`, body adalah byte JSON persis. Project wajib menolak timestamp di luar toleransi (disarankan 5 menit) dan memproses idempotent. Respons 2xx dianggap terkirim; selain itu dicatat di `webhook_logs` dengan jadwal retry (pemrosesnya menyusul di Fase 3).
+`v1 = HMAC_SHA256(<t> + "." + <body>, webhook_secret_project)`, body adalah byte JSON persis. Project wajib menolak timestamp di luar toleransi (disarankan 5 menit) dan memproses idempotent. Respons 2xx dianggap terkirim; selain itu dicatat di `webhook_logs` dengan jadwal retry (pemrosesnya menyusul di tahap retry).
 
 Detail kontrak: [ADR-0004](docs/adr/0004-kontrak-integrasi-duitku-v2-dan-webhook-keluar.md).
 
@@ -158,18 +183,19 @@ Test Worker memakai harness HTTP + repository in-memory untuk logika, SQL asli (
 
 ## Deploy
 
-Staging sudah berjalan; langkah lengkap dan rollback ada di [DEPLOYMENT.md](DEPLOYMENT.md), triage di [RUNBOOK.md](RUNBOOK.md). Ringkas:
+Langkah lengkap dan rollback ada di [DEPLOYMENT.md](DEPLOYMENT.md), triage di [RUNBOOK.md](RUNBOOK.md). Ringkas:
 
-1. `wrangler d1 create gapura-sandbox`, isi `database_id` di `apps/worker/wrangler.toml`.
-2. `wrangler d1 migrations apply gapura-sandbox --remote`.
-3. `wrangler deploy`, lalu set `PUBLIC_BASE_URL` ke URL Worker dan deploy ulang.
-4. `wrangler secret put DUITKU_MERCHANT_CODE` dan `DUITKU_API_KEY`.
+1. Isi `database_id` ketiga D1 di `apps/worker/wrangler.toml`.
+2. `wrangler d1 migrations apply <nama-db> --remote` untuk auth, sandbox, dan production.
+3. Set `PUBLIC_BASE_URL` ke URL Worker, lalu `wrangler deploy`.
+4. `wrangler secret put DUITKU_MERCHANT_CODE`, `DUITKU_API_KEY`, `CREDENTIALS_KEY`, dan `ADMIN_SETUP_TOKEN`.
+5. Build panel dengan `VITE_API_URL` yang menunjuk ke Worker, lalu deploy ke Pages.
 
 Hanya layanan Cloudflare free tier yang dipakai (Workers, D1, Cron Trigger). Tanpa Queues/R2.
 
 ## Keamanan
 
-Repo ini menangani transaksi pembayaran dan data pembeli (nama, email). Jangan commit secret Duitku, API key project, atau webhook secret. API key project disimpan sebagai hash SHA-256; key mentah hanya ditampilkan sekali saat dibuat (Fase 6). Laporan celah: [SECURITY.md](SECURITY.md). Ancaman dan checklist: [docs/SECURITY_CHECKLIST.md](docs/SECURITY_CHECKLIST.md). `pnpm audit` bersih per 2026-11-03.
+Repo ini menangani transaksi pembayaran dan data pembeli (nama, email). Jangan commit secret Duitku, API key project, atau webhook secret. API key project disimpan sebagai hash SHA-256; key mentah hanya ditampilkan sekali saat dibuat (tahap panel admin). Laporan celah: [SECURITY.md](SECURITY.md). Ancaman dan checklist: [docs/SECURITY_CHECKLIST.md](docs/SECURITY_CHECKLIST.md). Jalankan `pnpm security` untuk memeriksa dependency.
 
 ## Bekerja dengan pakem
 

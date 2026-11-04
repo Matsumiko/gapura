@@ -2,7 +2,7 @@
 
 Gejala → cek → aksi. Staging: `https://pay.example.com`; panel: `https://admin.example.com`.
 
-Dokumen pendamping: baseline log/alert di `docs/reference/duitku-observability.md`; onboarding produksi (Fase 0, gate, rollback) di `docs/reference/duitku-production-onboarding.md`.
+Dokumen pendamping: baseline log/alert di `docs/reference/duitku-observability.md`; onboarding produksi (persetujuan tertulis Duitku, gate, rollback) di `docs/reference/duitku-production-onboarding.md`.
 
 ## `/health` gagal atau 5xx
 
@@ -58,7 +58,7 @@ wrangler d1 execute gapura-sandbox --remote --json --command \
 ```
 
 - `FAILED` dengan `next_attempt_at`: Cron akan mencoba lagi (1m/5m/15m/1j/6j).
-- `DEAD`: 8 percobaan habis atau transaksi hilang. Perbaiki webhook project lalu minta kirim ulang (panel admin Fase 6; sementara seed baris `FAILED` dengan `next_attempt_at` sekarang atau kirim manual).
+- `DEAD`: 8 percobaan habis atau transaksi hilang. Perbaiki webhook project lalu minta kirim ulang (panel admin tahap panel admin; sementara seed baris `FAILED` dengan `next_attempt_at` sekarang atau kirim manual).
 - Jika project membalas 2xx tetapi tetap gagal, cek signature/timestamp di sisi project.
 
 ## Cron tidak berjalan
@@ -89,7 +89,7 @@ wrangler d1 execute gapura-sandbox --remote --json --command \
 - Authenticator hilang: login lewat **/recovery** memakai salah satu kode pemulihan (sekali pakai). Setelah masuk, buka **Akun** untuk membuat set kode baru. Bila kode juga habis, owner dapat mereset TOTP admin tersebut dari halaman Admin; owner tunggal tanpa kode harus dipulihkan manual di D1.
 - Mencabut semua perangkat: `DELETE FROM admin_sessions WHERE admin_id = '<id>';` lewat D1, atau nonaktifkan user (`UPDATE admin_users SET is_active = 0`).
 - Tombol kirim ulang webhook mengubah baris `DEAD`/`FAILED` menjadi jadwal baru (attempt 1, jatuh tempo sekarang); Cron berikutnya mengirim.
-- Alias `your-project.pages.dev` mengalihkan ke `https://admin.example.com` lewat `apps/panel/public/host-guard.js` sebelum panel dimuat. Bila alias tidak mengalihkan, pastikan build Pages memuat file itu (cek `dist/host-guard.js`) dan tidak ada cache lama; domain kanonik tidak terpengaruh.
+- Alias `your-project.pages.dev` mengalihkan ke `https://admin.example.com` lewat `apps/panel/src/hostGuard.ts` sebelum React dimuat. Isi `VITE_CANONICAL_ORIGIN` dan `VITE_ALIAS_HOST` saat build; bila kosong, redirect nonaktif.
 
 ### Audit login dan keamanan
 

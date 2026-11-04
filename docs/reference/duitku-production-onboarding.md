@@ -2,11 +2,11 @@
 
 Dokumen ini adalah urutan operasi untuk mengaktifkan transaksi nyata di environment `production` Gapura. Ditulis untuk operator tunggal (owner) yang memegang akses Cloudflare dan akun Duitku.
 
-Aturan utama: **tidak ada kredensial produksi, transaksi nyata, atau onboarding project sebelum Fase 0 disetujui tertulis.** Dokumen ini tidak menggantikan persetujuan itu.
+Aturan utama: **tidak ada kredensial produksi, transaksi nyata, atau onboarding project sebelum persetujuan tertulis Duitku diperoleh.** Dokumen ini tidak menggantikan persetujuan itu.
 
-## 1. Fase 0 — blocker tertulis
+## 1. persetujuan tertulis Duitku — blocker tertulis
 
-Fase 0 adalah validasi ke Duitku bahwa **satu akun merchant dipakai untuk beberapa project/domain lewat satu backend Gapura** diizinkan. Gate-nya adalah jawaban tertulis dari Duitku (email/tiket), bukan asumsi dari dokumentasi vendor.
+persetujuan tertulis Duitku adalah validasi ke Duitku bahwa **satu akun merchant dipakai untuk beberapa project/domain lewat satu backend Gapura** diizinkan. Gate-nya adalah jawaban tertulis dari Duitku (email/tiket), bukan asumsi dari dokumentasi vendor.
 
 Sebelum gate ini lolos:
 
@@ -134,7 +134,7 @@ Catatan penting:
 
 ## 6. Yang tidak boleh dilakukan
 
-- Memasukkan kredensial produksi sebelum Fase 0 disetujui tertulis.
+- Memasukkan kredensial produksi sebelum persetujuan tertulis Duitku diperoleh.
 - Menaruh merchant code/API key produksi di `wrangler.toml`, repo, tiket publik, atau chat.
 - Memakai kredensial sandbox untuk `/production` atau sebaliknya.
 - Mengarahkan `/production` ke D1 staging, atau mencampur data sandbox dan produksi.

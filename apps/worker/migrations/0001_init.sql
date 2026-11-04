@@ -1,4 +1,4 @@
--- Skema awal Gapura (D1). Sumber requirement: PRD bagian 7.
+-- Skema awal Gapura (D1). Sumber requirement: spesifikasi produk awal.
 -- Status transaksi hanya maju; constraint UNIQUE menjaga order tidak dobel.
 
 CREATE TABLE IF NOT EXISTS projects (

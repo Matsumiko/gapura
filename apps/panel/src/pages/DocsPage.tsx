@@ -6,8 +6,8 @@ import {
 } from "@gapura/shared/payment-methods";
 import { PageHeader } from "../components";
 
-const API_BASE = "https://pay.example.com";
-const PANEL_URL = "https://admin.example.com";
+const API_BASE = import.meta.env.VITE_API_URL ?? "http://127.0.0.1:8787";
+const PANEL_URL = import.meta.env.VITE_PANEL_URL ?? window.location.origin;
 
 const SECTIONS = [
   { id: "mulai", label: "Mulai" },

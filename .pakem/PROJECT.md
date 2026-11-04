@@ -1,12 +1,12 @@
 ---
 # Konfigurasi Pakem (dibaca mesin). Format: key: value, satu baris satu key.
 # Nilai rule.*: required | skip | when-decision | when-needed. Setiap skip WAJIB punya reason.*
-# exposure: private | public      (repo privat atau dipublikasikan)
+# exposure: public | public      (repo privat atau dipublikasikan)
 # deploy: none | staging | production
 # handover: true | false          (akan diserahterimakan ke orang lain)
 type: app
 sensitive: true
-exposure: private
+exposure: public
 deploy: staging
 handover: false
 verify: pnpm verify
@@ -22,15 +22,15 @@ reason.modular:
 ---
 # Gapura
 
-Backend gerbang pembayaran di Cloudflare Workers: banyak project memakai satu akun merchant Duitku tanpa berbagi kredensial. Spesifikasi produk ada di `PRD.md`; keputusan arsitektur di `docs/adr/`.
+Backend gerbang pembayaran di Cloudflare Workers: banyak project memakai satu akun merchant Duitku tanpa berbagi kredensial. Keputusan arsitektur ada di `docs/adr/`.
 
 ## Ringkasan
-Gapura membuat transaksi Duitku atas nama project pemanggil, menerima callback Duitku (verifikasi signature + nominal), menyimpan status di D1, lalu meneruskan status ke webhook project dengan HMAC. Panel admin (SPA React di Cloudflare Pages) dipakai owner untuk mengelola project dan memantau transaksi. Fase 1-3 berjalan dan staging live; Fase 6 (admin API + panel) live dengan sesi opaque + TOTP + RBAC + step-up. Total 243 test.
+Gapura membuat transaksi Duitku atas nama project pemanggil, menerima callback Duitku (verifikasi signature + nominal), menyimpan status di D1, lalu meneruskan status ke webhook project dengan HMAC. Panel admin (SPA React di Cloudflare Pages) dipakai owner untuk mengelola project dan memantau transaksi. Panel admin memakai sesi opaque + TOTP + RBAC + step-up; jalankan `pnpm verify` untuk status terkini.
 
 ## Stack
 - Runtime API: Cloudflare Workers, TypeScript, Hono 4.
 - Database: Cloudflare D1; skema di `apps/worker/migrations/`. Retry webhook nanti memakai Cron Trigger + tabel retry D1 (ADR-0002).
-- Panel: Vite + React 19 + TanStack Query; routing/tabel/grafik menyusul di Fase 6.
+- Panel: Vite + React 19 + TanStack Query; routing/tabel/grafik menyusul di tahap panel admin.
 - Validasi: Zod (hanya di `packages/shared/src/payment.ts`).
 - Test: Vitest; migrasi SQL diuji dengan `node:sqlite` (ADR-0003).
 - Referensi vendor: `docs/reference/duitku-api.md` dan `docs/reference/duitku-payment-methods.md`; katalog channel di `packages/shared/src/payment-methods.ts`.
@@ -80,15 +80,15 @@ Checklist keamanan (aktif karena `sensitive: true`):
 - Ada test untuk jalur gagal (signature salah, nominal tidak cocok, akses ditolak, order tak dikenal).
 
 ## Status & artefak yang ditunda
-Fase sekarang: Fase 6 selesai di kode, staging live untuk API pembayaran. Worker `https://pay.example.com` (satu-satunya host; workers.dev dimatikan) melayani `/sandbox` (D1 `gapura-sandbox`) dan `/production` (D1 `gapura-production`) dengan admin auth terpusat di D1 `gapura-auth`, keduanya sudah dimigrasi dan live, migrasi 0001-0005 remote, Cron aktif, retensi 30 hari, dan kredensial sandbox asli. Pembayaran sandbox nyata lewat demo Duitku berhasil: callback asli membuat transaksi PAID dan webhook project DELIVERED. Admin API live di `https://pay.example.com/admin/*` dengan sesi opaque + TOTP, dan panel live di `https://admin.example.com` (Pages) dengan login email/password/TOTP; `your-project.pages.dev` hanya untuk redirect ke domain kanonik (`SameSite=Strict`). Request tanpa sesi ke `/admin/*` ditolak 401, write tanpa CSRF 403, dan aksi sensitif tanpa reauth segar 403 `REAUTH_REQUIRED`. Access apps sudah dihapus dan `ACCESS_*` dilepas (ADR-0007). Production D1 ada dan terisolasi, tetapi kredensial production belum diset (create payment production 503, tidak memakai fallback sandbox). Deploy produksi (rilis nyata) belum.
+Status: template siap dikembangkan. Konfigurasi deployment (domain, D1, secret) berada di file lokal yang tidak di-commit; lihat `README.md` dan `DEPLOYMENT.md`.
 
 Ditunda (pemicunya belum ada):
-- Deploy produksi: butuh D1 produksi terpisah dan kredensial Duitku asli setelah Fase 0 disetujui.
+- Deploy produksi: butuh D1 produksi terpisah dan kredensial Duitku asli setelah persetujuan tertulis Duitku diperoleh.
 - CI, `DEPLOYMENT.md`, `RUNBOOK.md`: dibuat saat deploy staging pertama; flag `deploy` dinaikkan saat itu.
 - CI (`pakem ci`/GitHub Actions): belum ada remote GitHub; workflow dibuat saat repo punya remote.
 - Rate limit per project (FR-10): ditunda; andalkan Cloudflare/WAF sebelum produksi (lihat `docs/SECURITY_CHECKLIST.md`). Rate limit login/TOTP admin sudah ada (5 gagal / 15 menit per akun + IP).
 - Retensi `webhook_logs`: selesai (30 hari untuk DELIVERED/DEAD, lihat ADR-0005 dan `apps/worker/src/services/retention.ts`).
-- Panel dan API admin dideploy dengan sesi + TOTP (tanpa Zero Trust). WAF dan D1 produksi masih tertunda. Recovery code TOTP belum ada; CPU Argon2id di Workers free tier belum diukur.
-- Transaksi sandbox Duitku sungguhan: butuh kredensial merchant sandbox dan jawaban Fase 0.
+- Panel dan API admin memakai sesi + TOTP (tanpa Zero Trust). WAF dan D1 produksi masih tertunda.
+- Transaksi sandbox/production nyata: butuh kredensial merchant Duitku yang valid.
 - Makefile/justfile: perintah sudah pendek lewat `pnpm` dan tercatat di README; dibuat bila perintah harian mulai berulang.
-- Fase 0 (konfirmasi tertulis Duitku) masih terbuka dan wajib sebelum kredensial produksi dipakai.
+- persetujuan tertulis Duitku (konfirmasi tertulis Duitku) masih terbuka dan wajib sebelum kredensial produksi dipakai.
