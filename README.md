@@ -16,6 +16,10 @@ Panel admin dengan data demo — tidak ada kredensial atau data produksi di scre
 |---|---|
 | ![Daftar transaksi dengan filter project dan status](preview/transactions.png) | ![Daftar project, prefix, webhook, dan aksi kredensial](preview/projects.png) |
 
+| Akun | Sesi |
+|---|---|
+| ![Pengaturan akun: email, password, recovery code](preview/account.png) | ![Sesi admin dengan IP, user agent, dan reauth](preview/sessions.png) |
+
 | Audit | Tema gelap |
 |---|---|
 | ![Audit aksi admin](preview/audit.png) | ![Dashboard tema gelap](preview/dashboard-dark.png) |
