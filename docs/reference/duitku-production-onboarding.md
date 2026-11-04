@@ -106,7 +106,7 @@ curl -X POST https://pay.example.com/production/v1/payments \
    - Webhook project menerima `payment.status` dengan signature valid (`webhook_logs.status = 'DELIVERED'`).
    - Tidak ada `unhandled_error`/`cron_failed` di log selama gate.
 6. Simpan bukti gate: timestamp, `merchantOrderId`, `reference`, nominal, status akhir, status webhook, dan screenshot/tiket. Gate ditutup hanya bila semua baris di atas benar.
-7. Bila ada yang gagal: **jangan** lanjut ke project berikutnya. Perbaiki, lalu ulangi gate dengan `orderId` baru (jangan pakai ulang order yang sudah ada; duplikat ditolak `409`).
+7. Bila ada yang gagal: **jangan** lanjut ke project berikutnya. Perbaiki, lalu ulangi gate dengan `orderId` baru. Mengulang `orderId` yang sama dengan payload identik mengembalikan transaksi lama (`200 Idempotent-Replayed`), bukan membuat pembayaran baru; payload berbeda ditolak `409 DUPLICATE_ORDER`.
 
 ## 5. Rollback dan emergency stop
 

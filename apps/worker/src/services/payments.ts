@@ -16,10 +16,22 @@ export class PaymentValidationError extends Error {
 }
 
 export class DuplicateOrderError extends Error {
-  constructor() {
-    super("orderId sudah dipakai project ini");
+  constructor(message = "orderId sudah dipakai dengan amount atau paymentMethod berbeda") {
+    super(message);
     this.name = "DuplicateOrderError";
   }
+}
+
+export class OrderInProgressError extends Error {
+  constructor() {
+    super("transaksi dengan orderId ini sedang dibuat; coba lagi sebentar");
+    this.name = "OrderInProgressError";
+  }
+}
+
+export interface CreatePaymentResult {
+  record: TransactionRecord;
+  replayed: boolean;
 }
 
 export interface PaymentResponse {
@@ -53,7 +65,7 @@ export function toPaymentResponse(record: TransactionRecord): PaymentResponse {
 }
 
 export interface PaymentsService {
-  create(project: ProjectRecord, input: CreatePaymentInput): Promise<TransactionRecord>;
+  create(project: ProjectRecord, input: CreatePaymentInput): Promise<CreatePaymentResult>;
   get(projectId: string, projectOrderId: string): Promise<TransactionRecord | null>;
 }
 
@@ -65,8 +77,18 @@ export interface PaymentsDeps {
 }
 
 export function createPaymentsService(deps: PaymentsDeps): PaymentsService {
+  function replay(record: TransactionRecord, input: CreatePaymentInput): CreatePaymentResult {
+    if (record.amount !== input.amount || record.paymentMethod !== input.paymentMethod) {
+      throw new DuplicateOrderError();
+    }
+    if (record.status === "PENDING" && !record.paymentUrl && !record.reference) {
+      throw new OrderInProgressError();
+    }
+    return { record, replayed: true };
+  }
+
   return {
-    async create(project: ProjectRecord, input: CreatePaymentInput): Promise<TransactionRecord> {
+    async create(project: ProjectRecord, input: CreatePaymentInput): Promise<CreatePaymentResult> {
       if (!deps.publicBaseUrl) {
         throw new PaymentProviderError(
           "PROVIDER_NOT_CONFIGURED",
@@ -81,6 +103,11 @@ export function createPaymentsService(deps: PaymentsDeps): PaymentsService {
           "orderId terlalu panjang: merchantOrderId (PREFIX-orderId) maksimal 50 karakter.",
         );
       }
+      const existing = await deps.transactions.findByProjectOrder(project.id, input.orderId);
+      if (existing) {
+        return replay(existing, input);
+      }
+
       const inserted = await deps.transactions.insertPending({
         merchantOrderId,
         projectId: project.id,
@@ -90,7 +117,11 @@ export function createPaymentsService(deps: PaymentsDeps): PaymentsService {
         createdAt,
       });
       if (!inserted) {
-        throw new DuplicateOrderError();
+        const winner = await deps.transactions.findByProjectOrder(project.id, input.orderId);
+        if (!winner) {
+          throw new DuplicateOrderError();
+        }
+        return replay(winner, input);
       }
 
       let invoice;
@@ -127,18 +158,21 @@ export function createPaymentsService(deps: PaymentsDeps): PaymentsService {
       );
 
       return {
-        merchantOrderId,
-        projectId: project.id,
-        projectOrderId: input.orderId,
-        amount: input.amount,
-        paymentMethod: input.paymentMethod,
-        status: "PENDING",
-        paymentUrl: invoice.paymentUrl,
-        reference: invoice.reference,
-        vaNumber: invoice.vaNumber,
-        qrString: invoice.qrString,
-        createdAt,
-        updatedAt,
+        record: {
+          merchantOrderId,
+          projectId: project.id,
+          projectOrderId: input.orderId,
+          amount: input.amount,
+          paymentMethod: input.paymentMethod,
+          status: "PENDING",
+          paymentUrl: invoice.paymentUrl,
+          reference: invoice.reference,
+          vaNumber: invoice.vaNumber,
+          qrString: invoice.qrString,
+          createdAt,
+          updatedAt,
+        },
+        replayed: false,
       };
     },
 

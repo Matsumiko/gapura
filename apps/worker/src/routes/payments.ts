@@ -4,6 +4,7 @@ import { jsonError } from "../http";
 import { PaymentProviderError } from "../providers/duitku";
 import {
   DuplicateOrderError,
+  OrderInProgressError,
   PaymentValidationError,
   toPaymentResponse,
   type PaymentsService,
@@ -27,14 +28,21 @@ export function registerPaymentRoutes(app: Hono<AppEnv>, deps: PaymentRouteDeps)
     }
 
     try {
-      const record = await deps.payments.create(c.get("project"), parsed.data);
-      return c.json(toPaymentResponse(record), 201);
+      const { record, replayed } = await deps.payments.create(c.get("project"), parsed.data);
+      if (replayed) {
+        c.header("Idempotent-Replayed", "true");
+      }
+      return c.json(toPaymentResponse(record), replayed ? 200 : 201);
     } catch (error) {
       if (error instanceof PaymentValidationError) {
         return jsonError(c, 400, "INVALID_REQUEST", error.message);
       }
       if (error instanceof DuplicateOrderError) {
-        return jsonError(c, 409, "DUPLICATE_ORDER", "orderId sudah dipakai project ini.");
+        return jsonError(c, 409, "DUPLICATE_ORDER", error.message);
+      }
+      if (error instanceof OrderInProgressError) {
+        c.header("Retry-After", "2");
+        return jsonError(c, 409, "ORDER_IN_PROGRESS", error.message);
       }
       if (error instanceof PaymentProviderError) {
         if (error.code === "PROVIDER_NOT_CONFIGURED") {

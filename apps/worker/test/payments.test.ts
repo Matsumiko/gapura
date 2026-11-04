@@ -122,17 +122,61 @@ describe("POST /v1/payments", () => {
     expect(calls[0]?.customerName).toBe(VALID_BODY.customerName);
   });
 
-  it("menolak orderId yang sudah dipakai project", async () => {
-    const { app, calls } = await setup();
+  it("mengembalikan transaksi yang sama untuk retry orderId identik", async () => {
+    const { app, calls, memory } = await setup();
 
-    expect((await postPayment(app)).status).toBe(201);
-    const duplicate = await postPayment(app);
+    const first = await postPayment(app);
+    expect(first.status).toBe(201);
+    const firstBody = await readJson<PaymentBody>(first);
 
-    expect(duplicate.status).toBe(409);
-    expect((await readJson<ErrorBody>(duplicate)).error.code).toBe(
-      "DUPLICATE_ORDER",
-    );
+    const replay = await postPayment(app);
+    expect(replay.status).toBe(200);
+    expect(replay.headers.get("Idempotent-Replayed")).toBe("true");
+    expect(await readJson<PaymentBody>(replay)).toEqual(firstBody);
     expect(calls).toHaveLength(1);
+    expect(memory.rows.get("PRJA-INV123")?.status).toBe("PENDING");
+  });
+
+  it("menolak orderId sama dengan amount atau paymentMethod berbeda", async () => {
+    const { app, calls } = await setup();
+    expect((await postPayment(app)).status).toBe(201);
+
+    const differentAmount = await postPayment(app, { ...VALID_BODY, amount: 175000 });
+    expect(differentAmount.status).toBe(409);
+    expect((await readJson<ErrorBody>(differentAmount)).error.code).toBe("DUPLICATE_ORDER");
+
+    const differentMethod = await postPayment(app, { ...VALID_BODY, paymentMethod: "BT" });
+    expect(differentMethod.status).toBe(409);
+    expect(calls).toHaveLength(1);
+  });
+
+  it("mengembalikan status terminal saat project mengulang orderId yang sama", async () => {
+    const { app, calls, memory } = await setup();
+    expect((await postPayment(app)).status).toBe(201);
+    await memory.repo.markStatus("PRJA-INV123", "EXPIRED", NOW().toISOString());
+
+    const replay = await postPayment(app);
+    expect(replay.status).toBe(200);
+    expect((await readJson<PaymentBody & { status: string }>(replay)).status).toBe("EXPIRED");
+    expect(calls).toHaveLength(1);
+  });
+
+  it("menandai transaksi yang masih dibuat agar project mencoba lagi", async () => {
+    const { app, calls, memory } = await setup();
+    await memory.repo.insertPending({
+      merchantOrderId: "PRJA-INV123",
+      projectId: "proja",
+      projectOrderId: VALID_BODY.orderId,
+      amount: VALID_BODY.amount,
+      paymentMethod: VALID_BODY.paymentMethod,
+      createdAt: NOW().toISOString(),
+    });
+
+    const response = await postPayment(app);
+    expect(response.status).toBe(409);
+    expect(response.headers.get("Retry-After")).toBe("2");
+    expect((await readJson<ErrorBody>(response)).error.code).toBe("ORDER_IN_PROGRESS");
+    expect(calls).toHaveLength(0);
   });
 
   it.each([

@@ -55,6 +55,8 @@ Worker (Cloudflare):
 - `apps/worker/migrations/0003_admin_audit.sql` — tabel `admin_audit` untuk jejak aksi admin.
 - `apps/worker/migrations/0004_merchant_settings.sql` — kredensial per environment.
 - `apps/worker/migrations/0005_admin_auth.sql` — admin_users, admin_sessions, admin_login_attempts (auth sesi + TOTP aktif).
+- `apps/worker/migrations/0006_admin_ops.sql` — recovery codes, rate limit project, kolom operasional admin.
+- `apps/worker/migrations/0007_transaction_project_order_unique.sql` — unique index `(project_id, project_order_id)` untuk idempotensi order.
 
 Shared (dipakai Worker dan panel):
 - `packages/shared/src/crypto.ts` — sha256Hex, generator API key dan webhook secret.

@@ -75,6 +75,14 @@ curl -X POST http://127.0.0.1:8787/v1/payments \
 
 `paymentMethod` adalah kode 2 karakter Duitku (`VC`, `VA`, `OV`, `DA`, ...). Order ID yang dikirim ke Duitku berbentuk `PREFIX-orderId` dan unik global.
 
+`POST /v1/payments` idempoten terhadap `orderId` project:
+
+- Retry dengan `orderId`, `amount`, dan `paymentMethod` sama mengembalikan transaksi yang sudah ada dengan HTTP `200` + header `Idempotent-Replayed: true`; tidak ada invoice Duitku baru.
+- Payload berbeda (amount/paymentMethod) untuk `orderId` yang sama ditolak `409 DUPLICATE_ORDER`.
+- Bila transaksi masih dalam proses pembuatan invoice (PENDING tanpa URL/reference), balasan `409 ORDER_IN_PROGRESS` + `Retry-After: 2`; ulangi request yang sama.
+- Status terminal (`PAID`, `FAILED`, `EXPIRED`) dikembalikan apa adanya. Untuk pembayaran baru setelah gagal/kedaluwarsa, pakai `orderId` baru.
+- `reference` Duitku disimpan untuk jejak dan webhook, bukan kunci idempotensi; nilainya baru ada setelah inquiry berhasil.
+
 ## Panel admin
 
 SPA React di `apps/panel` + endpoint `/admin/*` di Worker. Login memakai email + password Argon2id + kode TOTP. Worker mengirim token sesi 32 byte lewat cookie `__Host-gapura_admin` (`HttpOnly`, `Secure`, `SameSite=Strict`); D1 hanya menyimpan hash token dan hash CSRF. Panel tidak menyimpan token sesi di JavaScript: hanya CSRF token untuk header `X-CSRF-Token` yang disimpan di `sessionStorage`. Request baca boleh untuk semua role (`owner`/`admin`/`viewer`); write butuh `owner`/`admin`; aksi sensitif butuh TOTP ulang dalam 15 menit (`reauthenticated_at`). Bootstrap owner pertama memakai `ADMIN_SETUP_TOKEN` dan hanya bisa sekali.
