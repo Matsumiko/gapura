@@ -116,14 +116,14 @@ Gapura menerima `expiryPeriod` opsional (1–10080 menit), memvalidasinya terhad
 
 | Aturan | Nilai | Konsekuensi bila dilanggar |
 |---|---|---|
-| Nominal minimum | Rp10.000 | HTTP 400 `Minimum Payment 10000 IDR` |
+| Nominal minimum | Rp10.000 (QRIS Rp5.000 di Gapura) | HTTP 400 `Minimum Payment 10000 IDR` dari vendor; Gapura memvalidasi lebih awal |
 | `merchantOrderId` | maks 50 karakter | HTTP 400 `length of merchantOrderId can't > 50` |
 | `customerVaName` | maks 20 karakter | Dipotong vendor / error untuk channel tertentu |
 | `paymentMethod` | kode 2 karakter, harus aktif | HTTP 404 `Payment channel not available` |
 | `itemDetails` vs `paymentAmount` | total harus sama | HTTP 409 |
 | Email | tabel bilang 255, daftar error bilang 50 | Amannya < 50 karakter |
 
-Gapura sekarang menegakkan minimum Rp10.000 dan `merchantOrderId` ≤ 50 (PREFIX + tanda hubung + orderId) sebelum memanggil Duitku.
+Gapura menegakkan minimum Rp10.000 untuk non-QRIS dan Rp5.000 untuk QRIS, serta `merchantOrderId` ≤ 50 (PREFIX + tanda hubung + orderId) sebelum memanggil Duitku.
 
 ## Channel yang aktif di sandbox Gapura (`DS24636`)
 

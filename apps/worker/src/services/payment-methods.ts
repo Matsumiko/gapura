@@ -1,4 +1,4 @@
-import { paymentChannelByCode } from "@gapura/shared/payment-methods";
+import { minimumPaymentAmount, paymentChannelByCode } from "@gapura/shared/payment-methods";
 import type { PaymentMethodProvider } from "../providers/duitku";
 
 export interface PaymentMethodView {
@@ -20,7 +20,7 @@ export function createPaymentMethodsService(deps: {
   return {
     async list(amount: number): Promise<PaymentMethodView[]> {
       const methods = await deps.provider.getPaymentMethods(amount);
-      return methods.map((method) => {
+      return methods.filter((method) => amount >= minimumPaymentAmount(method.code)).map((method) => {
         const catalog = paymentChannelByCode(method.code);
         return {
           code: method.code,

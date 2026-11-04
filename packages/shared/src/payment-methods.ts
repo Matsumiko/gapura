@@ -76,6 +76,16 @@ export function paymentChannelByCode(code: string): PaymentChannel | undefined {
   return BY_CODE.get(code);
 }
 
+export const DEFAULT_MINIMUM_AMOUNT = 10_000;
+export const QRIS_MINIMUM_AMOUNT = 5_000;
+
+/** Batas minimum operasional Gapura per channel; QRIS memakai batas lebih rendah. */
+export function minimumPaymentAmount(code: string): number {
+  return paymentChannelByCode(code)?.system === "QRIS"
+    ? QRIS_MINIMUM_AMOUNT
+    : DEFAULT_MINIMUM_AMOUNT;
+}
+
 export const PAYMENT_SYSTEMS: readonly PaymentSystem[] = [
   "Bank Transfer",
   "E-Wallet",

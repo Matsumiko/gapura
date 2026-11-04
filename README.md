@@ -170,7 +170,7 @@ Kontrak vendor dipelajari dan dicatat supaya tidak menebak:
 - [docs/reference/duitku-payment-methods.md](docs/reference/duitku-payment-methods.md) — 32 channel per sistem, expiry, void, account link, channel aktif sandbox, batas nominal/order ID.
 - Katalog machine-readable: `packages/shared/src/payment-methods.ts` (dipakai panel untuk label channel).
 
-Batas yang ditegakkan Gapura: nominal minimal Rp10.000, `merchantOrderId` maks 50 karakter, email maks 50 karakter, `paymentMethod` 2 karakter. Opsional: `expiryPeriod` (divalidasi per channel) dan `creditCardDetail` untuk `VC`. Channel aktif + biaya diambil lewat `GET /v1/payment-methods` (cache 5 menit).
+Batas yang ditegakkan Gapura: nominal minimal Rp10.000 untuk channel non-QRIS dan Rp5.000 untuk QRIS, `merchantOrderId` maks 50 karakter, email maks 50 karakter, `paymentMethod` 2 karakter. Opsional: `expiryPeriod` (divalidasi per channel) dan `creditCardDetail` untuk `VC`. Channel aktif + biaya diambil lewat `GET /v1/payment-methods` (cache 5 menit).
 
 ## Webhook keluar
 

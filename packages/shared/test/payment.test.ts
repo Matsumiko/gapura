@@ -12,8 +12,22 @@ const validInput = {
 };
 
 describe("createPaymentInputSchema", () => {
-  it("menerima nominal minimum Rp10.000", () => {
+  it("menerima nominal minimum Rp10.000 untuk channel non-QRIS", () => {
     expect(createPaymentInputSchema.safeParse({ ...validInput, amount: 10000 }).success).toBe(true);
+  });
+
+  it("menerima QRIS mulai Rp5.000 dan menolak di bawahnya", () => {
+    for (const paymentMethod of ["SP", "NQ", "SQ"]) {
+      expect(
+        createPaymentInputSchema.safeParse({ ...validInput, paymentMethod, amount: 5000 }).success,
+      ).toBe(true);
+      expect(
+        createPaymentInputSchema.safeParse({ ...validInput, paymentMethod, amount: 4999 }).success,
+      ).toBe(false);
+    }
+    expect(
+      createPaymentInputSchema.safeParse({ ...validInput, paymentMethod: "BC", amount: 5000 }).success,
+    ).toBe(false);
   });
 
   it("menerima contoh request", () => {

@@ -70,7 +70,7 @@ Response:
 | Parameter | Tipe | Keterangan |
 |---|---|---|
 | `merchantCode` | string(50) | Kode merchant Duitku |
-| `paymentAmount` | integer | Nominal; minimum Rp10.000; tanpa desimal |
+| `paymentAmount` | integer | Nominal tanpa desimal. Gapura memakai minimum operasional Rp10.000, kecuali QRIS Rp5.000. |
 | `paymentMethod` | string(2) | Kode channel, lihat `duitku-payment-methods.md` |
 | `merchantOrderId` | string(50) | **Maksimal 50 karakter**, unik |
 | `productDetails` | string(255) | Deskripsi produk |
@@ -226,7 +226,7 @@ Response: `merchantOrderId`, `reference`, `amount`, `fee`, `statusCode`, `status
 | HTTP | Pesan | Arti |
 |---|---|---|
 | 200 | SUCCESS | Berhasil |
-| 400 | Minimum Payment 10000 IDR | Nominal < Rp10.000 |
+| 400 | Minimum Payment 10000 IDR | Nominal di bawah batas vendor; Gapura menolak lebih awal sesuai batas channel |
 | 400 | Maximum Payment exceeded | Melebihi batas merchant |
 | 400 | paymentMethod is mandatory | `paymentMethod` kosong |
 | 400 | merchantOrderId is mandatory | Order ID kosong |

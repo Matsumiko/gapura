@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { paymentChannelByCode } from "./payment-methods";
+import { minimumPaymentAmount, paymentChannelByCode } from "./payment-methods";
 
 const httpUrl = z.url({ protocol: /^https?$/ }).max(2048);
 
@@ -111,8 +111,7 @@ export const createPaymentInputSchema = z
       .min(1)
       .max(128)
       .refine((value) => value.trim() === value, { message: "orderId tanpa spasi di awal/akhir" }),
-    // Duitku menolak nominal di bawah Rp10.000 (HTTP 400 Minimum Payment).
-    amount: z.number().int().min(10_000).max(Number.MAX_SAFE_INTEGER),
+    amount: z.number().int().min(1).max(Number.MAX_SAFE_INTEGER),
     productDetails: z.string().min(1).max(255),
     customerName: z.string().min(1).max(255),
     // Vendor menulis 255 di tabel, tetapi daftar error menyebut batas 50; pakai yang lebih ketat.
@@ -131,6 +130,15 @@ export const createPaymentInputSchema = z
   })
   .strict()
   .superRefine((value, ctx) => {
+    const minimum = minimumPaymentAmount(value.paymentMethod);
+    if (value.amount < minimum) {
+      ctx.addIssue({
+        code: "custom",
+        path: ["amount"],
+        message: `nominal minimum untuk ${value.paymentMethod} adalah Rp${minimum.toLocaleString("id-ID")}`,
+      });
+    }
+
     if (value.itemDetails) {
       const total = value.itemDetails.reduce(
         (sum, item) => sum + item.price * item.quantity,

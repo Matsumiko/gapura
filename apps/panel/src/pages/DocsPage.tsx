@@ -209,7 +209,7 @@ export function DocsPage() {
             </div>
           ))}
           <p>
-            Batas penting: nominal minimal <strong>Rp10.000</strong> dan{" "}
+            Batas penting: nominal minimal <strong>Rp10.000</strong> (QRIS <strong>Rp5.000</strong>) dan{" "}
             <code>merchantOrderId</code> (PREFIX-orderId) maksimal <strong>50 karakter</strong>.
             Gapura menolak keduanya di awal dengan 400, bukan meneruskannya ke Duitku.
           </p>
@@ -242,7 +242,7 @@ export function DocsPage() {
                 <td>
                   <code>amount</code>
                 </td>
-                <td>Integer rupiah, minimal Rp10.000, tanpa desimal.</td>
+                <td>Integer rupiah, minimal Rp10.000; QRIS minimal Rp5.000. Tanpa desimal.</td>
               </tr>
               <tr>
                 <td>

@@ -66,6 +66,19 @@ describe("GET /v1/payment-methods", () => {
     ]);
   });
 
+  it("menyaring channel yang minimumnya di atas nominal", async () => {
+    const { app } = await setup([
+      { code: "SP", name: "ShopeePay QRIS", image: "", totalFee: "0" },
+      { code: "BC", name: "BCA VA", image: "", totalFee: "5000" },
+    ]);
+
+    const response = await request(app, "/v1/payment-methods?amount=5000");
+    const body = (await response.json()) as { items: Array<{ code: string }> };
+
+    expect(response.status).toBe(200);
+    expect(body.items.map((item) => item.code)).toEqual(["SP"]);
+  });
+
   it("meneruskan nominal dari query", async () => {
     const { app, calls } = await setup();
 
@@ -75,7 +88,7 @@ describe("GET /v1/payment-methods", () => {
     expect(calls).toEqual([50000]);
   });
 
-  it.each(["9999", "0", "abc", "100000001", "10000.5"])(
+  it.each(["4999", "0", "abc", "100000001", "10000.5"])(
     "menolak amount %s",
     async (amount) => {
       const { app, calls } = await setup();
