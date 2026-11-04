@@ -45,6 +45,15 @@ function EnvCard({
     onSuccess: (result) => setTestResult(result),
   });
 
+  const activate = useMutation({
+    mutationFn: () =>
+      apiPost<MerchantSettingsView>(`/admin/settings/${view.environment}/activate`),
+    onSuccess: async () => {
+      setTestResult(null);
+      await onChanged();
+    },
+  });
+
   const label = view.environment === "sandbox" ? "Sandbox" : "Production";
 
   return (
@@ -58,7 +67,10 @@ function EnvCard({
               : "passport.duitku.com (transaksi nyata)"}
           </p>
         </div>
-        {view.apiKeySet ? <span className="badge good">api key tersimpan</span> : null}
+        <div className="row-actions">
+          {view.isActive ? <span className="badge good">aktif</span> : null}
+          {view.apiKeySet ? <span className="badge good">api key tersimpan</span> : null}
+        </div>
       </div>
 
       <form
@@ -109,10 +121,35 @@ function EnvCard({
           >
             {test.isPending ? "Menguji…" : "Uji kredensial"}
           </button>
+          {!view.isActive ? (
+            <button
+              type="button"
+              className="button"
+              onClick={() => {
+                const warning =
+                  view.environment === "production"
+                    ? "Aktifkan kredensial PRODUCTION? Semua transaksi production akan memakai kredensial ini."
+                    : "Aktifkan kredensial sandbox?";
+                if (window.confirm(warning)) {
+                  activate.mutate();
+                }
+              }}
+              disabled={
+                !canWrite ||
+                activate.isPending ||
+                save.isPending ||
+                !view.apiKeySet ||
+                !testResult
+              }
+              title={!testResult ? "Uji kredensial terlebih dahulu" : undefined}
+            >
+              {activate.isPending ? "Mengaktifkan…" : "Aktifkan"}
+            </button>
+          ) : null}
         </div>
       </form>
 
-      <ErrorNote error={save.error ?? test.error} />
+      <ErrorNote error={save.error ?? test.error ?? activate.error} />
       {testResult ? (
         <p className="test-result">
           <span>{testResult.count}</span> channel aktif, contoh:{" "}
