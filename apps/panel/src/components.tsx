@@ -1,5 +1,21 @@
-import type { ReactNode } from "react";
-import { ApiError } from "./api";
+import { createContext, useContext, type ReactNode } from "react";
+import { ApiError, type ApiEnvironment } from "./api";
+
+const EnvironmentContext = createContext<ApiEnvironment>("sandbox");
+
+export function EnvironmentProvider({
+  value,
+  children,
+}: {
+  value: ApiEnvironment;
+  children: ReactNode;
+}) {
+  return <EnvironmentContext.Provider value={value}>{children}</EnvironmentContext.Provider>;
+}
+
+export function useEnvironment(): ApiEnvironment {
+  return useContext(EnvironmentContext);
+}
 
 export function ErrorNote({ error }: { error: unknown }) {
   if (!error) {
@@ -30,10 +46,17 @@ export function ErrorNote({ error }: { error: unknown }) {
 }
 
 export function PageHeader({ title, lede }: { title: string; lede?: ReactNode }) {
+  const environment = useEnvironment();
   return (
     <header className="page-head">
       <div className="page-head__text">
-        <h1>{title}</h1>
+        <div className="page-head__title-row">
+          <h1>{title}</h1>
+          <span className="page-env" data-env={environment}>
+            <span className="visually-hidden">Environment </span>
+            {environment}
+          </span>
+        </div>
         {lede ? <p className="page-lede">{lede}</p> : null}
       </div>
     </header>
@@ -86,5 +109,9 @@ export function formatRupiah(value: number): string {
 }
 
 export function formatTime(value: string): string {
-  return new Date(value).toLocaleString("id-ID", { timeZone: "Asia/Jakarta" });
+  return new Date(value).toLocaleString("id-ID", {
+    timeZone: "Asia/Jakarta",
+    dateStyle: "medium",
+    timeStyle: "short",
+  });
 }

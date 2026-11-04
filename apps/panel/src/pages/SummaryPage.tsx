@@ -6,7 +6,14 @@ import {
   type Transaction,
   type WebhookLog,
 } from "../api";
-import { ErrorNote, PageHeader, TableSkeleton, formatRupiah, formatTime } from "../components";
+import {
+  ErrorNote,
+  PageHeader,
+  StatusBadge,
+  TableSkeleton,
+  formatRupiah,
+  formatTime,
+} from "../components";
 
 export function SummaryPage() {
   const summary = useQuery({
@@ -49,6 +56,8 @@ export function SummaryPage() {
   }
 
   const data = summary.data;
+  const maxProjectAmount = Math.max(1, ...data.projects.map((item) => item.todayAmount));
+
   return (
     <>
       <PageHeader
@@ -58,29 +67,66 @@ export function SummaryPage() {
 
       <section className="kpi-grid" aria-label="Indikator utama">
         <article className="kpi kpi--lead">
-          <p className="kpi__label">Pendapatan hari ini</p>
-          <p className="kpi__value num">{formatRupiah(data.today.amount)}</p>
+          <p className="kpi__label">
+            <span className="kpi__live" aria-hidden="true" />
+            Pendapatan hari ini
+          </p>
+          <p className="kpi__value money">{formatRupiah(data.today.amount)}</p>
           <p className="kpi__meta">
-            <span className="num">{data.today.count}</span> transaksi PAID
+            {data.today.count} transaksi PAID
           </p>
         </article>
         <article className="kpi">
           <p className="kpi__label">Bulan ini</p>
-          <p className="kpi__value num">{formatRupiah(data.month.amount)}</p>
+          <p className="kpi__value money">{formatRupiah(data.month.amount)}</p>
           <p className="kpi__meta">
-            <span className="num">{data.month.count}</span> transaksi PAID
+            {data.month.count} transaksi PAID
           </p>
         </article>
         <article className="kpi">
           <p className="kpi__label">Menunggu pembayaran</p>
-          <p className="kpi__value num">{pending.data?.total ?? "–"}</p>
+          <p className="kpi__value">{pending.data?.total ?? "-"}</p>
           <p className="kpi__meta">transaksi PENDING</p>
         </article>
         <article className="kpi">
           <p className="kpi__label">Webhook gagal</p>
-          <p className="kpi__value num">{failed.data?.items.length ?? "–"}</p>
-          <p className="kpi__meta">menunggu retry</p>
+          <p className="kpi__value">{failed.data?.items.length ?? "-"}</p>
+          <p className="kpi__meta">antrean terbaru</p>
         </article>
+      </section>
+
+      <section className="panel">
+        <div className="panel-head">
+          <h2>Komposisi hari ini</h2>
+          <span className="panel-note">nominal PAID per project</span>
+        </div>
+        {data.projects.length === 0 ? (
+          <p className="empty-note">Belum ada project. Tambahkan lewat halaman Project.</p>
+        ) : (
+          <ul className="bars">
+            <li className="bars__head" aria-hidden="true">
+              <span>Project</span>
+              <span>Porsi hari ini</span>
+              <span>Nominal PAID</span>
+              <span>Transaksi</span>
+            </li>
+            {data.projects.map((row) => (
+              <li className="bars__row" key={row.projectId}>
+                <span className="bars__name">{row.projectName}</span>
+                <span className="bars__track" aria-hidden="true">
+                  <span
+                    className="bars__fill"
+                    style={{ width: `${(row.todayAmount / maxProjectAmount) * 100}%` }}
+                  />
+                </span>
+                <span className="bars__value money">{formatRupiah(row.todayAmount)}</span>
+                <span className="bars__count">
+                  {row.todayCount} transaksi
+                </span>
+              </li>
+            ))}
+          </ul>
+        )}
       </section>
 
       <div className="dash-grid">
@@ -111,22 +157,20 @@ export function SummaryPage() {
                   <tbody>
                     {recent.data.items.map((item) => (
                       <tr key={item.merchantOrderId}>
-                        <td className="table__name" data-label="Order">
-                          <Link to={`/transactions/${item.merchantOrderId}`}>
+                        <td data-label="Order">
+                          <Link to={`/transactions/${item.merchantOrderId}`} className="table__link">
                             {item.projectOrderId}
                           </Link>
                         </td>
                         <td data-label="Project">{item.projectName}</td>
                         <td className="cell-num" data-label="Nominal">
-                          <span className="table__amount num">{formatRupiah(item.amount)}</span>
+                          <span className="table__amount money">{formatRupiah(item.amount)}</span>
                         </td>
                         <td data-label="Status">
-                          <span className="badge" data-status={item.status}>
-                            {item.status.toLowerCase()}
-                          </span>
+                          <StatusBadge status={item.status} />
                         </td>
                         <td className="cell-time" data-label="Waktu">
-                          {formatTime(item.createdAt)}
+                          <time dateTime={item.createdAt}>{formatTime(item.createdAt)}</time>
                         </td>
                       </tr>
                     ))}
@@ -154,10 +198,13 @@ export function SummaryPage() {
                 {failed.data.items.map((item) => (
                   <li key={item.id} className="queue__item">
                     <span className="queue__name">{item.merchantOrderId}</span>
-                    <span className="queue__meta">
-                      {item.projectName} · percobaan <span className="num">{item.attempt}</span>
+                    <span className="queue__attempt">
+                      percobaan {item.attempt}
                     </span>
-                    <span className="queue__meta">{item.error ?? "menunggu jadwal"}</span>
+                    <span className="queue__project">{item.projectName}</span>
+                    <span className="queue__error" title={item.error ?? undefined}>
+                      {item.error ?? "menunggu jadwal"}
+                    </span>
                   </li>
                 ))}
               </ul>
@@ -165,32 +212,6 @@ export function SummaryPage() {
           ) : null}
         </section>
       </div>
-
-      <section className="panel">
-        <div className="panel-head">
-          <h2>Komposisi hari ini</h2>
-          <span className="panel-note">nominal PAID per project</span>
-        </div>
-        {data.projects.length === 0 ? (
-          <p className="empty-note">Belum ada project. Tambahkan lewat halaman Project.</p>
-        ) : (
-          <ul className="bars">
-            {data.projects.map((row) => (
-              <li className="bars__row" key={row.projectId}>
-                <span className="bars__name">{row.projectName}</span>
-                <span className="bars__track" aria-hidden="true">
-                  <span
-                    className="bars__fill"
-                    style={{ width: `${(row.todayAmount / Math.max(1, ...data.projects.map((item) => item.todayAmount))) * 100}%` }}
-                  />
-                </span>
-                <span className="bars__value num">{formatRupiah(row.todayAmount)}</span>
-                <span className="bars__count num">{row.todayCount} trx</span>
-              </li>
-            ))}
-          </ul>
-        )}
-      </section>
     </>
   );
 }

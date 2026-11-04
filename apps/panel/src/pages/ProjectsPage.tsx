@@ -184,7 +184,7 @@ export function ProjectsPage({ canWrite }: { canWrite: boolean }) {
         <div className="panel-head">
           <h2>Daftar project</h2>
           {projects.data ? (
-            <span className="panel-count num">{projects.data.items.length} project</span>
+            <span className="panel-count">{projects.data.items.length} project</span>
           ) : null}
         </div>
 
@@ -228,7 +228,7 @@ export function ProjectsPage({ canWrite }: { canWrite: boolean }) {
                       <td data-label="Prefix">
                         <code>{project.prefix}</code>
                       </td>
-                      <td data-label="Webhook" className="wrap">
+                      <td data-label="Webhook">
                         {isEditing ? (
                           <input
                             name="edit-webhook"
@@ -240,7 +240,9 @@ export function ProjectsPage({ canWrite }: { canWrite: boolean }) {
                             }
                           />
                         ) : (
-                          <span className="table__webhook">{project.webhookUrl}</span>
+                          <span className="table__webhook" title={project.webhookUrl}>
+                            {project.webhookUrl}
+                          </span>
                         )}
                       </td>
                       <td data-label="Status">
@@ -248,71 +250,73 @@ export function ProjectsPage({ canWrite }: { canWrite: boolean }) {
                           {project.isActive ? "aktif" : "nonaktif"}
                         </span>
                       </td>
-                      <td data-label="Dibuat" className="cell-time num">
+                      <td data-label="Dibuat" className="cell-time">
                         {formatTime(project.createdAt)}
                       </td>
                       <td data-label="Aksi" className="actions">
-                        {!canWrite ? (
-                          <span className="muted">-</span>
-                        ) : isEditing ? (
-                          <>
-                            <button
-                              type="button"
-                              className="button button--small"
-                              onClick={() => updateProject.mutate(editing)}
-                              disabled={updateProject.isPending}
-                            >
-                              {updateProject.isPending ? "Menyimpan…" : "Simpan"}
-                            </button>
-                            <button
-                              type="button"
-                              className="ghost"
-                              onClick={() => setEditing(null)}
-                            >
-                              Batal
-                            </button>
-                          </>
-                        ) : (
-                          <>
-                            <button
-                              type="button"
-                              className="ghost"
-                              onClick={() =>
-                                setEditing({
-                                  id: project.id,
-                                  name: project.name,
-                                  webhookUrl: project.webhookUrl,
-                                })
-                              }
-                            >
-                              Edit
-                            </button>
-                            <button
-                              type="button"
-                              className="ghost"
-                              onClick={() => toggleProject.mutate(project)}
-                              disabled={toggleProject.isPending}
-                            >
-                              {project.isActive ? "Nonaktifkan" : "Aktifkan"}
-                            </button>
-                            <button
-                              type="button"
-                              className="ghost"
-                              onClick={() => rotateKey.mutate(project)}
-                              disabled={rotateKey.isPending}
-                            >
-                              Rotasi key
-                            </button>
-                            <button
-                              type="button"
-                              className="ghost"
-                              onClick={() => rotateSecret.mutate(project)}
-                              disabled={rotateSecret.isPending}
-                            >
-                              Rotasi secret
-                            </button>
-                          </>
-                        )}
+                        <div className="row-actions">
+                          {!canWrite ? (
+                            <span className="muted">-</span>
+                          ) : isEditing ? (
+                            <>
+                              <button
+                                type="button"
+                                className="button button--small"
+                                onClick={() => updateProject.mutate(editing)}
+                                disabled={updateProject.isPending}
+                              >
+                                {updateProject.isPending ? "Menyimpan…" : "Simpan"}
+                              </button>
+                              <button
+                                type="button"
+                                className="ghost"
+                                onClick={() => setEditing(null)}
+                              >
+                                Batal
+                              </button>
+                            </>
+                          ) : (
+                            <>
+                              <button
+                                type="button"
+                                className="ghost"
+                                onClick={() =>
+                                  setEditing({
+                                    id: project.id,
+                                    name: project.name,
+                                    webhookUrl: project.webhookUrl,
+                                  })
+                                }
+                              >
+                                Edit
+                              </button>
+                              <button
+                                type="button"
+                                className="ghost"
+                                onClick={() => toggleProject.mutate(project)}
+                                disabled={toggleProject.isPending}
+                              >
+                                {project.isActive ? "Nonaktifkan" : "Aktifkan"}
+                              </button>
+                              <button
+                                type="button"
+                                className="ghost"
+                                onClick={() => rotateKey.mutate(project)}
+                                disabled={rotateKey.isPending}
+                              >
+                                Rotasi key
+                              </button>
+                              <button
+                                type="button"
+                                className="ghost"
+                                onClick={() => rotateSecret.mutate(project)}
+                                disabled={rotateSecret.isPending}
+                              >
+                                Rotasi secret
+                              </button>
+                            </>
+                          )}
+                        </div>
                       </td>
                     </tr>
                   );

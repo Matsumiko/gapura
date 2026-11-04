@@ -53,7 +53,12 @@ export function TransactionsPage() {
 
       <section className="panel panel--flush">
         <div className="filter-bar">
-          <h2 className="filter-bar__title">Filter</h2>
+          <div className="filter-bar__lead">
+            <h2 className="filter-bar__title">Filter</h2>
+            {transactions.data ? (
+              <span className="panel-count">{transactions.data.total} transaksi</span>
+            ) : null}
+          </div>
           <div className="filter-fields">
             <label className="field field--inline">
               <span className="field__label">Project</span>
@@ -91,13 +96,6 @@ export function TransactionsPage() {
           </div>
         </div>
 
-        <div className="panel-head panel-head--table">
-          <h2 className="visually-hidden">Transaksi</h2>
-          {transactions.data ? (
-            <span className="panel-count num">{transactions.data.total} transaksi</span>
-          ) : null}
-        </div>
-
         <div className="panel-body">
           <ErrorNote error={transactions.error} />
           {transactions.isPending ? <TableSkeleton rows={8} cols={6} /> : null}
@@ -105,7 +103,7 @@ export function TransactionsPage() {
           {transactions.data ? (
             <>
               <div className="table-wrap">
-                <table className="data-table">
+                <table className="data-table transactions-table">
                   <thead>
                     <tr>
                       <th scope="col">Order</th>
@@ -128,7 +126,7 @@ export function TransactionsPage() {
                           </Link>
                         </td>
                         <td data-label="Project">{item.projectName}</td>
-                        <td className="cell-num num" data-label="Nominal">{formatRupiah(item.amount)}</td>
+                        <td className="cell-num money" data-label="Nominal">{formatRupiah(item.amount)}</td>
                         <td data-label="Metode" title={item.paymentMethod ?? ""}>
                           {item.paymentMethod
                             ? (paymentChannelByCode(item.paymentMethod)?.name ?? item.paymentMethod)
@@ -137,7 +135,7 @@ export function TransactionsPage() {
                         <td data-label="Status">
                           <StatusBadge status={item.status} />
                         </td>
-                        <td className="cell-time num" data-label="Dibuat">{formatTime(item.createdAt)}</td>
+                        <td className="cell-time" data-label="Dibuat">{formatTime(item.createdAt)}</td>
                       </tr>
                     ))}
                     {transactions.data.items.length === 0 ? (
@@ -157,7 +155,7 @@ export function TransactionsPage() {
                 >
                   Sebelumnya
                 </button>
-                <span className="muted num">
+                <span className="muted">
                   {offset + 1}-{Math.min(offset + PAGE_SIZE, transactions.data.total)} dari{" "}
                   {transactions.data.total}
                 </span>

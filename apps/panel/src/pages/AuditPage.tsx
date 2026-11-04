@@ -23,9 +23,9 @@ export function AuditPage() {
 
       <section className="panel panel--flush">
         <div className="panel-head panel-head--table">
-          <h2 className="visually-hidden">Audit admin</h2>
+          <h2>Riwayat aksi</h2>
           {audit.data ? (
-            <span className="panel-count num">{audit.data.items.length} aksi</span>
+            <span className="panel-count">{audit.data.items.length} aksi</span>
           ) : null}
         </div>
 
@@ -49,16 +49,18 @@ export function AuditPage() {
                 <tbody>
                   {audit.data.items.map((entry, index) => (
                     <tr key={`${entry.createdAt}-${index}`}>
-                      <td className="cell-time num" data-label="Waktu">{formatTime(entry.createdAt)}</td>
+                      <td className="cell-time" data-label="Waktu">{formatTime(entry.createdAt)}</td>
                       <td data-label="Aktor">{entry.actorEmail}</td>
                       <td data-label="Aksi">
                         <code>{entry.action}</code>
                       </td>
                       <td data-label="Target">
-                        <code>{entry.target ?? "-"}</code>
+                        <code title={entry.target ?? undefined}>{entry.target ?? "-"}</code>
                       </td>
                       <td className="wrap" data-label="Detail">
-                        <code className="audit-detail">{entry.detail ?? "-"}</code>
+                        <code className="audit-detail" title={entry.detail ?? undefined}>
+                          {entry.detail ?? "-"}
+                        </code>
                       </td>
                     </tr>
                   ))}

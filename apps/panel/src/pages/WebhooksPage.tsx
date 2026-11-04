@@ -35,7 +35,7 @@ export function WebhooksPage({ canWrite }: { canWrite: boolean }) {
       <section className="panel panel--flush">
         <div className="queue-bar">
           <div>
-            <h2 className="visually-hidden">Webhook gagal</h2>
+            <h2>Antrean</h2>
             <label className="field field--inline">
               <span className="field__label">Status</span>
               <select
@@ -48,7 +48,7 @@ export function WebhooksPage({ canWrite }: { canWrite: boolean }) {
             </label>
           </div>
           {webhooks.data ? (
-            <span className="panel-count num">{webhooks.data.items.length} antrean</span>
+            <span className="panel-count">{webhooks.data.items.length} antrean</span>
           ) : null}
         </div>
 
@@ -62,7 +62,7 @@ export function WebhooksPage({ canWrite }: { canWrite: boolean }) {
               <p className="empty-note">Tidak ada webhook dengan status ini.</p>
             ) : (
               <div className="table-wrap">
-                <table className="data-table">
+                <table className="data-table webhooks-table">
                   <thead>
                     <tr>
                       <th scope="col">Order</th>
@@ -86,10 +86,12 @@ export function WebhooksPage({ canWrite }: { canWrite: boolean }) {
                           </Link>
                         </td>
                         <td data-label="Project">{webhook.projectName}</td>
-                        <td className="cell-num num" data-label="Percobaan">{webhook.attempt}</td>
+                        <td className="cell-num" data-label="Percobaan">{webhook.attempt}</td>
                         <td className="cell-num num" data-label="HTTP">{webhook.httpStatus ?? "-"}</td>
-                        <td className="wrap" data-label="Error">{webhook.error ?? "-"}</td>
-                        <td className="cell-time num" data-label="Jadwal retry">
+                        <td className="wrap" data-label="Error" title={webhook.error ?? undefined}>
+                          {webhook.error ?? "-"}
+                        </td>
+                        <td className="cell-time" data-label="Jadwal retry">
                           {webhook.nextAttemptAt ? formatTime(webhook.nextAttemptAt) : "-"}
                         </td>
                         <td data-label="Aksi">

@@ -74,7 +74,7 @@ export function TransactionDetailPage({ canWrite }: { canWrite: boolean }) {
         <div className="record__summary">
           <div>
             <span className="field__label">Nominal</span>
-            <p className="reading reading--record num">{formatRupiah(transaction.amount)}</p>
+            <p className="reading reading--record money">{formatRupiah(transaction.amount)}</p>
           </div>
           <div className="record__status">
             <span className="field__label">Status</span>
@@ -83,30 +83,44 @@ export function TransactionDetailPage({ canWrite }: { canWrite: boolean }) {
         </div>
 
         <dl className="details">
-          <dt>Merchant order</dt>
-          <dd>
-            <code>{transaction.merchantOrderId}</code>
-          </dd>
-          <dt>Project</dt>
-          <dd>{transaction.projectName}</dd>
-          <dt>Metode</dt>
-          <dd>{method}</dd>
-          <dt>Reference Duitku</dt>
-          <dd className="num">{transaction.reference ?? "-"}</dd>
-          <dt>Payment URL</dt>
-          <dd className="wrap">
-            {transaction.paymentUrl ? (
-              <a href={transaction.paymentUrl} target="_blank" rel="noreferrer">
-                {transaction.paymentUrl}
-              </a>
-            ) : (
-              "-"
-            )}
-          </dd>
-          <dt>Dibuat</dt>
-          <dd className="num">{formatTime(transaction.createdAt)}</dd>
-          <dt>Diperbarui</dt>
-          <dd className="num">{formatTime(transaction.updatedAt)}</dd>
+          <div>
+            <dt>Merchant order</dt>
+            <dd>
+              <code>{transaction.merchantOrderId}</code>
+            </dd>
+          </div>
+          <div>
+            <dt>Project</dt>
+            <dd>{transaction.projectName}</dd>
+          </div>
+          <div>
+            <dt>Metode</dt>
+            <dd>{method}</dd>
+          </div>
+          <div>
+            <dt>Reference Duitku</dt>
+            <dd className="num">{transaction.reference ?? "-"}</dd>
+          </div>
+          <div>
+            <dt>Payment URL</dt>
+            <dd className="wrap">
+              {transaction.paymentUrl ? (
+                <a href={transaction.paymentUrl} target="_blank" rel="noreferrer">
+                  {transaction.paymentUrl}
+                </a>
+              ) : (
+                "-"
+              )}
+            </dd>
+          </div>
+          <div>
+            <dt>Dibuat</dt>
+            <dd>{formatTime(transaction.createdAt)}</dd>
+          </div>
+          <div>
+            <dt>Diperbarui</dt>
+            <dd>{formatTime(transaction.updatedAt)}</dd>
+          </div>
         </dl>
       </section>
 
@@ -114,7 +128,7 @@ export function TransactionDetailPage({ canWrite }: { canWrite: boolean }) {
         <div className="panel-head">
           <h2>Riwayat webhook</h2>
           {webhooks.length > 0 ? (
-            <span className="panel-count num">{webhooks.length} percobaan</span>
+            <span className="panel-count">{webhooks.length} percobaan</span>
           ) : null}
         </div>
         <ErrorNote error={retry.error} />
@@ -122,7 +136,7 @@ export function TransactionDetailPage({ canWrite }: { canWrite: boolean }) {
           <p className="empty-note">Belum ada percobaan pengiriman.</p>
         ) : (
           <div className="table-wrap">
-            <table className="data-table">
+            <table className="data-table detail-webhooks-table">
               <thead>
                 <tr>
                   <th scope="col">Percobaan</th>
@@ -137,16 +151,18 @@ export function TransactionDetailPage({ canWrite }: { canWrite: boolean }) {
               <tbody>
                 {webhooks.map((webhook) => (
                   <tr key={webhook.id}>
-                    <td className="cell-num num" data-label="Percobaan">{webhook.attempt}</td>
+                    <td className="cell-num" data-label="Percobaan">{webhook.attempt}</td>
                     <td data-label="Status">
                       <StatusBadge status={webhook.status} />
                     </td>
                     <td className="cell-num num" data-label="HTTP">{webhook.httpStatus ?? "-"}</td>
-                    <td className="wrap" data-label="Error">{webhook.error ?? "-"}</td>
-                    <td className="cell-time num" data-label="Jadwal retry">
+                    <td className="wrap" data-label="Error" title={webhook.error ?? undefined}>
+                      {webhook.error ?? "-"}
+                    </td>
+                    <td className="cell-time" data-label="Jadwal retry">
                       {webhook.nextAttemptAt ? formatTime(webhook.nextAttemptAt) : "-"}
                     </td>
-                    <td className="cell-time num" data-label="Waktu">{formatTime(webhook.createdAt)}</td>
+                    <td className="cell-time" data-label="Waktu">{formatTime(webhook.createdAt)}</td>
                     <td data-label="Aksi">
                       {!canWrite ? (
                         <span className="muted">-</span>

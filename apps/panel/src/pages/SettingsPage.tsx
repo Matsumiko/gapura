@@ -96,7 +96,7 @@ function EnvCard({
         <div className="field--wide actions">
           <button
             type="submit"
-            className="button button--primary"
+            className="button"
             disabled={!canWrite || save.isPending}
           >
             {save.isPending ? "Menyimpan…" : "Simpan"}
@@ -115,7 +115,7 @@ function EnvCard({
       <ErrorNote error={save.error ?? test.error} />
       {testResult ? (
         <p className="test-result">
-          <span className="num">{testResult.count}</span> channel aktif, contoh:{" "}
+          <span>{testResult.count}</span> channel aktif, contoh:{" "}
           {testResult.sample.map((item) => `${item.code} (${item.name})`).join(", ") || "-"}
         </p>
       ) : null}
@@ -171,7 +171,7 @@ export function SettingsPage({ canWrite }: { canWrite: boolean }) {
           <h2>Kredensial Duitku</h2>
         </div>
         <p className="settings-note">
-          Environment dipilih dari header. Kredensial di halaman ini hanya berlaku untuk environment
+          Environment dipilih dari sidebar. Kredensial di halaman ini hanya berlaku untuk environment
           tersebut dan disimpan terenkripsi AES-GCM di database environment itu. Callback
           memverifikasi dengan kredensial yang sama.
         </p>
