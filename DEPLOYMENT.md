@@ -68,6 +68,7 @@ Migrasi D1 bersifat maju saja; rollback kode tidak membatalkan migrasi. Untuk pe
 - Migrasi sudah dijalankan untuk **kedua** database (`gapura-sandbox` dan `gapura-production`).
 - Status live: `/sandbox` memakai kredensial sandbox dari panel; `/production` kosong sampai kredensial production diisi.
 - Panel memilih environment di header; semua request admin diberi prefix env.
+- Admin auth terpusat di D1 `gapura-auth` (`DB_AUTH`): satu email/password/TOTP dan satu sesi cookie untuk sandbox maupun production. Pindah environment tidak perlu login ulang.
 - Path lama `/v1`, `/callback/duitku`, `/admin` tetap sandbox (kompatibilitas).
 
 ## Kredensial Duitku dari panel

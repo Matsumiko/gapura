@@ -1,4 +1,5 @@
 export interface Env {
+  DB_AUTH: D1Database;
   DB_SANDBOX: D1Database;
   DB_PRODUCTION: D1Database;
   ENVIRONMENT?: string;

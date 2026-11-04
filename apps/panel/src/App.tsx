@@ -261,8 +261,6 @@ export default function App() {
     setApiEnvironment(next);
     setEnvironment(next);
     queryClient.clear();
-    setStatus(null);
-    setIdentity(null);
     void refresh();
   }
 

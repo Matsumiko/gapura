@@ -33,10 +33,13 @@ async function setup() {
   );
   await seedProject(sandboxDb, "proja", "Sandbox A", "SND", SANDBOX_KEY);
   await seedProject(productionDb, "proja", "Production A", "PRD", PRODUCTION_KEY);
-  const sandboxSession = await seedAdminSession(sandboxDb);
-  const productionSession = await seedAdminSession(productionDb);
+  const authDb = createTestDatabase(
+    `${schema1}\n${schema2}\n${schema3}\n${schema4}\n${schema5}`,
+  );
+  const session = await seedAdminSession(authDb);
 
   const env = {
+    DB_AUTH: authDb,
     DB_SANDBOX: sandboxDb,
     DB_PRODUCTION: productionDb,
     ENVIRONMENT: "test",
@@ -45,7 +48,7 @@ async function setup() {
     CREDENTIALS_KEY: KEY,
   } as Env;
 
-  return { env, runtime: runtimeFor(env), sandboxSession, productionSession };
+  return { env, runtime: runtimeFor(env), sandboxSession: session, productionSession: session };
 }
 
 function readHeaders(session: SeededAdminSession): Record<string, string> {

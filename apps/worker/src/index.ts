@@ -45,6 +45,7 @@ function buildEnvironmentRuntime(
   env: Env,
   db: D1Database,
   environment: MerchantEnvironment,
+  shared: { auth: ReturnType<typeof createAdminAuthService>; sessions: ReturnType<typeof createAdminSessionService> },
 ): EnvironmentRuntime {
   // workerd menolak fetch yang dipanggil tanpa receiver-nya.
   const fetchImpl = fetch.bind(globalThis);
@@ -61,20 +62,6 @@ function buildEnvironmentRuntime(
   };
 
   const adminRepo = createAdminRepository(db);
-  const adminUsers = createAdminUserRepository(db);
-  const adminSessions = createAdminSessionService({
-    repo: createAdminSessionRepository(db),
-    now,
-  });
-  const adminAuth = createAdminAuthService({
-    users: adminUsers,
-    sessions: adminSessions,
-    getCipher,
-    setupToken: env.ADMIN_SETUP_TOKEN,
-    issuer: "Gapura",
-    now,
-    insertAudit: (entry) => adminRepo.insertAudit(entry),
-  });
   const settingsRepo = createSettingsRepository({ db, getCipher });
   const resolver = createCredentialResolver({
     store: settingsRepo,
@@ -116,8 +103,8 @@ function buildEnvironmentRuntime(
       generateWebhookSecret,
       sha256Hex,
     }),
-    adminAuth,
-    adminSessions,
+    adminAuth: shared.auth,
+    adminSessions: shared.sessions,
     paymentMethods: createPaymentMethodsService({ provider }),
     settings: createSettingsService({
       repo: settingsRepo,
@@ -145,8 +132,25 @@ export function runtimeFor(env: Env): RootRuntime {
     return runtime;
   }
 
-  const sandbox = buildEnvironmentRuntime(env, env.DB_SANDBOX, "sandbox");
-  const production = buildEnvironmentRuntime(env, env.DB_PRODUCTION, "production");
+  const authRepo = createAdminRepository(env.DB_AUTH);
+  const sessions = createAdminSessionService({
+    repo: createAdminSessionRepository(env.DB_AUTH),
+    now,
+  });
+  const auth = createAdminAuthService({
+    users: createAdminUserRepository(env.DB_AUTH),
+    sessions,
+    getCipher: async () =>
+      env.CREDENTIALS_KEY ? createCredentialCipher(env.CREDENTIALS_KEY) : null,
+    setupToken: env.ADMIN_SETUP_TOKEN,
+    issuer: "Gapura",
+    now,
+    insertAudit: (entry) => authRepo.insertAudit(entry),
+  });
+  const shared = { auth, sessions };
+
+  const sandbox = buildEnvironmentRuntime(env, env.DB_SANDBOX, "sandbox", shared);
+  const production = buildEnvironmentRuntime(env, env.DB_PRODUCTION, "production", shared);
 
   const root = new Hono<AppEnv>();
   root.route("/production", production.app);
