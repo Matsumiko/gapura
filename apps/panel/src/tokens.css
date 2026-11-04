@@ -1,0 +1,145 @@
+@font-face {
+  font-family: "Host Grotesk";
+  src: url("/fonts/host-grotesk-var.woff2") format("woff2");
+  font-weight: 300 800;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: "Atkinson Hyperlegible Mono";
+  src: url("/fonts/atkinson-hyperlegible-mono-var.woff2") format("woff2");
+  font-weight: 200 800;
+  font-style: normal;
+  font-display: swap;
+}
+
+:root {
+  color-scheme: light;
+
+  --font-display: "Host Grotesk", ui-sans-serif, system-ui, sans-serif;
+  --font-body: var(--font-display);
+  --font-outlier: "Atkinson Hyperlegible Mono", ui-monospace, monospace;
+
+  --text-2xs: 0.6875rem;
+  --text-xs: 0.75rem;
+  --text-sm: 0.8125rem;
+  --text-table: 0.875rem;
+  --text-md: 1rem;
+  --text-lg: 1.1875rem;
+  --text-xl: 1.4375rem;
+  --text-2xl: 1.75rem;
+  --text-3xl: 2.125rem;
+  --text-reading: 3.25rem;
+  --text-page: 2.125rem;
+  --text-section: 1.3125rem;
+  --text-title: 1.0625rem;
+  --text-lead: 1.0625rem;
+  --text-display: var(--text-3xl);
+  --text-display-s: var(--text-2xl);
+
+  --tracking-display: -0.03em;
+  --tracking-mono: -0.01em;
+  --display-weight: 500;
+
+  --space-3xs: 2px;
+  --space-2xs: 4px;
+  --space-xs: 8px;
+  --space-sm: 12px;
+  --space-md: 16px;
+  --space-lg: 24px;
+  --space-xl: 40px;
+  --space-2xl: 64px;
+  --space-3xl: 96px;
+  --space-4xl: 144px;
+
+  --container: 90rem;
+  --gutter: clamp(1.25rem, 3.2vw, 3.5rem);
+  --max-prose: 58ch;
+  --control-h: 36px;
+  --control-h-sm: 30px;
+  --header-h: 60px;
+
+  --radius-card: 10px;
+  --radius-control: 6px;
+  --radius-chip: 4px;
+  --border-hair: 1px;
+
+  --color-paper: oklch(98% 0.006 85);
+  --color-paper-2: oklch(96% 0.007 85);
+  --color-paper-3: oklch(93% 0.009 85);
+  --color-ink: oklch(19% 0.012 60);
+  --color-ink-2: oklch(34% 0.012 60);
+  --color-muted: oklch(48% 0.012 60);
+  --color-rule: oklch(89% 0.008 75);
+  --color-rule-2: oklch(74% 0.012 75);
+  --color-field-edge: oklch(54% 0.012 70);
+
+  --color-accent: oklch(58% 0.13 72);
+  --color-accent-ink: oklch(12% 0.02 70);
+  --color-focus: oklch(46% 0.14 252);
+
+
+  --color-ok: oklch(38% 0.1 155);
+  --color-ok-soft: oklch(94% 0.035 155);
+  --color-bad: oklch(43% 0.16 27);
+  --color-bad-soft: oklch(94% 0.035 27);
+  --color-warn: oklch(46% 0.12 70);
+  --color-warn-soft: oklch(94% 0.04 80);
+  --color-error: var(--color-bad);
+  --color-success: var(--color-ok);
+
+  --color-code-ink: oklch(94% 0.006 85);
+  --color-backdrop: oklch(19% 0.012 60 / 0.42);
+
+  --shadow-panel: 0 1px 2px oklch(19% 0.012 60 / 0.04);
+
+  --ease-out: cubic-bezier(0.16, 1, 0.3, 1);
+  --ease-in: cubic-bezier(0.7, 0, 0.84, 0);
+  --ease-in-out: cubic-bezier(0.65, 0, 0.35, 1);
+  --dur-micro: 120ms;
+  --dur-short: 220ms;
+  --dur-long: 420ms;
+
+  --z-base: 1;
+  --z-raised: 10;
+  --z-dropdown: 100;
+  --z-sticky: 200;
+  --z-sticky-nav: 300;
+  --z-modal: 400;
+  --z-toast: 500;
+  --z-tooltip: 600;
+
+  --bg: var(--color-paper);
+  --surface: var(--color-paper-2);
+  --border: var(--color-rule);
+  --text: var(--color-ink);
+  --muted: var(--color-muted);
+  --accent: var(--color-accent);
+  --good: var(--color-ok);
+  --bad: var(--color-bad);
+  --warn: var(--color-warn);
+}
+
+@media (max-width: 60rem) {
+  :root {
+    --gutter: 1.5rem;
+    --header-h: 56px;
+  }
+}
+
+@media (max-width: 40rem) {
+  :root {
+    --gutter: 1rem;
+    --control-h: 44px;
+    --control-h-sm: 40px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  :root {
+    --dur-micro: 0.01ms;
+    --dur-short: 0.01ms;
+    --dur-long: 0.01ms;
+  }
+}

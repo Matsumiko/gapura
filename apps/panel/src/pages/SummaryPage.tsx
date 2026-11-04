@@ -1,6 +1,6 @@
 import { useQuery } from "@tanstack/react-query";
 import { apiGet, type Summary } from "../api";
-import { ErrorNote, formatRupiah } from "../components";
+import { ErrorNote, PageHeader, TableSkeleton, formatRupiah } from "../components";
 
 export function SummaryPage() {
   const summary = useQuery({
@@ -9,53 +9,86 @@ export function SummaryPage() {
   });
 
   if (summary.isPending) {
-    return <p className="muted">Memuat ringkasan...</p>;
+    return (
+      <>
+        <PageHeader
+          title="Ringkasan"
+          lede="Transaksi PAID hari ini dan bulan ini, dihitung per project."
+        />
+        <div className="panel">
+          <TableSkeleton rows={4} cols={3} />
+        </div>
+      </>
+    );
   }
   if (summary.isError) {
-    return <ErrorNote error={summary.error} />;
+    return (
+      <>
+        <PageHeader
+          title="Ringkasan"
+          lede="Transaksi PAID hari ini dan bulan ini, dihitung per project."
+        />
+        <div className="panel">
+          <ErrorNote error={summary.error} />
+        </div>
+      </>
+    );
   }
 
   const data = summary.data;
   return (
-    <section className="stack">
-      <div className="cards">
-        <article className="card">
-          <h2>Hari ini</h2>
-          <p className="big">{formatRupiah(data.today.amount)}</p>
-          <p className="muted">{data.today.count} transaksi PAID</p>
-        </article>
-        <article className="card">
-          <h2>Bulan ini</h2>
-          <p className="big">{formatRupiah(data.month.amount)}</p>
-          <p className="muted">{data.month.count} transaksi PAID</p>
-        </article>
-      </div>
+    <>
+      <PageHeader
+        title="Ringkasan"
+        lede="Transaksi PAID hari ini dan bulan ini, dihitung per project."
+      />
 
-      <article className="card">
-        <h2>Per project</h2>
+      <section className="ledger" aria-label="Ringkasan transaksi PAID">
+        <div className="ledger__primary">
+          <h2>Hari ini</h2>
+          <p className="reading num">{formatRupiah(data.today.amount)}</p>
+          <p className="ledger__meta">
+            <span className="num">{data.today.count}</span> transaksi PAID
+          </p>
+        </div>
+        <div className="ledger__aside">
+          <div>
+            <h2>Bulan ini</h2>
+            <p className="metric__value num">{formatRupiah(data.month.amount)}</p>
+            <p className="ledger__meta">
+              <span className="num">{data.month.count}</span> transaksi PAID
+            </p>
+          </div>
+        </div>
+      </section>
+
+      <section className="panel">
+        <div className="panel-head">
+          <h2>Per project</h2>
+        </div>
         {data.projects.length === 0 ? (
-          <p className="muted">Belum ada project. Tambahkan lewat halaman Project.</p>
+          <p className="empty-note">Belum ada project. Tambahkan lewat halaman Project.</p>
         ) : (
           <div className="table-wrap">
-            <table>
+            <table className="data-table">
               <thead>
                 <tr>
-                  <th>Project</th>
-                  <th>Hari ini</th>
-                  <th>Bulan ini</th>
+                  <th scope="col">Project</th>
+                  <th scope="col" className="cell-num">Hari ini</th>
+                  <th scope="col" className="cell-num">Bulan ini</th>
                 </tr>
               </thead>
               <tbody>
                 {data.projects.map((row) => (
                   <tr key={row.projectId}>
-                    <td>{row.projectName}</td>
-                    <td>
-                      {formatRupiah(row.todayAmount)}{" "}
-                      <span className="muted">({row.todayCount})</span>
+                    <td className="table__name" data-label="Project">{row.projectName}</td>
+                    <td className="cell-num" data-label="Hari ini">
+                      <span className="table__amount num">{formatRupiah(row.todayAmount)}</span>
+                      <span className="table__sub num">{row.todayCount} transaksi</span>
                     </td>
-                    <td>
-                      {formatRupiah(row.monthAmount)}{" "}
-                      <span className="muted">({row.monthCount})</span>
+                    <td className="cell-num" data-label="Bulan ini">
+                      <span className="table__amount num">{formatRupiah(row.monthAmount)}</span>
+                      <span className="table__sub num">{row.monthCount} transaksi</span>
                     </td>
                   </tr>
                 ))}
@@ -63,7 +96,7 @@ export function SummaryPage() {
             </table>
           </div>
         )}
-      </article>
-    </section>
+      </section>
+    </>
   );
 }

@@ -118,7 +118,7 @@ export function LoginPage({
           environment={environment}
           onEnvironmentChange={onEnvironmentChange}
         >
-          <article className="card">
+          <div className="auth__card">
             <dl className="details">
               <dt>Secret</dt>
               <dd>
@@ -145,7 +145,7 @@ export function LoginPage({
               </label>
               <div className="wide actions">
                 <button type="submit" disabled={pending}>
-                  {pending ? "Menyimpan..." : "Aktifkan owner"}
+                  {pending ? "Menyimpan…" : "Aktifkan owner"}
                 </button>
                 <button
                   type="button"
@@ -160,7 +160,7 @@ export function LoginPage({
               </div>
             </form>
             <ErrorNote error={error} />
-          </article>
+          </div>
         </AuthShell>
       );
     }
@@ -172,7 +172,7 @@ export function LoginPage({
         environment={environment}
         onEnvironmentChange={onEnvironmentChange}
       >
-        <article className="card">
+        <div className="auth__card">
           <form className="form" onSubmit={submitSetupStart}>
             <label>
               Setup token
@@ -210,12 +210,12 @@ export function LoginPage({
             </label>
             <div className="wide">
               <button type="submit" disabled={pending}>
-                {pending ? "Menyiapkan..." : "Lanjut ke TOTP"}
+                {pending ? "Menyiapkan…" : "Lanjut ke TOTP"}
               </button>
             </div>
           </form>
           <ErrorNote error={error} />
-        </article>
+        </div>
       </AuthShell>
     );
   }
@@ -227,7 +227,7 @@ export function LoginPage({
       environment={environment}
       onEnvironmentChange={onEnvironmentChange}
     >
-      <article className="card">
+      <div className="auth__card">
         <form className="form" onSubmit={submitLogin}>
           <label>
             Email
@@ -266,16 +266,16 @@ export function LoginPage({
           </label>
           <div className="wide">
             <button type="submit" disabled={pending}>
-              {pending ? "Memeriksa..." : "Masuk"}
+              {pending ? "Memeriksa…" : "Masuk"}
             </button>
           </div>
         </form>
         <ErrorNote error={error} />
-        <p className="muted">
+        <p className="auth__hint">
           Token sesi tidak pernah disimpan di JavaScript; hanya CSRF token untuk header write yang
           disimpan di sessionStorage tab ini.
         </p>
-      </article>
+      </div>
     </AuthShell>
   );
 }
@@ -294,14 +294,14 @@ function AuthShell({
   children: ReactNode;
 }) {
   return (
-    <div className="app">
-      <header className="topbar">
-        <div>
-          <h1>Gapura Admin</h1>
-          <p className="muted">{description}</p>
-        </div>
+    <div className="auth" data-environment={environment}>
+      <header className="auth__bar">
+        <p className="brand auth__brand">
+          <span className="brand__name">Gapura</span>
+          <span className="brand__role">Admin</span>
+        </p>
         <label className="env-select">
-          Env
+          <span className="env-select__label">Env</span>
           <select
             value={environment}
             onChange={(event) => onEnvironmentChange(event.target.value as ApiEnvironment)}
@@ -311,8 +311,14 @@ function AuthShell({
           </select>
         </label>
       </header>
-      <main className="content">
-        <section className="stack">
+
+      <main className="auth__main">
+        <section className="auth__intro">
+          <h1 className="auth__title">Gapura Admin</h1>
+          <p className="auth__lede">{description}</p>
+        </section>
+
+        <section className="auth__panel">
           <h2>{title}</h2>
           {children}
         </section>

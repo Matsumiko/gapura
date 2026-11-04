@@ -7,7 +7,13 @@ import {
   type CreatedProject,
   type Project,
 } from "../api";
-import { ErrorNote, formatTime } from "../components";
+import {
+  EmptyRow,
+  ErrorNote,
+  PageHeader,
+  TableSkeleton,
+  formatTime,
+} from "../components";
 
 interface RevealedCredential {
   label: string;
@@ -72,7 +78,7 @@ export function ProjectsPage({ canWrite }: { canWrite: boolean }) {
     mutationFn: (project: Project) =>
       apiPost<{ apiKey: string }>(`/admin/projects/${project.id}/rotate-key`),
     onSuccess: async (data, project) => {
-      setRevealed([{ label: `API key baru · ${project.name}`, value: data.apiKey }]);
+      setRevealed([{ label: `API key baru: ${project.name}`, value: data.apiKey }]);
       await refresh();
     },
   });
@@ -81,7 +87,7 @@ export function ProjectsPage({ canWrite }: { canWrite: boolean }) {
     mutationFn: (project: Project) =>
       apiPost<{ webhookSecret: string }>(`/admin/projects/${project.id}/rotate-secret`),
     onSuccess: (data, project) => {
-      setRevealed([{ label: `Webhook secret baru · ${project.name}`, value: data.webhookSecret }]);
+      setRevealed([{ label: `Webhook secret baru: ${project.name}`, value: data.webhookSecret }]);
     },
   });
 
@@ -91,90 +97,112 @@ export function ProjectsPage({ canWrite }: { canWrite: boolean }) {
   }
 
   return (
-    <section className="stack">
+    <>
+      <PageHeader
+        title="Project"
+        lede="Project, prefix order, webhook, dan kredensial yang tampil sekali."
+      />
+
       {revealed ? (
         <div className="credential" role="status">
-          <strong>Tampil sekali — simpan sekarang.</strong>
+          <div className="credential__head">
+            <strong>Tampil sekali, simpan sekarang.</strong>
+            <button type="button" className="ghost" onClick={() => setRevealed(null)}>
+              Tutup
+            </button>
+          </div>
           {revealed.map((item) => (
             <div key={item.label} className="credential-row">
-              <span className="muted">{item.label}</span>
-              <code>{item.value}</code>
+              <span className="field__label">{item.label}</span>
+              <code className="credential__value">{item.value}</code>
             </div>
           ))}
-          <button type="button" className="ghost" onClick={() => setRevealed(null)}>
-            Tutup
-          </button>
         </div>
       ) : null}
 
       {canWrite ? (
-        <article className="card">
-          <h2>Tambah project</h2>
-          <form className="form" onSubmit={submit}>
-          <label>
-            Nama
-            <input
-              name="name"
-              value={form.name}
-              onChange={(event) => setForm({ ...form, name: event.target.value })}
-              required
-              maxLength={100}
-            />
-          </label>
-          <label>
-            Prefix order (3-6 huruf kapital)
-            <input
-              name="prefix"
-              value={form.prefix}
-              onChange={(event) =>
-                setForm({ ...form, prefix: event.target.value.toUpperCase().slice(0, 6) })
-              }
-              required
-              minLength={3}
-              maxLength={6}
-              pattern="[A-Z]{3,6}"
-            />
-          </label>
-          <label className="wide">
-            Webhook URL
-            <input
-              name="webhookUrl"
-              type="url"
-              value={form.webhookUrl}
-              onChange={(event) => setForm({ ...form, webhookUrl: event.target.value })}
-              required
-              placeholder="https://project.example/callback"
-            />
-          </label>
-            <div className="wide">
-              <button type="submit" disabled={createProject.isPending}>
-                {createProject.isPending ? "Menyimpan..." : "Tambah project"}
+        <section className="panel project-form">
+          <div className="panel-head">
+            <h2>Tambah project</h2>
+          </div>
+          <form className="form form--project" onSubmit={submit}>
+            <label className="field">
+              <span className="field__label">Nama</span>
+              <input
+                name="name"
+                value={form.name}
+                onChange={(event) => setForm({ ...form, name: event.target.value })}
+                required
+                maxLength={100}
+              />
+            </label>
+            <label className="field">
+              <span className="field__label">Prefix order (3-6 huruf kapital)</span>
+              <input
+                name="prefix"
+                className="num"
+                value={form.prefix}
+                onChange={(event) =>
+                  setForm({ ...form, prefix: event.target.value.toUpperCase().slice(0, 6) })
+                }
+                required
+                minLength={3}
+                maxLength={6}
+                pattern="[A-Z]{3,6}"
+              />
+            </label>
+            <label className="field">
+              <span className="field__label">Webhook URL</span>
+              <input
+                name="webhookUrl"
+                type="url"
+                value={form.webhookUrl}
+                onChange={(event) => setForm({ ...form, webhookUrl: event.target.value })}
+                required
+                placeholder="https://project.example/callback"
+              />
+            </label>
+            <div className="actions project-form__actions">
+              <button
+                type="submit"
+                className="button button--primary"
+                disabled={createProject.isPending}
+              >
+                {createProject.isPending ? "Menyimpan…" : "Tambah project"}
               </button>
             </div>
           </form>
           <ErrorNote error={createProject.error} />
-        </article>
+        </section>
       ) : (
-        <article className="card">
+        <section className="panel viewer-note">
           <p className="muted">Role viewer hanya bisa membaca data.</p>
-        </article>
+        </section>
       )}
 
-      <article className="card">
-        <h2>Daftar project</h2>
-        {projects.isPending ? <p className="muted">Memuat...</p> : null}
+      <section className="panel">
+        <div className="panel-head">
+          <h2>Daftar project</h2>
+          {projects.data ? (
+            <span className="panel-count num">{projects.data.items.length} project</span>
+          ) : null}
+        </div>
+
         <ErrorNote error={projects.error} />
+
+        {projects.isPending ? <TableSkeleton rows={4} cols={6} /> : null}
+
         {projects.data ? (
           <div className="table-wrap">
-            <table>
+            <table className="data-table project-table">
               <thead>
                 <tr>
-                  <th>Nama</th>
-                  <th>Prefix</th>
-                  <th>Webhook</th>
-                  <th>Status</th>
-                  <th>Dibuat</th>
-                  <th>Aksi</th>
+                  <th scope="col">Nama</th>
+                  <th scope="col">Prefix</th>
+                  <th scope="col">Webhook</th>
+                  <th scope="col">Status</th>
+                  <th scope="col">Dibuat</th>
+                  <th scope="col">Aksi</th>
                 </tr>
               </thead>
               <tbody>
@@ -182,10 +210,11 @@ export function ProjectsPage({ canWrite }: { canWrite: boolean }) {
                   const isEditing = editing?.id === project.id;
                   return (
                     <tr key={project.id}>
-                      <td>
+                      <td data-label="Nama">
                         {isEditing ? (
                           <input
                             name="edit-name"
+                            className="input input--inline"
                             value={editing.name}
                             maxLength={100}
                             onChange={(event) =>
@@ -193,16 +222,17 @@ export function ProjectsPage({ canWrite }: { canWrite: boolean }) {
                             }
                           />
                         ) : (
-                          project.name
+                          <span className="table__name">{project.name}</span>
                         )}
                       </td>
-                      <td>
+                      <td data-label="Prefix">
                         <code>{project.prefix}</code>
                       </td>
-                      <td className="wrap">
+                      <td data-label="Webhook" className="wrap">
                         {isEditing ? (
                           <input
                             name="edit-webhook"
+                            className="input input--inline"
                             type="url"
                             value={editing.webhookUrl}
                             onChange={(event) =>
@@ -210,26 +240,29 @@ export function ProjectsPage({ canWrite }: { canWrite: boolean }) {
                             }
                           />
                         ) : (
-                          project.webhookUrl
+                          <span className="table__webhook">{project.webhookUrl}</span>
                         )}
                       </td>
-                      <td>
+                      <td data-label="Status">
                         <span className={project.isActive ? "badge good" : "badge bad"}>
                           {project.isActive ? "aktif" : "nonaktif"}
                         </span>
                       </td>
-                      <td>{formatTime(project.createdAt)}</td>
-                      <td className="actions">
+                      <td data-label="Dibuat" className="cell-time num">
+                        {formatTime(project.createdAt)}
+                      </td>
+                      <td data-label="Aksi" className="actions">
                         {!canWrite ? (
                           <span className="muted">-</span>
                         ) : isEditing ? (
                           <>
                             <button
                               type="button"
+                              className="button button--small"
                               onClick={() => updateProject.mutate(editing)}
                               disabled={updateProject.isPending}
                             >
-                              {updateProject.isPending ? "Menyimpan..." : "Simpan"}
+                              {updateProject.isPending ? "Menyimpan…" : "Simpan"}
                             </button>
                             <button
                               type="button"
@@ -284,16 +317,20 @@ export function ProjectsPage({ canWrite }: { canWrite: boolean }) {
                     </tr>
                   );
                 })}
+                {projects.data.items.length === 0 ? (
+                  <EmptyRow colSpan={6}>Belum ada project.</EmptyRow>
+                ) : null}
               </tbody>
             </table>
           </div>
         ) : null}
+
         <ErrorNote
           error={
             updateProject.error ?? toggleProject.error ?? rotateKey.error ?? rotateSecret.error
           }
         />
-      </article>
-    </section>
+      </section>
+    </>
   );
 }

@@ -2,7 +2,12 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
 import { Link } from "react-router-dom";
 import { apiGet, apiPost, type WebhookLog } from "../api";
-import { ErrorNote, formatTime } from "../components";
+import {
+  ErrorNote,
+  PageHeader,
+  TableSkeleton,
+  formatTime,
+} from "../components";
 
 export function WebhooksPage({ canWrite }: { canWrite: boolean }) {
   const queryClient = useQueryClient();
@@ -21,77 +26,95 @@ export function WebhooksPage({ canWrite }: { canWrite: boolean }) {
   });
 
   return (
-    <section className="stack">
-      <article className="card">
-        <h2>Webhook gagal</h2>
-        <div className="filters">
-          <label>
-            Status
-            <select
-              value={status}
-              onChange={(event) => setStatus(event.target.value as "FAILED" | "DEAD")}
-            >
-              <option value="FAILED">Menunggu retry</option>
-              <option value="DEAD">Dead-letter</option>
-            </select>
-          </label>
+    <>
+      <PageHeader
+        title="Webhook gagal"
+        lede="Pengiriman yang menunggu retry atau sudah masuk dead-letter."
+      />
+
+      <section className="panel panel--flush">
+        <div className="queue-bar">
+          <div>
+            <h2 className="visually-hidden">Webhook gagal</h2>
+            <label className="field field--inline">
+              <span className="field__label">Status</span>
+              <select
+                value={status}
+                onChange={(event) => setStatus(event.target.value as "FAILED" | "DEAD")}
+              >
+                <option value="FAILED">Menunggu retry</option>
+                <option value="DEAD">Dead-letter</option>
+              </select>
+            </label>
+          </div>
+          {webhooks.data ? (
+            <span className="panel-count num">{webhooks.data.items.length} antrean</span>
+          ) : null}
         </div>
-        {webhooks.isPending ? <p className="muted">Memuat...</p> : null}
-        <ErrorNote error={webhooks.error ?? retry.error} />
-        {webhooks.data ? (
-          webhooks.data.items.length === 0 ? (
-            <p className="muted">Tidak ada webhook dengan status ini.</p>
-          ) : (
-            <div className="table-wrap">
-              <table>
-                <thead>
-                  <tr>
-                    <th>Order</th>
-                    <th>Project</th>
-                    <th>Percobaan</th>
-                    <th>HTTP</th>
-                    <th>Error</th>
-                    <th>Jadwal retry</th>
-                    <th>Aksi</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {webhooks.data.items.map((webhook) => (
-                    <tr key={webhook.id}>
-                      <td>
-                        <Link to={`/transactions/${webhook.merchantOrderId}`}>
-                          {webhook.merchantOrderId}
-                        </Link>
-                      </td>
-                      <td>{webhook.projectName}</td>
-                      <td>{webhook.attempt}</td>
-                      <td>{webhook.httpStatus ?? "-"}</td>
-                      <td className="wrap">{webhook.error ?? "-"}</td>
-                      <td>
-                        {webhook.nextAttemptAt ? formatTime(webhook.nextAttemptAt) : "-"}
-                      </td>
-                      <td>
-                        {canWrite ? (
-                          <button
-                            type="button"
-                            className="ghost"
-                            onClick={() => retry.mutate(webhook)}
-                            disabled={retry.isPending}
-                          >
-                            Kirim ulang
-                          </button>
-                        ) : (
-                          <span className="muted">-</span>
-                        )}
-                      </td>
+
+        <div className="panel-body">
+          <ErrorNote error={webhooks.error ?? retry.error} />
+
+          {webhooks.isPending ? <TableSkeleton rows={6} cols={7} /> : null}
+
+          {webhooks.data ? (
+            webhooks.data.items.length === 0 ? (
+              <p className="empty-note">Tidak ada webhook dengan status ini.</p>
+            ) : (
+              <div className="table-wrap">
+                <table className="data-table">
+                  <thead>
+                    <tr>
+                      <th scope="col">Order</th>
+                      <th scope="col">Project</th>
+                      <th scope="col">Percobaan</th>
+                      <th scope="col">HTTP</th>
+                      <th scope="col">Error</th>
+                      <th scope="col">Jadwal retry</th>
+                      <th scope="col">Aksi</th>
                     </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          )
-        ) : null}
-      </article>
-    </section>
+                  </thead>
+                  <tbody>
+                    {webhooks.data.items.map((webhook) => (
+                      <tr key={webhook.id}>
+                        <td data-label="Order">
+                          <Link
+                            to={`/transactions/${webhook.merchantOrderId}`}
+                            className="table__link num"
+                          >
+                            {webhook.merchantOrderId}
+                          </Link>
+                        </td>
+                        <td data-label="Project">{webhook.projectName}</td>
+                        <td className="cell-num num" data-label="Percobaan">{webhook.attempt}</td>
+                        <td className="cell-num num" data-label="HTTP">{webhook.httpStatus ?? "-"}</td>
+                        <td className="wrap" data-label="Error">{webhook.error ?? "-"}</td>
+                        <td className="cell-time num" data-label="Jadwal retry">
+                          {webhook.nextAttemptAt ? formatTime(webhook.nextAttemptAt) : "-"}
+                        </td>
+                        <td data-label="Aksi">
+                          {canWrite ? (
+                            <button
+                              type="button"
+                              className="ghost"
+                              onClick={() => retry.mutate(webhook)}
+                              disabled={retry.isPending}
+                            >
+                              Kirim ulang
+                            </button>
+                          ) : (
+                            <span className="muted">-</span>
+                          )}
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )
+          ) : null}
+        </div>
+      </section>
+    </>
   );
 }

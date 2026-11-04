@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState, type FormEvent } from "react";
-import { BrowserRouter, NavLink, Route, Routes } from "react-router-dom";
+import { BrowserRouter, Link, NavLink, Route, Routes } from "react-router-dom";
 import { useQueryClient } from "@tanstack/react-query";
 import {
   configureApiAuth,
@@ -109,16 +109,32 @@ export default function App() {
   }
 
   if (checking && !status) {
-    return <p className="muted">Memeriksa sesi admin...</p>;
+    return (
+      <div className="boot">
+        <div className="boot__panel">
+          <p className="brand boot__brand">
+            <span className="brand__name">Gapura</span>
+            <span className="brand__role">Admin</span>
+          </p>
+          <p className="muted">Memeriksa sesi admin…</p>
+        </div>
+      </div>
+    );
   }
 
   if (statusError) {
     return (
-      <div className="app">
-        <ErrorNote error={statusError} />
-        <button type="button" onClick={() => void refresh()}>
-          Coba lagi
-        </button>
+      <div className="boot">
+        <div className="boot__panel">
+          <p className="brand boot__brand">
+            <span className="brand__name">Gapura</span>
+            <span className="brand__role">Admin</span>
+          </p>
+          <ErrorNote error={statusError} />
+          <button type="button" className="button button--primary" onClick={() => void refresh()}>
+            Coba lagi
+          </button>
+        </div>
       </div>
     );
   }
@@ -144,16 +160,42 @@ export default function App() {
 
   return (
     <BrowserRouter>
-      <div className="app">
-        <header className="topbar">
-          <div>
-            <h1>Gapura Admin</h1>
-            <p className="muted">
-              {identity.email} · <span className="badge">{identity.role}</span>
-              {canWrite ? null : " · hanya baca"}
-            </p>
+      <div className="app" data-environment={environment}>
+        <a className="skip" href="#main">
+          Lewati ke konten
+        </a>
+
+        <header className="topbar masthead">
+          <div className="masthead__top">
+            <Link to="/" className="brand" aria-label="Gapura Admin, Ringkasan">
+              <span className="brand__name">Gapura</span>
+              <span className="brand__role">Admin</span>
+            </Link>
+
+            <div className="masthead__tools">
+              <label className="env-select">
+                <span className="env-select__label">Env</span>
+                <select
+                  value={environment}
+                  onChange={(event) => changeEnvironment(event.target.value as ApiEnvironment)}
+                >
+                  <option value="sandbox">sandbox</option>
+                  <option value="production">production</option>
+                </select>
+              </label>
+
+              <div className="account">
+                <span className="account__email">{identity.email}</span>
+                <span className="badge role">{identity.role}</span>
+                {canWrite ? null : <span className="account__read">hanya baca</span>}
+                <button type="button" className="ghost account__logout" onClick={() => void logout()}>
+                  Keluar
+                </button>
+              </div>
+            </div>
           </div>
-          <div className="nav">
+
+          <nav className="nav" aria-label="Navigasi utama">
             {links.map((link) => (
               <NavLink
                 key={link.to}
@@ -164,23 +206,10 @@ export default function App() {
                 {link.label}
               </NavLink>
             ))}
-            <label className="env-select">
-              Env
-              <select
-                value={environment}
-                onChange={(event) => changeEnvironment(event.target.value as ApiEnvironment)}
-              >
-                <option value="sandbox">sandbox</option>
-                <option value="production">production</option>
-              </select>
-            </label>
-            <button type="button" className="ghost" onClick={() => void logout()}>
-              Keluar
-            </button>
-          </div>
+          </nav>
         </header>
 
-        <main className="content">
+        <main className="content page" id="main" tabIndex={-1}>
           <Routes>
             <Route path="/" element={<SummaryPage />} />
             <Route path="/projects" element={<ProjectsPage canWrite={canWrite} />} />
@@ -239,9 +268,9 @@ function ReauthModal({
         <p className="muted">
           Aksi sensitif butuh kode TOTP baru. Verifikasi berlaku {windowMinutes} menit.
         </p>
-        <form className="form" onSubmit={submit}>
-          <label className="wide">
-            Kode TOTP
+        <form className="form form--narrow" onSubmit={submit}>
+          <label className="field wide">
+            <span className="field__label">Kode TOTP</span>
             <input
               name="reauthTotp"
               inputMode="numeric"
@@ -255,8 +284,8 @@ function ReauthModal({
             />
           </label>
           <div className="wide actions">
-            <button type="submit" disabled={pending}>
-              {pending ? "Memverifikasi..." : "Verifikasi"}
+            <button type="submit" className="button button--primary" disabled={pending}>
+              {pending ? "Memverifikasi…" : "Verifikasi"}
             </button>
             <button type="button" className="ghost" onClick={onCancel} disabled={pending}>
               Batal

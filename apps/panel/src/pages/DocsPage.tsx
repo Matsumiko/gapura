@@ -4,6 +4,7 @@ import {
   channelsBySystem,
   type PaymentChannel,
 } from "@gapura/shared/payment-methods";
+import { PageHeader } from "../components";
 
 const API_BASE = "https://pay.example.com";
 const PANEL_URL = "https://admin.example.com";
@@ -31,6 +32,19 @@ function Code({ children }: { children: string }) {
   );
 }
 
+function DocTable({ children }: { children: ReactNode }) {
+  return (
+    <div
+      className="doc-table-wrap"
+      role="region"
+      aria-label="Tabel dokumentasi"
+      tabIndex={0}
+    >
+      {children}
+    </div>
+  );
+}
+
 function Section({ id, title, children }: { id: string; title: string; children: ReactNode }) {
   return (
     <section id={id} className="doc-section">
@@ -42,33 +56,33 @@ function Section({ id, title, children }: { id: string; title: string; children:
 
 export function DocsPage() {
   return (
-    <div className="docs-layout">
-      <aside className="docs-toc" aria-label="Daftar isi">
-        <p className="muted">Daftar isi</p>
-        <nav>
-          {SECTIONS.map((section) => (
-            <a key={section.id} href={`#${section.id}`}>
-              {section.label}
-            </a>
-          ))}
-        </nav>
-      </aside>
+    <>
+      <PageHeader
+        title="Dokumentasi Gapura"
+        lede="Gapura adalah gerbang pembayaran yang memegang satu akun merchant Duitku untuk banyak project. Project hanya berbicara dengan Gapura; kredensial Duitku tidak pernah dibagikan."
+      />
 
-      <article className="card docs-content">
-        <h1>Dokumentasi Gapura</h1>
-        <p className="muted">
-          Gapura adalah gerbang pembayaran yang memegang satu akun merchant Duitku untuk banyak
-          project. Project hanya berbicara dengan Gapura; kredensial Duitku tidak pernah dibagikan.
-        </p>
+      <div className="docs-layout">
+        <aside className="docs-toc" aria-label="Daftar isi">
+          <p className="docs-toc__title">Daftar isi</p>
+          <nav>
+            {SECTIONS.map((section) => (
+              <a key={section.id} href={`#${section.id}`}>
+                {section.label}
+              </a>
+            ))}
+          </nav>
+        </aside>
 
-        <Section id="mulai" title="Mulai">
+        <article className="docs-content">
+          <Section id="mulai" title="Mulai">
           <p>
             Semua endpoint project diawali environment: <code>{API_BASE}/sandbox/v1/...</code> atau{" "}
             <code>{API_BASE}/production/v1/...</code>. Path lama tanpa prefix diperlakukan sebagai
             sandbox.
           </p>
           <p>Dua permukaan yang dipakai:</p>
-          <table>
+          <DocTable><table>
             <tbody>
               <tr>
                 <th>API project</th>
@@ -83,7 +97,7 @@ export function DocsPage() {
                 </td>
               </tr>
             </tbody>
-          </table>
+          </table></DocTable>
           <p>Alur satu pembayaran:</p>
           <ol>
             <li>Backend project memanggil <code>POST /v1/payments</code> dengan API key project.</li>
@@ -152,7 +166,7 @@ export function DocsPage() {
           {PAYMENT_SYSTEMS.map((system) => (
             <div key={system}>
               <h3>{system}</h3>
-              <table>
+              <DocTable><table>
                 <thead>
                   <tr>
                     <th>Kode</th>
@@ -191,7 +205,7 @@ export function DocsPage() {
                     </tr>
                   ))}
                 </tbody>
-              </table>
+              </table></DocTable>
             </div>
           ))}
           <p>
@@ -203,10 +217,10 @@ export function DocsPage() {
 
         <Section id="buat-pembayaran" title="Buat pembayaran">
           <p>
-            <code>POST /v1/payments</code> — body JSON, hanya field di bawah yang diterima (field
+            <code>POST /v1/payments</code>, body JSON, hanya field di bawah yang diterima (field
             asing ditolak).
           </p>
-          <table>
+          <DocTable><table>
             <thead>
               <tr>
                 <th>Field</th>
@@ -218,7 +232,7 @@ export function DocsPage() {
                 <td>
                   <code>orderId</code>
                 </td>
-                <td>1–128 karakter (ditolak 400 bila PREFIX-orderId &gt; 50), tanpa spasi di awal/akhir, unik per project.</td>
+                <td>1-128 karakter (ditolak 400 bila PREFIX-orderId &gt; 50), tanpa spasi di awal/akhir, unik per project.</td>
               </tr>
               <tr>
                 <td>
@@ -230,14 +244,14 @@ export function DocsPage() {
                 <td>
                   <code>productDetails</code>
                 </td>
-                <td>1–255 karakter.</td>
+                <td>1-255 karakter.</td>
               </tr>
               <tr>
                 <td>
                   <code>customerName</code>
                 </td>
                 <td>
-                  1–255 karakter; Duitku menampilkan 20 karakter pertama.
+                  1-255 karakter; Duitku menampilkan 20 karakter pertama.
                 </td>
               </tr>
               <tr>
@@ -266,7 +280,7 @@ export function DocsPage() {
                   <code>expiryPeriod</code>
                 </td>
                 <td>
-                  Opsional, 1–10080 menit. Tidak boleh melebihi batas channel (mis. QRIS 60 menit);
+                  Opsional, 1-10080 menit. Tidak boleh melebihi batas channel (mis. QRIS 60 menit);
                   default mengikuti Duitku.
                 </td>
               </tr>
@@ -280,7 +294,7 @@ export function DocsPage() {
                 </td>
               </tr>
             </tbody>
-          </table>
+          </table></DocTable>
           <Code>{`curl -X POST ${API_BASE}/sandbox/v1/payments \\
   -H "X-Gapura-Key: gpk_..." \\
   -H "Content-Type: application/json" \\
@@ -328,7 +342,7 @@ export function DocsPage() {
         </Section>
 
         <Section id="siklus-status" title="Siklus status">
-          <table>
+          <DocTable><table>
             <thead>
               <tr>
                 <th>Status</th>
@@ -361,7 +375,7 @@ export function DocsPage() {
                 <td>Sinkronisasi Duitku melaporkan canceled (statusCode 02).</td>
               </tr>
             </tbody>
-          </table>
+          </table></DocTable>
           <p>
             Status hanya maju dari <code>PENDING</code> ke salah satu status akhir, sekali saja.
             Callback berulang tidak mengubah status dan tidak memicu webhook ulang.
@@ -373,7 +387,7 @@ export function DocsPage() {
             Saat status berubah, Gapura mengirim <code>POST</code> JSON ke <code>webhook_url</code>{" "}
             project.
           </p>
-          <table>
+          <DocTable><table>
             <thead>
               <tr>
                 <th>Header</th>
@@ -406,7 +420,7 @@ export function DocsPage() {
                 </td>
               </tr>
             </tbody>
-          </table>
+          </table></DocTable>
           <p>
             <code>v1 = HMAC_SHA256(t + "." + body, webhook_secret_project)</code>. <code>body</code>{" "}
             adalah byte JSON persis yang dikirim. Verifikasi signature sebelum memproses, dan tolak
@@ -466,7 +480,7 @@ if (!hash_equals($expected, $parts["v1"])) {
         </Section>
 
         <Section id="error" title="Kode error">
-          <table>
+          <DocTable><table>
             <thead>
               <tr>
                 <th>HTTP</th>
@@ -534,7 +548,7 @@ if (!hash_equals($expected, $parts["v1"])) {
                 <td>Kesalahan tak terduga; aman untuk dicoba ulang.</td>
               </tr>
             </tbody>
-          </table>
+          </table></DocTable>
           <p>
             Semua error berbentuk{" "}
             <code>{`{"error":{"code":"...","message":"..."}}`}</code>.
@@ -557,35 +571,35 @@ if (!hash_equals($expected, $parts["v1"])) {
           </p>
           <p>
             Role <code>owner</code> dan <code>admin</code> boleh menulis; <code>viewer</code> hanya
-            membaca dan tombol write disembunyikan. Aksi sensitif—buat/edit/status project, rotasi
-            API key/webhook secret, simpan/aktifkan kredensial, dan kirim ulang webhook—butuh TOTP
+            membaca dan tombol write disembunyikan. Aksi sensitif (buat/edit/status project, rotasi
+            API key/webhook secret, simpan/aktifkan kredensial, dan kirim ulang webhook) butuh TOTP
             ulang dalam 15 menit. Bila sudah kedaluwarsa, panel membuka modal verifikasi lalu
             mengulang aksi yang tadi.
           </p>
           <ul>
             <li>
-              <strong>Ringkasan</strong> — total transaksi PAID hari ini dan bulan ini per project.
+              <strong>Ringkasan</strong>: total transaksi PAID hari ini dan bulan ini per project.
             </li>
             <li>
-              <strong>Project</strong> — tambah project (nama, prefix 3–6 huruf kapital, webhook
+              <strong>Project</strong>: tambah project (nama, prefix 3-6 huruf kapital, webhook
               URL). API key dan webhook secret tampil <em>sekali</em>. Tombol Edit mengubah nama dan
               webhook URL; prefix tidak bisa diubah. Nonaktifkan menolak transaksi baru. Rotasi
               membuat kredensial baru dan membuat yang lama tidak berlaku.
             </li>
             <li>
-              <strong>Transaksi</strong> — filter project/status, paging, dan detail berisi riwayat
+              <strong>Transaksi</strong>: filter project/status, paging, dan detail berisi riwayat
               webhook.
             </li>
             <li>
-              <strong>Webhook gagal</strong> — daftar <code>FAILED</code> (menunggu retry) dan{" "}
+              <strong>Webhook gagal</strong>: daftar <code>FAILED</code> (menunggu retry) dan{" "}
               <code>DEAD</code>; tombol kirim ulang menjadwalkan percobaan baru.
             </li>
             <li>
-              <strong>Pengaturan</strong> — merchant code + API key sandbox/production (terenkripsi
+              <strong>Pengaturan</strong>: merchant code + API key sandbox/production (terenkripsi
               AES-GCM di D1), aktivasi environment, dan uji kredensial lewat getPaymentMethod.
             </li>
             <li>
-              <strong>Audit</strong> — 100 aksi admin terakhir tanpa nilai secret.
+              <strong>Audit</strong>: 100 aksi admin terakhir tanpa nilai secret.
             </li>
           </ul>
           <p>
@@ -607,7 +621,7 @@ if (!hash_equals($expected, $parts["v1"])) {
             <code>GET /admin/auth/session</code>, dan <code>POST /admin/auth/reauth</code>. Login
             butuh password + TOTP; reauth memperbarui <code>reauthenticated_at</code> sesi.
           </p>
-          <table>
+          <DocTable><table>
             <thead>
               <tr>
                 <th>Endpoint</th>
@@ -717,7 +731,7 @@ if (!hash_equals($expected, $parts["v1"])) {
                 <td>Jejak aksi admin.</td>
               </tr>
             </tbody>
-          </table>
+          </table></DocTable>
         </Section>
 
         <Section id="batasan" title="Batasan & keamanan">
@@ -740,7 +754,7 @@ if (!hash_equals($expected, $parts["v1"])) {
         </Section>
 
         <Section id="troubleshooting" title="Troubleshooting">
-          <table>
+          <DocTable><table>
             <thead>
               <tr>
                 <th>Gejala</th>
@@ -769,7 +783,7 @@ if (!hash_equals($expected, $parts["v1"])) {
                 <td>Webhook tidak masuk</td>
                 <td>
                   Pastikan project membalas 2xx, signature diverifikasi dengan body mentah, dan
-                  timestamp masih segar. Cek panel → Webhook gagal.
+                  timestamp masih segar. Buka halaman Webhook gagal di panel.
                 </td>
               </tr>
               <tr>
@@ -803,9 +817,10 @@ if (!hash_equals($expected, $parts["v1"])) {
                 </td>
               </tr>
             </tbody>
-          </table>
+          </table></DocTable>
         </Section>
-      </article>
-    </div>
+        </article>
+      </div>
+    </>
   );
 }

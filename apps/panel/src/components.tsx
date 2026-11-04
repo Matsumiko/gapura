@@ -1,3 +1,4 @@
+import type { ReactNode } from "react";
 import { ApiError } from "./api";
 
 export function ErrorNote({ error }: { error: unknown }) {
@@ -25,6 +26,54 @@ export function ErrorNote({ error }: { error: unknown }) {
         <span className="muted"> Auth admin belum dikonfigurasi di Worker.</span>
       ) : null}
     </div>
+  );
+}
+
+export function PageHeader({ title, lede }: { title: string; lede?: ReactNode }) {
+  return (
+    <header className="page-head">
+      <div className="page-head__text">
+        <h1>{title}</h1>
+        {lede ? <p className="page-lede">{lede}</p> : null}
+      </div>
+    </header>
+  );
+}
+
+export function formatStatus(value: string): string {
+  return value.charAt(0).toUpperCase() + value.slice(1).toLowerCase();
+}
+
+export function StatusBadge({ status }: { status: string }) {
+  return (
+    <span className={`badge status-${status.toLowerCase()}`} data-status={status}>
+      {formatStatus(status)}
+    </span>
+  );
+}
+
+export function TableSkeleton({ rows = 6, cols = 6 }: { rows?: number; cols?: number }) {
+  return (
+    <div className="table-skeleton" role="status" aria-live="polite">
+      <span className="visually-hidden">Memuat…</span>
+      {Array.from({ length: rows }).map((_, row) => (
+        <div className="table-skeleton__row" key={row} aria-hidden="true">
+          {Array.from({ length: cols }).map((__, col) => (
+            <span className="table-skeleton__cell" key={col} />
+          ))}
+        </div>
+      ))}
+    </div>
+  );
+}
+
+export function EmptyRow({ colSpan, children }: { colSpan: number; children: ReactNode }) {
+  return (
+    <tr>
+      <td colSpan={colSpan} className="table-empty">
+        {children}
+      </td>
+    </tr>
   );
 }
 

@@ -4,12 +4,11 @@ import {
   apiGet,
   apiPost,
   apiPut,
-  type MerchantEnvironment,
   type MerchantSettingsView,
   type SettingsOverview,
   type SettingsTestResult,
 } from "../api";
-import { ErrorNote, formatTime } from "../components";
+import { ErrorNote, PageHeader, formatTime } from "../components";
 
 function EnvCard({
   view,
@@ -49,28 +48,28 @@ function EnvCard({
   const label = view.environment === "sandbox" ? "Sandbox" : "Production";
 
   return (
-    <article className="card">
-      <div className="section-head">
-        <h2>
-          {label}{" "}
-          {view.apiKeySet ? <span className="badge">api key tersimpan</span> : null}
-        </h2>
-        <span className="muted">
-          {view.environment === "sandbox"
-            ? "sandbox.duitku.com"
-            : "passport.duitku.com (transaksi nyata)"}
-        </span>
+    <article className={`panel env-card env-card--${view.environment}`}>
+      <div className="env-card__head">
+        <div>
+          <h2>{label}</h2>
+          <p className="env-host num">
+            {view.environment === "sandbox"
+              ? "sandbox.duitku.com"
+              : "passport.duitku.com (transaksi nyata)"}
+          </p>
+        </div>
+        {view.apiKeySet ? <span className="badge good">api key tersimpan</span> : null}
       </div>
 
       <form
-        className="form"
+        className="form form--env"
         onSubmit={(event) => {
           event.preventDefault();
           save.mutate();
         }}
       >
-        <label>
-          Merchant code
+        <label className="field">
+          <span className="field__label">Merchant code</span>
           <input
             name={`merchant-${view.environment}`}
             value={merchantCode}
@@ -80,8 +79,10 @@ function EnvCard({
             required
           />
         </label>
-        <label>
-          API key {view.apiKeySet ? "(kosongkan bila tidak diganti)" : ""}
+        <label className="field">
+          <span className="field__label">
+            API key {view.apiKeySet ? "(kosongkan bila tidak diganti)" : ""}
+          </span>
           <input
             name={`apikey-${view.environment}`}
             type="password"
@@ -92,9 +93,13 @@ function EnvCard({
             placeholder={view.apiKeySet ? "•••••••• (tidak berubah)" : "API key Duitku"}
           />
         </label>
-        <div className="wide actions">
-          <button type="submit" disabled={!canWrite || save.isPending}>
-            {save.isPending ? "Menyimpan..." : "Simpan"}
+        <div className="field--wide actions">
+          <button
+            type="submit"
+            className="button button--primary"
+            disabled={!canWrite || save.isPending}
+          >
+            {save.isPending ? "Menyimpan…" : "Simpan"}
           </button>
           <button
             type="button"
@@ -102,19 +107,19 @@ function EnvCard({
             onClick={() => test.mutate()}
             disabled={!canWrite || test.isPending || !view.apiKeySet}
           >
-            {test.isPending ? "Menguji..." : "Uji kredensial"}
+            {test.isPending ? "Menguji…" : "Uji kredensial"}
           </button>
         </div>
       </form>
 
       <ErrorNote error={save.error ?? test.error} />
       {testResult ? (
-        <p className="muted">
-          {testResult.count} channel aktif · contoh:{" "}
+        <p className="test-result">
+          <span className="num">{testResult.count}</span> channel aktif, contoh:{" "}
           {testResult.sample.map((item) => `${item.code} (${item.name})`).join(", ") || "-"}
         </p>
       ) : null}
-      <p className="muted">
+      <p className="env-updated">
         {view.updatedAt
           ? `Terakhir diubah ${formatTime(view.updatedAt)} oleh ${view.updatedBy ?? "-"}`
           : "Belum ada kredensial tersimpan."}
@@ -136,48 +141,76 @@ export function SettingsPage({ canWrite }: { canWrite: boolean }) {
   }
 
   if (settings.isPending) {
-    return <p className="muted">Memuat pengaturan...</p>;
+    return (
+      <>
+        <PageHeader title="Pengaturan" lede="Kredensial Duitku untuk sandbox dan production." />
+        <div className="panel">
+          <p className="muted">Memuat pengaturan…</p>
+        </div>
+      </>
+    );
   }
   if (settings.isError) {
-    return <ErrorNote error={settings.error} />;
+    return (
+      <>
+        <PageHeader title="Pengaturan" lede="Kredensial Duitku untuk sandbox dan production." />
+        <div className="panel">
+          <ErrorNote error={settings.error} />
+        </div>
+      </>
+    );
   }
 
   const data = settings.data;
   return (
-    <section className="stack">
-      <article className="card">
-        <h2>Kredensial Duitku</h2>
-        <p className="muted">
+    <>
+      <PageHeader title="Pengaturan" lede="Kredensial Duitku untuk sandbox dan production." />
+
+      <section className="panel settings-system">
+        <div className="panel-head">
+          <h2>Kredensial Duitku</h2>
+        </div>
+        <p className="settings-note">
           Environment dipilih dari header. Kredensial di halaman ini hanya berlaku untuk environment
-          tersebut dan disimpan terenkripsi AES-GCM di database environment itu. Callback memverifikasi
-          dengan kredensial yang sama.
+          tersebut dan disimpan terenkripsi AES-GCM di database environment itu. Callback
+          memverifikasi dengan kredensial yang sama.
         </p>
         {canWrite ? null : <p className="muted">Role viewer hanya bisa melihat pengaturan.</p>}
-        <dl className="details">
-          <dt>Callback URL</dt>
-          <dd>
-            <code>{data.callbackUrl}</code>
-          </dd>
-          <dt>Environment</dt>
-          <dd>{data.items[0]?.environment ?? "-"}</dd>
-          <dt>Master key</dt>
-          <dd>
-            {data.credentialsKeyConfigured
-              ? "CREDENTIALS_KEY terpasang"
-              : "CREDENTIALS_KEY belum diset — penyimpanan dinonaktifkan"}
-          </dd>
+
+        <dl className="details details--system">
+          <div>
+            <dt>Callback URL</dt>
+            <dd>
+              <code>{data.callbackUrl}</code>
+            </dd>
+          </div>
+          <div>
+            <dt>Environment</dt>
+            <dd>{data.items[0]?.environment ?? "-"}</dd>
+          </div>
+          <div>
+            <dt>Master key</dt>
+            <dd>
+              {data.credentialsKeyConfigured
+                ? "CREDENTIALS_KEY terpasang"
+                : "CREDENTIALS_KEY belum diset, penyimpanan dinonaktifkan"}
+            </dd>
+          </div>
         </dl>
+
         {!data.credentialsKeyConfigured ? (
           <p className="error">
             Set secret Worker <code>CREDENTIALS_KEY</code> (32 byte base64) sebelum menyimpan
             kredensial dari panel. Transaksi masih memakai fallback secret environmen bila ada.
           </p>
         ) : null}
-      </article>
+      </section>
 
-      {data.items.map((view) => (
-        <EnvCard key={view.environment} view={view} canWrite={canWrite} onChanged={refresh} />
-      ))}
-    </section>
+      <div className="settings-grid">
+        {data.items.map((view) => (
+          <EnvCard key={view.environment} view={view} canWrite={canWrite} onChanged={refresh} />
+        ))}
+      </div>
+    </>
   );
 }

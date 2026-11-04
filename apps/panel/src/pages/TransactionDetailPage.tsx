@@ -2,7 +2,14 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Link, useParams } from "react-router-dom";
 import { paymentChannelByCode } from "@gapura/shared/payment-methods";
 import { apiGet, apiPost, type TransactionDetail, type WebhookLog } from "../api";
-import { ErrorNote, formatRupiah, formatTime } from "../components";
+import {
+  ErrorNote,
+  PageHeader,
+  StatusBadge,
+  TableSkeleton,
+  formatRupiah,
+  formatTime,
+} from "../components";
 
 export function TransactionDetailPage({ canWrite }: { canWrite: boolean }) {
   const { merchantOrderId } = useParams();
@@ -25,23 +32,56 @@ export function TransactionDetailPage({ canWrite }: { canWrite: boolean }) {
   });
 
   if (detail.isPending) {
-    return <p className="muted">Memuat transaksi...</p>;
+    return (
+      <>
+        <PageHeader title="Transaksi" lede="Memuat rincian pembayaran dan riwayat webhook." />
+        <div className="panel">
+          <TableSkeleton rows={4} cols={2} />
+        </div>
+      </>
+    );
   }
   if (detail.isError) {
-    return <ErrorNote error={detail.error} />;
+    return (
+      <>
+        <PageHeader title="Transaksi" lede="Rincian pembayaran dan riwayat pengiriman webhook." />
+        <div className="panel">
+          <ErrorNote error={detail.error} />
+        </div>
+      </>
+    );
   }
 
   const { transaction, webhooks } = detail.data;
-  return (
-    <section className="stack">
-      <div>
-        <Link to="/transactions" className="muted">
-          ← Kembali ke transaksi
-        </Link>
-      </div>
+  const method = transaction.paymentMethod
+    ? `${transaction.paymentMethod} (${
+        paymentChannelByCode(transaction.paymentMethod)?.name ?? "channel tidak dikenal"
+      })`
+    : "-";
 
-      <article className="card">
-        <h2>{transaction.projectOrderId}</h2>
+  return (
+    <>
+      <Link to="/transactions" className="back-link">
+        Kembali ke transaksi
+      </Link>
+
+      <PageHeader
+        title={`Transaksi ${transaction.projectOrderId}`}
+        lede="Rincian pembayaran dan riwayat pengiriman webhook."
+      />
+
+      <section className="panel record">
+        <div className="record__summary">
+          <div>
+            <span className="field__label">Nominal</span>
+            <p className="reading reading--record num">{formatRupiah(transaction.amount)}</p>
+          </div>
+          <div className="record__status">
+            <span className="field__label">Status</span>
+            <StatusBadge status={transaction.status} />
+          </div>
+        </div>
+
         <dl className="details">
           <dt>Merchant order</dt>
           <dd>
@@ -49,24 +89,10 @@ export function TransactionDetailPage({ canWrite }: { canWrite: boolean }) {
           </dd>
           <dt>Project</dt>
           <dd>{transaction.projectName}</dd>
-          <dt>Nominal</dt>
-          <dd>{formatRupiah(transaction.amount)}</dd>
           <dt>Metode</dt>
-          <dd>
-            {transaction.paymentMethod
-              ? `${transaction.paymentMethod} · ${
-                  paymentChannelByCode(transaction.paymentMethod)?.name ?? "channel tidak dikenal"
-                }`
-              : "-"}
-          </dd>
-          <dt>Status</dt>
-          <dd>
-            <span className={`badge status-${transaction.status.toLowerCase()}`}>
-              {transaction.status}
-            </span>
-          </dd>
+          <dd>{method}</dd>
           <dt>Reference Duitku</dt>
-          <dd>{transaction.reference ?? "-"}</dd>
+          <dd className="num">{transaction.reference ?? "-"}</dd>
           <dt>Payment URL</dt>
           <dd className="wrap">
             {transaction.paymentUrl ? (
@@ -78,45 +104,50 @@ export function TransactionDetailPage({ canWrite }: { canWrite: boolean }) {
             )}
           </dd>
           <dt>Dibuat</dt>
-          <dd>{formatTime(transaction.createdAt)}</dd>
+          <dd className="num">{formatTime(transaction.createdAt)}</dd>
           <dt>Diperbarui</dt>
-          <dd>{formatTime(transaction.updatedAt)}</dd>
+          <dd className="num">{formatTime(transaction.updatedAt)}</dd>
         </dl>
-      </article>
+      </section>
 
-      <article className="card">
-        <h2>Riwayat webhook</h2>
+      <section className="panel">
+        <div className="panel-head">
+          <h2>Riwayat webhook</h2>
+          {webhooks.length > 0 ? (
+            <span className="panel-count num">{webhooks.length} percobaan</span>
+          ) : null}
+        </div>
         <ErrorNote error={retry.error} />
         {webhooks.length === 0 ? (
-          <p className="muted">Belum ada percobaan pengiriman.</p>
+          <p className="empty-note">Belum ada percobaan pengiriman.</p>
         ) : (
           <div className="table-wrap">
-            <table>
+            <table className="data-table">
               <thead>
                 <tr>
-                  <th>Percobaan</th>
-                  <th>Status</th>
-                  <th>HTTP</th>
-                  <th>Error</th>
-                  <th>Jadwal retry</th>
-                  <th>Waktu</th>
-                  <th>Aksi</th>
+                  <th scope="col">Percobaan</th>
+                  <th scope="col">Status</th>
+                  <th scope="col">HTTP</th>
+                  <th scope="col">Error</th>
+                  <th scope="col">Jadwal retry</th>
+                  <th scope="col">Waktu</th>
+                  <th scope="col">Aksi</th>
                 </tr>
               </thead>
               <tbody>
                 {webhooks.map((webhook) => (
                   <tr key={webhook.id}>
-                    <td>{webhook.attempt}</td>
-                    <td>
-                      <span className={`badge status-${webhook.status.toLowerCase()}`}>
-                        {webhook.status}
-                      </span>
+                    <td className="cell-num num" data-label="Percobaan">{webhook.attempt}</td>
+                    <td data-label="Status">
+                      <StatusBadge status={webhook.status} />
                     </td>
-                    <td>{webhook.httpStatus ?? "-"}</td>
-                    <td className="wrap">{webhook.error ?? "-"}</td>
-                    <td>{webhook.nextAttemptAt ? formatTime(webhook.nextAttemptAt) : "-"}</td>
-                    <td>{formatTime(webhook.createdAt)}</td>
-                    <td>
+                    <td className="cell-num num" data-label="HTTP">{webhook.httpStatus ?? "-"}</td>
+                    <td className="wrap" data-label="Error">{webhook.error ?? "-"}</td>
+                    <td className="cell-time num" data-label="Jadwal retry">
+                      {webhook.nextAttemptAt ? formatTime(webhook.nextAttemptAt) : "-"}
+                    </td>
+                    <td className="cell-time num" data-label="Waktu">{formatTime(webhook.createdAt)}</td>
+                    <td data-label="Aksi">
                       {!canWrite ? (
                         <span className="muted">-</span>
                       ) : webhook.status === "FAILED" || webhook.status === "DEAD" ? (
@@ -138,7 +169,7 @@ export function TransactionDetailPage({ canWrite }: { canWrite: boolean }) {
             </table>
           </div>
         )}
-      </article>
-    </section>
+      </section>
+    </>
   );
 }

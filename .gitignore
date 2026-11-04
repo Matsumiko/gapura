@@ -6,3 +6,5 @@ dist/
 .pakem/sessions/
 coverage/
 .DS_Store
+
+.hallmark/
