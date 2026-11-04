@@ -24,7 +24,7 @@ import { SettingsPage } from "./pages/SettingsPage";
 import { AuditPage } from "./pages/AuditPage";
 
 const links = [
-  { to: "/", label: "Ringkasan", end: true },
+  { to: "/", label: "Dashboard", end: true },
   { to: "/projects", label: "Project" },
   { to: "/transactions", label: "Transaksi" },
   { to: "/webhooks", label: "Webhook gagal" },
@@ -160,42 +160,18 @@ export default function App() {
 
   return (
     <BrowserRouter>
-      <div className="app" data-environment={environment}>
+      <div className="console" data-environment={environment}>
         <a className="skip" href="#main">
           Lewati ke konten
         </a>
 
-        <header className="topbar masthead">
-          <div className="masthead__top">
-            <Link to="/" className="brand" aria-label="Gapura Admin, Ringkasan">
-              <span className="brand__name">Gapura</span>
-              <span className="brand__role">Admin</span>
-            </Link>
+        <aside className="console__sidebar">
+          <Link to="/" className="console__brand" aria-label="Gapura Admin, Ringkasan">
+            <span className="console__brand-name">Gapura</span>
+            <span className="console__brand-role">Admin</span>
+          </Link>
 
-            <div className="masthead__tools">
-              <label className="env-select">
-                <span className="env-select__label">Env</span>
-                <select
-                  value={environment}
-                  onChange={(event) => changeEnvironment(event.target.value as ApiEnvironment)}
-                >
-                  <option value="sandbox">sandbox</option>
-                  <option value="production">production</option>
-                </select>
-              </label>
-
-              <div className="account">
-                <span className="account__email">{identity.email}</span>
-                <span className="badge role">{identity.role}</span>
-                {canWrite ? null : <span className="account__read">hanya baca</span>}
-                <button type="button" className="ghost account__logout" onClick={() => void logout()}>
-                  Keluar
-                </button>
-              </div>
-            </div>
-          </div>
-
-          <nav className="nav" aria-label="Navigasi utama">
+          <nav className="console__nav" aria-label="Navigasi utama">
             {links.map((link) => (
               <NavLink
                 key={link.to}
@@ -207,9 +183,37 @@ export default function App() {
               </NavLink>
             ))}
           </nav>
-        </header>
 
-        <main className="content page" id="main" tabIndex={-1}>
+          <div className="console__tools">
+            <div className="console__env">
+              <span className="console__label">Environment</span>
+              <span className="console__env-value">{environment}</span>
+              <label className="console__switch">
+                <span className="doc-visually-hidden">Ganti environment</span>
+                <select
+                  value={environment}
+                  onChange={(event) => changeEnvironment(event.target.value as ApiEnvironment)}
+                >
+                  <option value="sandbox">sandbox</option>
+                  <option value="production">production</option>
+                </select>
+              </label>
+            </div>
+
+            <div className="console__account">
+              <span className="console__email" title={identity.email}>
+                {identity.email}
+              </span>
+              <span className="badge role">{identity.role}</span>
+              {canWrite ? null : <span className="account__read">hanya baca</span>}
+            </div>
+            <button type="button" className="button button--quiet console__logout" onClick={() => void logout()}>
+              Keluar
+            </button>
+          </div>
+        </aside>
+
+        <main className="console__main" id="main" tabIndex={-1}>
           <Routes>
             <Route path="/" element={<SummaryPage />} />
             <Route path="/projects" element={<ProjectsPage canWrite={canWrite} />} />
