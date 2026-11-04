@@ -23,14 +23,24 @@ import { DocsPage } from "./pages/DocsPage";
 import { SettingsPage } from "./pages/SettingsPage";
 import { AuditPage } from "./pages/AuditPage";
 
-const links = [
-  { to: "/", label: "Dashboard", end: true },
-  { to: "/projects", label: "Project" },
-  { to: "/transactions", label: "Transaksi" },
-  { to: "/webhooks", label: "Webhook gagal" },
-  { to: "/settings", label: "Pengaturan" },
-  { to: "/audit", label: "Audit" },
-  { to: "/docs", label: "Dokumentasi" },
+const linkGroups = [
+  {
+    label: "Utama",
+    links: [
+      { to: "/", label: "Dashboard", end: true },
+      { to: "/projects", label: "Project", end: false },
+      { to: "/transactions", label: "Transaksi", end: false },
+      { to: "/webhooks", label: "Webhook gagal", end: false },
+    ],
+  },
+  {
+    label: "Sistem",
+    links: [
+      { to: "/settings", label: "Pengaturan", end: false },
+      { to: "/audit", label: "Audit", end: false },
+      { to: "/docs", label: "Dokumentasi", end: false },
+    ],
+  },
 ];
 
 interface ReauthRequest {
@@ -172,33 +182,43 @@ export default function App() {
 
   return (
     <BrowserRouter>
-      <div className="shell3" data-environment={environment}>
+      <div className="side" data-environment={environment}>
         <a className="skip" href="#main">
           Lewati ke konten
         </a>
 
-        <header className="shell3__bar">
-          <Link to="/" className="shell3__brand" aria-label="Gapura Admin, Dashboard">
-            <span className="shell3__brand-name">Gapura</span>
-            <span className="shell3__brand-role">Admin</span>
+        <aside className="side__rail">
+          <Link to="/" className="side__brand" aria-label="Gapura Admin, Dashboard">
+            <span className="side__mark" aria-hidden="true">
+              G
+            </span>
+            <span className="side__brand-copy">
+              <span className="side__brand-name">Gapura</span>
+              <span className="side__brand-role">Admin</span>
+            </span>
           </Link>
 
-          <nav className="shell3__nav" aria-label="Navigasi utama">
-            {links.map((link) => (
-              <NavLink
-                key={link.to}
-                to={link.to}
-                end={link.end}
-                className={({ isActive }) => (isActive ? "nav-link active" : "nav-link")}
-              >
-                {link.label}
-              </NavLink>
+          <nav className="side__nav" aria-label="Navigasi utama">
+            {linkGroups.map((group) => (
+              <div className="side__group" key={group.label}>
+                <p className="side__group-label">{group.label}</p>
+                {group.links.map((link) => (
+                  <NavLink
+                    key={link.to}
+                    to={link.to}
+                    end={link.end}
+                    className={({ isActive }) => (isActive ? "nav-link active" : "nav-link")}
+                  >
+                    {link.label}
+                  </NavLink>
+                ))}
+              </div>
             ))}
           </nav>
 
-          <div className="shell3__tools">
-            <label className="shell3__env">
-              <span className="shell3__env-label">Env</span>
+          <div className="side__tools">
+            <label className="side__env">
+              <span className="side__env-label">Environment</span>
               <select
                 value={environment}
                 onChange={(event) => changeEnvironment(event.target.value as ApiEnvironment)}
@@ -207,24 +227,32 @@ export default function App() {
                 <option value="production">production</option>
               </select>
             </label>
-            <span className="shell3__email" title={identity.email}>
-              {identity.email}
-            </span>
-            <span className="badge role">{identity.role}</span>
-            <button
-              type="button"
-              className="button button--quiet"
-              onClick={() => setTheme(theme === "dark" ? "light" : "dark")}
-            >
-              {theme === "dark" ? "Mode terang" : "Mode gelap"}
-            </button>
-            <button type="button" className="button button--quiet" onClick={() => void logout()}>
-              Keluar
-            </button>
+            <div className="side__account">
+              <span className="side__email" title={identity.email}>
+                {identity.email}
+              </span>
+              <span className="badge role">{identity.role}</span>
+            </div>
+            <div className="side__actions">
+              <button
+                type="button"
+                className="button button--quiet"
+                onClick={() => setTheme(theme === "dark" ? "light" : "dark")}
+              >
+                {theme === "dark" ? "Mode terang" : "Mode gelap"}
+              </button>
+              <button type="button" className="button button--quiet" onClick={() => void logout()}>
+                Keluar
+              </button>
+            </div>
           </div>
-        </header>
+        </aside>
 
-        <main className="shell3__main" id="main" tabIndex={-1}>
+        <main className="side__main" id="main" tabIndex={-1}>
+          <div className="side__topline">
+            <span className="side__context">Operasional pembayaran</span>
+            <span className="side__env-chip">{environment}</span>
+          </div>
           <Routes>
             <Route path="/" element={<SummaryPage />} />
             <Route path="/projects" element={<ProjectsPage canWrite={canWrite} />} />

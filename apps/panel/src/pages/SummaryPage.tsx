@@ -56,33 +56,31 @@ export function SummaryPage() {
         lede="Uang masuk, transaksi terbaru, dan antrean webhook untuk environment ini."
       />
 
-      <section className="band" aria-label="Indikator utama">
-        <div className="band__lead">
-          <p className="band__label">Pendapatan hari ini</p>
-          <p className="band__value num">{formatRupiah(data.today.amount)}</p>
-          <p className="band__meta">
+      <section className="kpi-grid" aria-label="Indikator utama">
+        <article className="kpi kpi--lead">
+          <p className="kpi__label">Pendapatan hari ini</p>
+          <p className="kpi__value num">{formatRupiah(data.today.amount)}</p>
+          <p className="kpi__meta">
             <span className="num">{data.today.count}</span> transaksi PAID
           </p>
-        </div>
-        <dl className="band__side">
-          <div>
-            <dt>Bulan ini</dt>
-            <dd className="num">{formatRupiah(data.month.amount)}</dd>
-            <dd className="band__sub">
-              <span className="num">{data.month.count}</span> transaksi PAID
-            </dd>
-          </div>
-          <div>
-            <dt>Menunggu pembayaran</dt>
-            <dd className="num">{pending.data?.total ?? "–"}</dd>
-            <dd className="band__sub">transaksi PENDING</dd>
-          </div>
-          <div>
-            <dt>Webhook gagal</dt>
-            <dd className="num">{failed.data?.items.length ?? "–"}</dd>
-            <dd className="band__sub">menunggu retry</dd>
-          </div>
-        </dl>
+        </article>
+        <article className="kpi">
+          <p className="kpi__label">Bulan ini</p>
+          <p className="kpi__value num">{formatRupiah(data.month.amount)}</p>
+          <p className="kpi__meta">
+            <span className="num">{data.month.count}</span> transaksi PAID
+          </p>
+        </article>
+        <article className="kpi">
+          <p className="kpi__label">Menunggu pembayaran</p>
+          <p className="kpi__value num">{pending.data?.total ?? "–"}</p>
+          <p className="kpi__meta">transaksi PENDING</p>
+        </article>
+        <article className="kpi">
+          <p className="kpi__label">Webhook gagal</p>
+          <p className="kpi__value num">{failed.data?.items.length ?? "–"}</p>
+          <p className="kpi__meta">menunggu retry</p>
+        </article>
       </section>
 
       <div className="dash-grid">
@@ -170,39 +168,27 @@ export function SummaryPage() {
 
       <section className="panel">
         <div className="panel-head">
-          <h2>Per project</h2>
+          <h2>Komposisi hari ini</h2>
+          <span className="panel-note">nominal PAID per project</span>
         </div>
         {data.projects.length === 0 ? (
           <p className="empty-note">Belum ada project. Tambahkan lewat halaman Project.</p>
         ) : (
-          <div className="table-wrap">
-            <table className="data-table">
-              <thead>
-                <tr>
-                  <th scope="col">Project</th>
-                  <th scope="col" className="cell-num">Hari ini</th>
-                  <th scope="col" className="cell-num">Bulan ini</th>
-                </tr>
-              </thead>
-              <tbody>
-                {data.projects.map((row) => (
-                  <tr key={row.projectId}>
-                    <td className="table__name" data-label="Project">
-                      {row.projectName}
-                    </td>
-                    <td className="cell-num" data-label="Hari ini">
-                      <span className="table__amount num">{formatRupiah(row.todayAmount)}</span>
-                      <span className="table__sub num">{row.todayCount} transaksi</span>
-                    </td>
-                    <td className="cell-num" data-label="Bulan ini">
-                      <span className="table__amount num">{formatRupiah(row.monthAmount)}</span>
-                      <span className="table__sub num">{row.monthCount} transaksi</span>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
+          <ul className="bars">
+            {data.projects.map((row) => (
+              <li className="bars__row" key={row.projectId}>
+                <span className="bars__name">{row.projectName}</span>
+                <span className="bars__track" aria-hidden="true">
+                  <span
+                    className="bars__fill"
+                    style={{ width: `${(row.todayAmount / Math.max(1, ...data.projects.map((item) => item.todayAmount))) * 100}%` }}
+                  />
+                </span>
+                <span className="bars__value num">{formatRupiah(row.todayAmount)}</span>
+                <span className="bars__count num">{row.todayCount} trx</span>
+              </li>
+            ))}
+          </ul>
         )}
       </section>
     </>
