@@ -1,0 +1,32 @@
+name: Bug report
+description: Laporkan perilaku yang tidak sesuai
+labels: [bug]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Jangan sertakan kredensial, API key, token, atau data pembeli asli.
+        Untuk celah keamanan, ikuti SECURITY.md dan laporkan secara privat.
+  - type: textarea
+    id: expected
+    attributes:
+      label: Yang diharapkan
+    validations:
+      required: true
+  - type: textarea
+    id: actual
+    attributes:
+      label: Yang terjadi
+      description: Sertakan langkah reproduksi dan pesan error tanpa data sensitif.
+    validations:
+      required: true
+  - type: input
+    id: version
+    attributes:
+      label: Commit/versi
+      placeholder: commit hash atau tag
+  - type: textarea
+    id: environment
+    attributes:
+      label: Lingkungan
+      description: Node, pnpm, OS, dan mode lokal/Cloudflare bila relevan.
