@@ -4,6 +4,7 @@ import { buildApp } from "./app";
 import { createCronRunner, type CronRunner } from "./cron";
 import { createManagedDuitkuProvider } from "./providers/managed";
 import { createAdminRepository } from "./repositories/admin";
+import { createAdminMaintenanceRepository } from "./repositories/admin-maintenance";
 import { createAdminSessionRepository } from "./repositories/admin-sessions";
 import { createAdminUserRepository } from "./repositories/admin-users";
 import { createProjectsRepository } from "./repositories/projects";
@@ -12,6 +13,7 @@ import { createTransactionRepository } from "./repositories/transactions";
 import { createWebhookLogRepository } from "./repositories/webhook-logs";
 import { createAdminService } from "./services/admin";
 import { createAdminAuthService } from "./services/admin-auth";
+import { createAdminMaintenance, type AdminMaintenance } from "./services/admin-maintenance";
 import { createAdminSessionService } from "./services/admin-sessions";
 import { createCallbackService } from "./services/callbacks";
 import { createCredentialCipher, type CredentialCipher } from "./services/credentials";
@@ -35,6 +37,8 @@ export interface RootRuntime {
   root: Hono<AppEnv>;
   sandbox: EnvironmentRuntime;
   production: EnvironmentRuntime;
+  /** Pembersihan data auth di `DB_AUTH`; sekali saja karena DB-nya dipakai bersama. */
+  adminMaintenance: AdminMaintenance;
 }
 
 const runtimes = new WeakMap<Env, RootRuntime>();
@@ -137,6 +141,11 @@ export function runtimeFor(env: Env): RootRuntime {
     repo: createAdminSessionRepository(env.DB_AUTH),
     now,
   });
+  const adminMaintenance = createAdminMaintenance({
+    sessions,
+    attempts: createAdminMaintenanceRepository(env.DB_AUTH),
+    now,
+  });
   const auth = createAdminAuthService({
     users: createAdminUserRepository(env.DB_AUTH),
     sessions,
@@ -146,6 +155,7 @@ export function runtimeFor(env: Env): RootRuntime {
     issuer: "Gapura",
     now,
     insertAudit: (entry) => authRepo.insertAudit(entry),
+    listAudit: (limit) => authRepo.listAudit(limit),
   });
   const shared = { auth, sessions };
 
@@ -158,7 +168,7 @@ export function runtimeFor(env: Env): RootRuntime {
   // Kompatibilitas: path lama (tanpa prefix) tetap sandbox.
   root.route("/", sandbox.app);
 
-  runtime = { root, sandbox, production };
+  runtime = { root, sandbox, production, adminMaintenance };
   runtimes.set(env, runtime);
   return runtime;
 }
@@ -170,14 +180,19 @@ export default {
 
   scheduled(_controller: ScheduledController, env: Env, ctx: ExecutionContext): void {
     const runtime = runtimeFor(env);
+    const jobs = [
+      { name: "sandbox", run: () => runtime.sandbox.cron.run() },
+      { name: "production", run: () => runtime.production.cron.run() },
+      { name: "admin_maintenance", run: () => runtime.adminMaintenance.run() },
+    ];
     ctx.waitUntil(
-      Promise.allSettled([runtime.sandbox.cron.run(), runtime.production.cron.run()])
+      Promise.allSettled(jobs.map((job) => job.run()))
         .then((results) => {
           console.log(
             "cron_done",
             JSON.stringify(
               results.map((result, index) => ({
-                environment: index === 0 ? "sandbox" : "production",
+                job: jobs[index]?.name ?? "unknown",
                 status: result.status,
                 value: result.status === "fulfilled" ? result.value : String(result.reason),
               })),

@@ -32,6 +32,42 @@ export const merchantSettingsInputSchema = z
 
 export type MerchantSettingsInput = z.infer<typeof merchantSettingsInputSchema>;
 
+export const createAdminInputSchema = z
+  .object({
+    email: z.email().max(254),
+    role: z.enum(["admin", "viewer"]),
+    password: z.string().min(12).max(200).optional(),
+  })
+  .strict();
+
+export type CreateAdminInput = z.infer<typeof createAdminInputSchema>;
+
+export const resetAdminPasswordInputSchema = z
+  .object({
+    password: z.string().min(12).max(200).optional(),
+  })
+  .strict();
+
+export type ResetAdminPasswordInput = z.infer<typeof resetAdminPasswordInputSchema>;
+
+export const activateAdminInputSchema = z
+  .object({
+    totpCode: z.string().regex(/^\d{6}$/),
+  })
+  .strict();
+
+export type ActivateAdminInput = z.infer<typeof activateAdminInputSchema>;
+
+export const recoveryLoginInputSchema = z
+  .object({
+    email: z.email().max(254),
+    password: z.string().min(1).max(200),
+    recoveryCode: z.string().min(1).max(64),
+  })
+  .strict();
+
+export type RecoveryLoginInput = z.infer<typeof recoveryLoginInputSchema>;
+
 export const TRANSACTION_STATUS_VALUES = ["PENDING", "PAID", "FAILED", "EXPIRED"] as const;
 
 export const adminTransactionFilterSchema = z

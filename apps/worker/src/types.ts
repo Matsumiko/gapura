@@ -10,6 +10,8 @@ export interface Env {
   DUITKU_API_KEY?: string;
   ADMIN_SETUP_TOKEN?: string;
   CREDENTIALS_KEY?: string;
+  RATE_LIMIT_MAX?: string;
+  RATE_LIMIT_WINDOW_SECONDS?: string;
 }
 
 export interface ProjectRecord {
@@ -149,6 +151,14 @@ export interface AdminWebhookLog {
   nextAttemptAt: string | null;
   status: "FAILED" | "DELIVERED" | "DEAD";
   createdAt: string;
+}
+
+export interface WebhookCounts {
+  pending: number;
+  failed: number;
+  delivered: number;
+  dead: number;
+  total: number;
 }
 
 export interface AdminSummaryRow {
@@ -305,6 +315,7 @@ export interface AdminRepository {
   findTransaction(merchantOrderId: string): Promise<AdminTransaction | null>;
   listWebhookLogsFor(merchantOrderId: string): Promise<AdminWebhookLog[]>;
   listWebhookLogs(status: "FAILED" | "DEAD" | null, limit: number): Promise<AdminWebhookLog[]>;
+  webhookCounts(): Promise<WebhookCounts>;
   requeueWebhook(id: number, nowIso: string): Promise<boolean>;
   summary(dayStartIso: string, monthStartIso: string): Promise<AdminSummaryRow[]>;
   insertAudit(entry: AuditEntry): Promise<void>;

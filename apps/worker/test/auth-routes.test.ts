@@ -30,6 +30,7 @@ async function setup() {
   );
   const cipher = await createCredentialCipher(KEY);
   const users = createAdminUserRepository(db);
+  const adminRepo = createAdminRepository(db);
   const sessions = createAdminSessionService({
     repo: createAdminSessionRepository(db),
     now: () => NOW,
@@ -41,10 +42,11 @@ async function setup() {
     setupToken: SETUP_TOKEN,
     issuer: "Gapura",
     now: () => NOW,
-    insertAudit: async () => {},
+    insertAudit: (entry) => adminRepo.insertAudit(entry),
+    listAudit: (limit) => adminRepo.listAudit(limit),
   });
   const admin = createAdminService({
-    admin: createAdminRepository(db),
+    admin: adminRepo,
     now: () => NOW,
     generateApiKey,
     generateWebhookSecret,
@@ -70,7 +72,7 @@ function cookiePair(response: Response): string {
 }
 
 async function bootstrap() {
-  const { app, env } = await setup();
+  const { app, env, db } = await setup();
   const start = await app.request(
     "/admin/auth/bootstrap/start",
     json({ setupToken: SETUP_TOKEN, email: EMAIL }),
@@ -90,7 +92,7 @@ async function bootstrap() {
   );
   const cookie = cookiePair(finish);
   const body = (await finish.json()) as { csrfToken: string; admin: { email: string } };
-  return { app, env, secret, finish, cookie, csrfToken: body.csrfToken };
+  return { app, env, db, secret, finish, cookie, csrfToken: body.csrfToken };
 }
 
 describe("route auth admin", () => {
@@ -228,6 +230,66 @@ describe("route auth admin", () => {
       env,
     );
     expect(session.status).toBe(401);
+  });
+
+  it("menampilkan audit login dari DB_AUTH dan membatasi limit", async () => {
+    const { app, env, cookie, db } = await bootstrap();
+
+    const anonymous = await app.request("/admin/auth/audit", {}, env);
+    expect(anonymous.status).toBe(401);
+
+    for (const action of ["manual:0", "manual:1", "manual:2"]) {
+      await db
+        .prepare(
+          `INSERT INTO admin_audit (actor_email, action, target, detail, created_at)
+           VALUES (?, ?, NULL, NULL, ?)`,
+        )
+        .bind(EMAIL, action, NOW.toISOString())
+        .run();
+    }
+
+    const response = await app.request(
+      "/admin/auth/audit?limit=2",
+      { headers: { Cookie: cookie } },
+      env,
+    );
+    expect(response.status).toBe(200);
+    const body = (await response.json()) as {
+      items: Array<{ actorEmail: string; action: string }>;
+    };
+    expect(body.items).toHaveLength(2);
+    expect(body.items[0]).toMatchObject({ actorEmail: EMAIL, action: "manual:2" });
+    expect(body.items[1]).toMatchObject({ actorEmail: EMAIL, action: "manual:1" });
+  });
+
+  it("hanya owner/admin yang membaca audit auth", async () => {
+    const { app, env, db } = await setup();
+    const adminSession = await seedAdminSession(db, {
+      role: "admin",
+      adminId: "admin-audit",
+      email: "admin-audit@example.com",
+    });
+    const viewer = await seedAdminSession(db, {
+      role: "viewer",
+      adminId: "viewer-audit",
+      email: "viewer@example.com",
+    });
+
+    const allowed = await app.request(
+      "/admin/auth/audit",
+      { headers: { Cookie: adminSession.cookie } },
+      env,
+    );
+    expect(allowed.status).toBe(200);
+
+    const response = await app.request(
+      "/admin/auth/audit",
+      { headers: { Cookie: viewer.cookie } },
+      env,
+    );
+    expect(response.status).toBe(403);
+    const body = (await response.json()) as { error: { code: string } };
+    expect(body.error.code).toBe("FORBIDDEN");
   });
 
   it("menolak Bearer token lama", async () => {

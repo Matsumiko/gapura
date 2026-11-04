@@ -298,3 +298,60 @@ export interface AuditLog {
   detail: string | null;
   createdAt: string;
 }
+
+export interface ManagedAdmin {
+  id: string;
+  email: string;
+  role: AdminRole;
+  isActive: boolean;
+  totpEnabled: boolean;
+  recoveryCodesRemaining: number;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface CreatedAdminResult {
+  admin: ManagedAdmin;
+  initialPassword: string;
+  secret: string;
+  otpauthUri: string;
+}
+
+export interface ActivatedAdminResult {
+  admin: ManagedAdmin;
+  recoveryCodes: string[];
+}
+
+export interface ResetAdminPasswordResult {
+  admin: ManagedAdmin;
+  newPassword: string;
+}
+
+export interface ResetAdminTotpResult {
+  admin: ManagedAdmin;
+  secret: string;
+  otpauthUri: string;
+}
+
+export interface AdminSessionView {
+  id: string;
+  adminId: string;
+  adminEmail: string;
+  adminRole: AdminRole;
+  ip: string | null;
+  userAgent: string | null;
+  expiresAt: string;
+  lastSeenAt: string;
+  reauthenticatedAt: string | null;
+  createdAt: string;
+  current: boolean;
+  idleExpiresAt: string;
+}
+
+export interface WebhookCounts {
+  pending: number;
+  failed: number;
+  delivered: number;
+  dead: number;
+  total: number;
+}

@@ -126,6 +126,9 @@ const unusedAdmin = {
   async listWebhooks() {
     throw new Error("admin.listWebhooks tidak diharapkan di test ini");
   },
+  async webhookCounts() {
+    throw new Error("admin.webhookCounts tidak diharapkan di test ini");
+  },
   async retryWebhook() {
     throw new Error("admin.retryWebhook tidak diharapkan di test ini");
   },

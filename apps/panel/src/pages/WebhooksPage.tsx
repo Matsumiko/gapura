@@ -1,7 +1,7 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
 import { Link } from "react-router-dom";
-import { apiGet, apiPost, type WebhookLog } from "../api";
+import { apiGet, apiPost, type WebhookCounts, type WebhookLog } from "../api";
 import {
   ErrorNote,
   PageHeader,
@@ -17,6 +17,15 @@ export function WebhooksPage({ canWrite }: { canWrite: boolean }) {
     queryKey: ["admin", "webhooks", status],
     queryFn: () => apiGet<{ items: WebhookLog[] }>(`/admin/webhooks?status=${status}`),
   });
+  const counts = useQuery({
+    queryKey: ["admin", "webhooks", "counts"],
+    queryFn: () => apiGet<WebhookCounts>("/admin/webhooks/counts"),
+  });
+  const queueCount = counts.data
+    ? status === "FAILED"
+      ? counts.data.failed
+      : counts.data.dead
+    : null;
 
   const retry = useMutation({
     mutationFn: (webhook: WebhookLog) => apiPost(`/admin/webhooks/${webhook.id}/retry`),
@@ -42,18 +51,24 @@ export function WebhooksPage({ canWrite }: { canWrite: boolean }) {
                 value={status}
                 onChange={(event) => setStatus(event.target.value as "FAILED" | "DEAD")}
               >
-                <option value="FAILED">Menunggu retry</option>
-                <option value="DEAD">Dead-letter</option>
+                <option value="FAILED">
+                  Menunggu retry{counts.data ? ` (${counts.data.failed})` : ""}
+                </option>
+                <option value="DEAD">
+                  Dead-letter{counts.data ? ` (${counts.data.dead})` : ""}
+                </option>
               </select>
             </label>
           </div>
-          {webhooks.data ? (
-            <span className="panel-count">{webhooks.data.items.length} antrean</span>
+          {queueCount !== null ? (
+            <span className="panel-count">
+              {queueCount} antrean · total {counts.data?.total ?? 0} log
+            </span>
           ) : null}
         </div>
 
         <div className="panel-body">
-          <ErrorNote error={webhooks.error ?? retry.error} />
+          <ErrorNote error={webhooks.error ?? counts.error ?? retry.error} />
 
           {webhooks.isPending ? <TableSkeleton rows={6} cols={7} /> : null}
 

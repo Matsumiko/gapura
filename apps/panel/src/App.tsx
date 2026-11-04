@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState, type FormEvent } from "react";
-import { BrowserRouter, Link, NavLink, Route, Routes, useLocation } from "react-router-dom";
+import { BrowserRouter, Link, Navigate, NavLink, Route, Routes, useLocation } from "react-router-dom";
 import { useQueryClient } from "@tanstack/react-query";
 import {
   configureApiAuth,
@@ -22,6 +22,9 @@ import { WebhooksPage } from "./pages/WebhooksPage";
 import { DocsPage } from "./pages/DocsPage";
 import { SettingsPage } from "./pages/SettingsPage";
 import { AuditPage } from "./pages/AuditPage";
+import { AdminsPage } from "./pages/AdminsPage";
+import { SessionsPage } from "./pages/SessionsPage";
+import { RecoveryLoginPage } from "./pages/RecoveryLoginPage";
 
 const linkGroups = [
   {
@@ -97,6 +100,18 @@ const linkGroups = [
     label: "Sistem",
     links: [
       {
+        to: "/sessions",
+        label: "Sesi",
+        end: false,
+        note: "Perangkat aktif",
+        icon: (
+          <svg viewBox="0 0 16 16" fill="none" aria-hidden="true">
+            <rect x="2.25" y="2.75" width="11.5" height="7.5" rx="1" stroke="currentColor" strokeWidth="1.3" />
+            <path d="M5.5 13.25h5M8 10.25v3" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round" />
+          </svg>
+        ),
+      },
+      {
         to: "/settings",
         label: "Pengaturan",
         end: false,
@@ -114,7 +129,7 @@ const linkGroups = [
         to: "/audit",
         label: "Audit",
         end: false,
-        note: "Aksi admin",
+        note: "Aksi dan login",
         icon: (
           <svg viewBox="0 0 16 16" fill="none" aria-hidden="true">
             <path
@@ -147,13 +162,38 @@ const linkGroups = [
   },
 ];
 
+const adminLink = {
+  to: "/admins",
+  label: "Admin",
+  end: false,
+  note: "Akun dan TOTP",
+  icon: (
+    <svg viewBox="0 0 16 16" fill="none" aria-hidden="true">
+      <circle cx="8" cy="5.25" r="2.5" stroke="currentColor" strokeWidth="1.3" />
+      <path
+        d="M3.25 13.5c.6-2.2 2.45-3.5 4.75-3.5s4.15 1.3 4.75 3.5"
+        stroke="currentColor"
+        strokeWidth="1.3"
+        strokeLinecap="round"
+      />
+    </svg>
+  ),
+};
+
 interface ReauthRequest {
   resolve: (reauthenticated: boolean) => void;
 }
 
-function SideNav() {
+function SideNav({ isOwner }: { isOwner: boolean }) {
   const location = useLocation();
   const navRef = useRef<HTMLElement | null>(null);
+  const groups = isOwner
+    ? linkGroups.map((group) =>
+        group.label === "Sistem"
+          ? { ...group, links: [...group.links, adminLink] }
+          : group,
+      )
+    : linkGroups;
 
   useEffect(() => {
     if (!window.matchMedia("(max-width: 60rem)").matches) {
@@ -166,7 +206,7 @@ function SideNav() {
 
   return (
     <nav className="side__nav" aria-label="Navigasi utama" ref={navRef}>
-      {linkGroups.map((group) => (
+      {groups.map((group) => (
         <div className="side__group" key={group.label}>
           <p className="side__group-label">{group.label}</p>
           {group.links.map((link) => (
@@ -302,6 +342,9 @@ export default function App() {
   }
 
   if (!identity) {
+    if (window.location.pathname.replace(/\/+$/, "") === "/recovery") {
+      return <RecoveryLoginPage />;
+    }
     return (
       <LoginPage
         key={environment}
@@ -345,7 +388,7 @@ export default function App() {
               </span>
             </Link>
 
-            <SideNav />
+            <SideNav isOwner={identity.role === "owner"} />
 
             <div className="side__tools">
               <label className="side__env">
@@ -392,8 +435,11 @@ export default function App() {
               <Route path="/transactions/:merchantOrderId" element={<TransactionDetailPage canWrite={canWrite} />} />
               <Route path="/webhooks" element={<WebhooksPage canWrite={canWrite} />} />
               <Route path="/settings" element={<SettingsPage canWrite={canWrite} />} />
-              <Route path="/audit" element={<AuditPage />} />
+              <Route path="/admins" element={<AdminsPage canWrite={identity.role === "owner"} />} />
+              <Route path="/sessions" element={<SessionsPage isOwner={identity.role === "owner"} />} />
+              <Route path="/audit" element={<AuditPage canViewAuthAudit={identity.role !== "viewer"} />} />
               <Route path="/docs" element={<DocsPage />} />
+              <Route path="/recovery" element={<Navigate to="/" replace />} />
             </Routes>
           </main>
         </div>

@@ -39,6 +39,7 @@ async function setup() {
     insertAudit: async (entry) => {
       audits.push(entry);
     },
+    listAudit: async (limit) => audits.slice(0, limit),
   });
   return { db, users, service, audits };
 }

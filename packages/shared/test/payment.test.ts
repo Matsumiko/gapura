@@ -104,3 +104,103 @@ describe("createPaymentInputSchema", () => {
     }
   });
 });
+
+describe("createPaymentInputSchema accountLink", () => {
+  const ovo = {
+    credentialCode: "B3A72721-7FFB-EC11-812D-B4617B397E08",
+    ovo: { paymentDetails: [{ paymentType: "CASH", amount: validInput.amount }] },
+  };
+  const shopee = {
+    credentialCode: "7cXXXXX-XXXX-XXXX-9XXX-944XXXXXXX8",
+    shopee: { useCoin: false },
+  };
+
+  function parseAccountLink(accountLink: unknown, paymentMethod = "OL") {
+    return createPaymentInputSchema.safeParse({ ...validInput, paymentMethod, accountLink });
+  }
+
+  it("menerima OL dengan ovo dan nominal yang cocok", () => {
+    expect(parseAccountLink(ovo, "OL").success).toBe(true);
+  });
+
+  it("menerima SL dengan shopee, dengan atau tanpa promoId", () => {
+    expect(parseAccountLink(shopee, "SL").success).toBe(true);
+    expect(
+      parseAccountLink({ ...shopee, shopee: { useCoin: true, promoId: "campaign111" } }, "SL").success,
+    ).toBe(true);
+  });
+
+  it("menolak accountLink pada channel selain OL/SL", () => {
+    for (const paymentMethod of ["VC", "BT", "QRIS", "OV"]) {
+      expect(parseAccountLink(ovo, paymentMethod).success).toBe(false);
+    }
+  });
+
+  it("menolak OL/SL tanpa accountLink", () => {
+    expect(
+      createPaymentInputSchema.safeParse({ ...validInput, paymentMethod: "OL" }).success,
+    ).toBe(false);
+    expect(
+      createPaymentInputSchema.safeParse({ ...validInput, paymentMethod: "SL" }).success,
+    ).toBe(false);
+  });
+
+  it("menolak detail channel yang tidak sesuai", () => {
+    expect(parseAccountLink(shopee, "OL").success).toBe(false);
+    expect(parseAccountLink(ovo, "SL").success).toBe(false);
+    expect(parseAccountLink({ ...ovo, shopee: { useCoin: false } }, "OL").success).toBe(false);
+    expect(parseAccountLink({ ...shopee, ovo: ovo.ovo }, "SL").success).toBe(false);
+  });
+
+  it("menolak credentialCode kosong, terlalu panjang, atau mengandung karakter aneh", () => {
+    for (const credentialCode of ["", "X".repeat(51), "ABC DEF", "ABC/DEF", "ABC\nDEF"]) {
+      expect(parseAccountLink({ ...ovo, credentialCode }).success).toBe(false);
+    }
+  });
+
+  it("menolak paymentDetails OVO yang nominalnya tidak sama dengan transaksi", () => {
+    for (const amount of [validInput.amount - 1, validInput.amount + 1]) {
+      expect(
+        parseAccountLink({ ...ovo, ovo: { paymentDetails: [{ paymentType: "CASH", amount }] } })
+          .success,
+      ).toBe(false);
+    }
+  });
+
+  it("menolak detail OVO tidak valid", () => {
+    for (const paymentDetails of [
+      [],
+      [
+        { paymentType: "CASH", amount: validInput.amount },
+        { paymentType: "CASH", amount: validInput.amount },
+      ],
+      [{ paymentType: "CASH", amount: 0 }],
+      [{ paymentType: "CASH", amount: validInput.amount + 0.5 }],
+      [{ paymentType: "CASH", amount: "150000" }],
+      [{ paymentType: "POINT", amount: validInput.amount }],
+      [{ amount: validInput.amount }],
+    ]) {
+      expect(parseAccountLink({ ...ovo, ovo: { paymentDetails } }).success).toBe(false);
+    }
+  });
+
+  it("menolak detail Shopee tidak valid", () => {
+    for (const detail of [
+      {},
+      { useCoin: "false" },
+      { useCoin: false, promoId: "X".repeat(51) },
+    ]) {
+      expect(parseAccountLink({ ...shopee, shopee: detail }, "SL").success).toBe(false);
+    }
+  });
+
+  it("menolak field asing di dalam accountLink", () => {
+    expect(parseAccountLink({ ...ovo, accessToken: "rahasia" }).success).toBe(false);
+    expect(parseAccountLink({ ...shopee, shopee: { useCoin: false, accessToken: "x" } }, "SL").success).toBe(
+      false,
+    );
+    expect(parseAccountLink({ ...ovo, ovo: { paymentDetails: ovo.ovo.paymentDetails, extra: 1 } }).success).toBe(
+      false,
+    );
+  });
+});

@@ -1,3 +1,4 @@
+import type { AccountLink } from "@gapura/shared/payment";
 import { hmacSha256Hex } from "@gapura/shared/hmac";
 
 export type FetchLike = (input: RequestInfo | URL, init?: RequestInit) => Promise<Response>;
@@ -22,6 +23,11 @@ export interface CreateInvoiceRequest {
   callbackUrl: string;
   expiryPeriod?: number;
   creditCardDetail?: { acquirer?: string; binWhitelist?: string[] };
+  /**
+   * Hanya untuk channel `OL`/`SL`. `credentialCode` adalah kredensial akun tertaut
+   * milik pemanggil; provider meneruskannya apa adanya tanpa menyimpan atau mencatat.
+   */
+  accountLink?: AccountLink;
 }
 
 export interface CreateInvoiceResponse {
@@ -127,6 +133,31 @@ interface InquiryBody {
   signature: string;
   expiryPeriod?: number;
   creditCardDetail?: { acquirer?: string; binWhitelist?: string[] };
+  accountLink?: {
+    credentialCode: string;
+    ovo?: { paymentDetails: Array<{ paymentType: "CASH"; amount: number }> };
+    // Vendor mewajibkan field ini ada; nilai kosong dipakai bila project tidak mengirim promoId.
+    shopee?: { useCoin: boolean; promoId: string };
+  };
+}
+
+function toInquiryAccountLink(accountLink: AccountLink): NonNullable<InquiryBody["accountLink"]> {
+  return {
+    credentialCode: accountLink.credentialCode,
+    ...(accountLink.ovo
+      ? {
+          ovo: {
+            paymentDetails: accountLink.ovo.paymentDetails.map((detail) => ({
+              paymentType: detail.paymentType,
+              amount: detail.amount,
+            })),
+          },
+        }
+      : {}),
+    ...(accountLink.shopee
+      ? { shopee: { useCoin: accountLink.shopee.useCoin, promoId: accountLink.shopee.promoId ?? "" } }
+      : {}),
+  };
 }
 
 interface InquiryResponse {
@@ -171,6 +202,7 @@ export function createDuitkuProvider(config: DuitkuConfig): PaymentProvider {
         ),
         ...(request.expiryPeriod !== undefined ? { expiryPeriod: request.expiryPeriod } : {}),
         ...(request.creditCardDetail ? { creditCardDetail: request.creditCardDetail } : {}),
+        ...(request.accountLink ? { accountLink: toInquiryAccountLink(request.accountLink) } : {}),
       };
 
       let response: Response;

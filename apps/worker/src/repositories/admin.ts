@@ -7,6 +7,7 @@ import type {
   AdminWebhookLog,
   AuditEntry,
   PaymentStatus,
+  WebhookCounts,
 } from "../types";
 
 interface ProjectRow {
@@ -259,6 +260,33 @@ export function createAdminRepository(db: D1Database): AdminRepository {
         .bind(...(status ? [status, limit] : [limit]))
         .all<WebhookRow>();
       return rows.results.map(toWebhook);
+    },
+
+    async webhookCounts(): Promise<WebhookCounts> {
+      const rows = await db
+        .prepare("SELECT status, COUNT(*) AS total FROM webhook_logs GROUP BY status")
+        .all<{ status: string; total: number }>();
+      const counts: WebhookCounts = {
+        pending: 0,
+        failed: 0,
+        delivered: 0,
+        dead: 0,
+        total: 0,
+      };
+      for (const row of rows.results) {
+        const total = Number(row.total) || 0;
+        counts.total += total;
+        if (row.status === "PENDING") {
+          counts.pending = total;
+        } else if (row.status === "FAILED") {
+          counts.failed = total;
+        } else if (row.status === "DELIVERED") {
+          counts.delivered = total;
+        } else if (row.status === "DEAD") {
+          counts.dead = total;
+        }
+      }
+      return counts;
     },
 
     async requeueWebhook(id: number, nowIso: string): Promise<boolean> {

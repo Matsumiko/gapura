@@ -15,11 +15,12 @@ Diperbarui: 2026-11-04. Berlaku untuk Worker staging `gapura-sandbox`.
 | SQL injection | Baca/ubah data | Semua query D1 memakai `.bind()` parameter | Ada |
 | SSRF lewat `webhook_url` | Worker memanggil host internal | URL hanya diisi owner lewat admin (Fase 6); belum ada validasi host khusus | Tertunda (belum ada input eksternal) |
 | Data pribadi di log | Kebocoran nama/email | Log hanya memuat merchant order id, kode error, dan ringkasan cron | Ada |
-| Panel admin terekspos | Aksi admin tanpa izin | `/admin/*` wajib sesi opaque (cookie HttpOnly), password Argon2id + TOTP, RBAC owner/admin/viewer, CSRF untuk write, dan reauth 15 menit untuk aksi sensitif; token sesi hanya hash di D1 | Ada + test; live |
+| Panel admin terekspos | Aksi admin tanpa izin | `/admin/*` wajib sesi opaque (cookie HttpOnly), password Argon2id + TOTP, RBAC owner/admin/viewer, CSRF untuk write, dan reauth 15 menit untuk aksi sensitif; token sesi hanya hash di D1; alias `pages.dev` dialihkan ke domain kanonik | Ada + test; live |
 | Dependency rentan | RCE/data leak | `pnpm audit` bersih per 2026-11-03; jalankan sebelum rilis | Ada (manual) |
 | Kredensial Duitku disimpan di D1 | Bocor bila D1/master key bocor | API key dienkripsi AES-GCM; master key 32 byte hanya di Worker secret `CREDENTIALS_KEY`; panel tidak pernah menampilkan kembali API key | Ada + test |
 | Secret masuk repo | Kredensial bocor | `.dev.vars`/`.env` di-.gitignore; secret produksi lewat `wrangler secret put`; config gitleaks tersedia | Ada + config |
 | Log webhook tumbuh tanpa batas | Kuota D1 penuh | Retensi 30 hari untuk baris `DELIVERED`/`DEAD`; retry terjadwal tidak dipangkas | Ada + test |
+| Sesi/percobaan login menumpuk | Kuota D1 auth penuh | Cron `admin_maintenance` menghapus `admin_sessions` kedaluwarsa dan `admin_login_attempts` lebih dari 30 hari di `DB_AUTH` | Ada + test |
 
 ## Checklist rilis
 
@@ -37,9 +38,9 @@ Diperbarui: 2026-11-04. Berlaku untuk Worker staging `gapura-sandbox`.
 - [x] Rate limit login/TOTP admin per akun + IP (5 kegagalan / 15 menit) — ada; WAF tetap disarankan.
 - [x] RBAC owner/admin/viewer dan step-up reauth 15 menit untuk aksi sensitif.
 - [x] Rotasi API key dan webhook secret lewat panel; kredensial tampil sekali.
-- [x] Aksi admin dicatat di `admin_audit` (email pelaku, aksi, target).
+- [x] Aksi admin dicatat di `admin_audit` (email pelaku, aksi, target); audit login/keamanan di `DB_AUTH` dibaca lewat `GET /admin/auth/audit` (owner/admin).
 - [ ] Recovery code TOTP — belum; kehilangan authenticator butuh pemulihan manual.
-- [ ] Biaya CPU Argon2id di Workers free tier — belum diukur; turunkan parameter atau pindah skema bila melebihi batas.
+- [x] Biaya CPU Argon2id diukur 2026-11-04: hash ~382 ms / verify ~376 ms di x64 lokal (`pnpm bench:argon2`); Workers free tier 10 ms tidak cukup untuk login/bootstrap, jadi auth butuh Workers Paid atau hashing di luar Worker. Parameter tidak diturunkan.
 - [ ] Pemindaian secret otomatis di CI — config ada, CI belum dipasang.
 
 ## Catatan operasional

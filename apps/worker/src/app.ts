@@ -3,7 +3,11 @@ import { cors } from "hono/cors";
 import { jsonError } from "./http";
 import { apiKeyAuth } from "./middleware/auth";
 import { requireAdminAuth, requireAdminOrigin } from "./middleware/admin-auth";
+import { projectRateLimit, resolveDataDatabase } from "./middleware/project-rate-limit";
 import { registerAdminRoutes } from "./routes/admin";
+import { registerAdminManagementRoutes } from "./routes/admin-management";
+import { registerRecoveryLoginRoute } from "./routes/admin-recovery";
+import { registerAdminSessionRoutes } from "./routes/admin-sessions";
 import { registerCallbackRoute } from "./routes/callback";
 import { registerPaymentMethodRoutes } from "./routes/payment-methods";
 import { registerPaymentRoutes } from "./routes/payments";
@@ -17,6 +21,7 @@ import type { PaymentMethodsService } from "./services/payment-methods";
 import type { SettingsService } from "./services/settings";
 import type { AdminAuthService } from "./services/admin-auth";
 import type { AdminSessionService } from "./services/admin-sessions";
+import { withIdleTimeout } from "./services/admin-session-management";
 
 import type { AppEnv, AuthDeps } from "./types";
 
@@ -30,6 +35,7 @@ export interface AppDeps extends AuthDeps {
   settings: SettingsService;
   adminAuth?: AdminAuthService;
   adminSessions?: AdminSessionService;
+  sessionIdleMs?: number;
   now?: () => Date;
 }
 
@@ -39,6 +45,12 @@ export function buildApp(deps: AppDeps): Hono<AppEnv> {
     .split(",")
     .map((value) => value.trim())
     .filter(Boolean);
+  const sessions = deps.adminSessions
+    ? withIdleTimeout(deps.adminSessions, {
+        now: deps.now,
+        idleMs: deps.sessionIdleMs,
+      })
+    : undefined;
 
   app.use(
     "*",
@@ -60,6 +72,10 @@ export function buildApp(deps: AppDeps): Hono<AppEnv> {
   );
 
   app.use("/v1/*", apiKeyAuth(deps));
+  app.use(
+    "/v1/*",
+    projectRateLimit({ resolveDb: resolveDataDatabase, now: deps.now }),
+  );
   app.get("/v1/me", (c) => {
     const project = c.get("project");
     return c.json({
@@ -70,14 +86,19 @@ export function buildApp(deps: AppDeps): Hono<AppEnv> {
   registerPaymentRoutes(app, deps);
   registerCallbackRoute(app, deps);
   app.use("/admin/*", requireAdminOrigin({ panelOrigins }));
-  if (deps.adminAuth && deps.adminSessions) {
-    registerAuthRoutes(app, { auth: deps.adminAuth, sessions: deps.adminSessions });
+  if (deps.adminAuth && sessions) {
+    registerAuthRoutes(app, { auth: deps.adminAuth, sessions });
+  }
+  if (sessions) {
+    registerRecoveryLoginRoute(app, { sessions, now: deps.now });
   }
   app.use(
     "/admin/*",
-    requireAdminAuth({ sessions: deps.adminSessions, now: deps.now }),
+    requireAdminAuth({ sessions, now: deps.now }),
   );
   registerAdminRoutes(app, deps);
+  registerAdminManagementRoutes(app, { now: deps.now, issuer: "Gapura" });
+  registerAdminSessionRoutes(app, { now: deps.now });
   registerSettingsRoutes(app, deps);
 
   app.notFound((c) => jsonError(c, 404, "NOT_FOUND", "Endpoint tidak ditemukan."));

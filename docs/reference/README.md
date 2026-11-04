@@ -18,8 +18,10 @@ Sumber utama (diakses 2026-11-03):
 
 | File | Isi |
 |---|---|
-| [duitku-api.md](duitku-api.md) | Endpoint, signature HMAC, parameter inquiry, callback, cek transaksi, redirect, kode error, pemetaan ke Gapura |
+| [duitku-api.md](duitku-api.md) | Endpoint, signature HMAC, parameter inquiry, account link, Fixed VA (SNAP), callback, cek transaksi, redirect, kode error, pemetaan ke Gapura |
 | [duitku-payment-methods.md](duitku-payment-methods.md) | Katalog 32 channel per sistem, expiry, void, account link, Fixed VA, batas nominal/order ID, channel aktif di sandbox |
+| [duitku-production-onboarding.md](duitku-production-onboarding.md) | Runbook produksi: blocker Fase 0, kredensial via panel, callback URL, gate satu transaksi, rollback, larangan |
+| [duitku-observability.md](duitku-observability.md) | Baseline observability gratis: log yang sudah ada, alert create 5xx/callback/webhook/cron/D1, lokasi dashboard |
 
 Katalog machine-readable ada di `packages/shared/src/payment-methods.ts` dan dipakai panel untuk menampilkan nama channel serta halaman Dokumentasi. Bila vendor mengubah daftar, perbarui katalog dan kedua file ini.
 

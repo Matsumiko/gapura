@@ -32,6 +32,7 @@ export interface AdminAuthDeps {
   issuer: string;
   now: () => Date;
   insertAudit: (entry: AuditEntry) => Promise<void>;
+  listAudit: (limit: number) => Promise<AuditEntry[]>;
 }
 
 export interface AdminIdentity {
@@ -61,6 +62,7 @@ export interface AdminAuthService {
     userAgent: string | null;
   }): Promise<{ token: string; csrfToken: string; expiresAt: string; admin: AdminIdentity }>;
   reauthenticate(input: { userId: string; sessionId: string; totpCode: string }): Promise<string>;
+  listAudit(limit: number): Promise<AuditEntry[]>;
 }
 
 function identity(user: AdminUserRecord): AdminIdentity {
@@ -220,6 +222,10 @@ export function createAdminAuthService(deps: AdminAuthDeps): AdminAuthService {
       const at = await deps.sessions.reauthenticate(sessionId);
       await audit(user.email, "reauth", true, null);
       return at;
+    },
+
+    async listAudit(limit) {
+      return deps.listAudit(limit);
     },
   };
 }

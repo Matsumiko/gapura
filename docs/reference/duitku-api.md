@@ -90,7 +90,7 @@ Response:
 | `expiryPeriod` | int (menit) | Default per channel, lihat tabel expiry |
 | `itemDetails` | array | `{name, price, quantity}`; total harus sama dengan `paymentAmount` |
 | `customerDetail` | object | `firstName`, `lastName`, `email`, `phoneNumber`, `billingAddress`, `shippingAddress` |
-| `accountLink` | object | Wajib untuk `OL` (OVO) dan `SL` (ShopeePay link); butuh `credentialCode` dari Duitku |
+| `accountLink` | object | Wajib untuk `OL` (OVO) dan `SL` (ShopeePay link); lihat [Account link](#account-link-ovo-dan-shopeepay) |
 | `creditCardDetail` | object | `acquirer` (`014` BCA, `022` CIMB), `binWhitelist` maks 25 |
 
 `itemDetails`: bila dikirim dan total `price × quantity` tidak sama dengan `paymentAmount`, Duitku membalas 409 `Payment amount must be equal to all item price`. Gapura saat ini tidak mengirim `itemDetails`, jadi tidak terkena aturan ini.
@@ -110,6 +110,64 @@ Response:
 | `statusMessage` | string | Pesan |
 
 Gapura menyimpan `reference`, `paymentUrl`, `vaNumber`, `qrString`; `appUrl` belum disimpan.
+
+## Account link (OVO dan ShopeePay)
+
+Channel `OL` (OVO Account Link) dan `SL` (ShopeePay Account Link) memakai akun e-wallet yang sudah ditautkan. Keduanya **wajib** disertai objek `accountLink` pada inquiry; tanpa itu Duitku menolak transaksi.
+
+### Bentuk payload vendor
+
+```json
+{
+  "accountLink": {
+    "credentialCode": "B3A72721-7FFB-EC11-812D-B4617B397E08",
+    "ovo": {
+      "paymentDetails": [{ "paymentType": "CASH", "amount": 150000 }]
+    },
+    "shopee": { "useCoin": false, "promoId": "" }
+  }
+}
+```
+
+| Parameter | Tipe | Wajib | Catatan |
+|---|---|---|---|
+| `credentialCode` | string(50) | Ya | Diterbitkan Duitku untuk akun tertaut; contohnya UUID |
+| `ovo.paymentDetails[].paymentType` | string(10) | Ya untuk `OL` | Vendor hanya mendokumentasikan `CASH` |
+| `ovo.paymentDetails[].amount` | integer | Ya untuk `OL` | Harus sama dengan `paymentAmount` |
+| `shopee.useCoin` | boolean | Ya untuk `SL` | Pakai koin ShopeePay bila `true` |
+| `shopee.promoId` | string(50) | Ya untuk `SL` | Boleh string kosong. Tabel vendor menulis `promo_ids`, sedangkan contoh request resmi memakai `promoId`; Gapura mengikuti contoh request |
+
+Vendor menempatkan objek `ovo` dan `shopee` sebagai field terpisah, bukan pembeda tipe; masing-masing hanya berlaku untuk channel-nya.
+
+### Perilaku Gapura
+
+- `accountLink` adalah field **opsional** pada `POST /v1/payments` dan hanya diterima bila `paymentMethod` adalah `OL` atau `SL`. Untuk channel lain request ditolak `400 INVALID_REQUEST`.
+- `OL` wajib membawa `accountLink.ovo` dan tidak boleh membawa `shopee`; `SL` sebaliknya. Nominal tiap `paymentDetails` OVO harus sama dengan `amount` transaksi.
+- `credentialCode` divalidasi bentuknya (1–50 karakter, huruf/angka/tanda hubung) dan **diteruskan apa adanya** ke Duitku. Gapura tidak menyimpannya di D1, tidak mencatatnya di log, dan tidak mengembalikannya pada response.
+- `shopee.promoId` yang tidak diisi dikirim sebagai string kosong, sesuai contoh request vendor.
+- Transaksi tetap dicatat sebagai `PENDING` dan diproses seperti channel lain (callback, sinkronisasi status, webhook).
+- Bila `accountLink` tidak dikirim, body inquiry tidak berubah sama sekali (opt-in murni).
+
+### Prasyarat kredensial
+
+`credentialCode` berasal dari alur **Account Linking** Duitku (`/accountlinking/v1/connect`), yang memakai header `X-duitku-merchant` dan signature dengan merchant key. Artinya:
+
+- Project tidak bisa memperoleh `credentialCode` sendiri tanpa kredensial merchant Gapura. Jangan pernah membagikan `DUITKU_API_KEY`/merchant key ke project.
+- Selama Gapura belum menyediakan endpoint account-linking (connect/disconnect/user info) sebagai layanan, dukungan `OL`/`SL` hanya berguna bagi pemanggil yang sudah memegang `credentialCode` valid untuk merchant Gapura. Ini fitur pass-through, bukan alur penautan akun.
+- Bila kelak Gapura menyediakan alur penautan, `credentialCode` harus disimpan terenkripsi di server (mis. `CREDENTIALS_KEY`) dan **tidak** lagi diterima dari body request project.
+- Risiko tersisa: `credentialCode` bersifat seperti bearer token. Gapura tidak bisa membuktikan kode itu milik project yang mengirimnya, sehingga pemegang API key project + kode valid bisa membuat transaksi dari akun tertaut tersebut. Karena itu jangan jadikan `OL`/`SL` fitur umum: hanya untuk project yang benar-benar membutuhkan, dan bila kode bocor, putuskan tautan akun lewat Duitku. Gapura tidak menyimpan kode, jadi log Gapura tidak bisa dipakai untuk merekonstruksi kebocoran.
+- Channel `OL`/`SL` juga harus aktif di merchant; bila belum, Duitku membalas 404 dan Gapura mengembalikan `502 PROVIDER_ERROR`.
+
+## Fixed VA — SNAP-only, tidak didukung di API v2
+
+Fixed Virtual Account adalah nomor VA statis/kustom yang **dikelola merchant**, bukan nomor VA dinamis per transaksi seperti pada `v2/inquiry`.
+
+- Dokumentasi v2 menyatakan integrasi Fixed VA harus memakai **SNAP API** (https://docs.duitku.com/snap-api/). API v2 tidak punya parameter untuk membuat atau mendaftarkan fixed VA; response `v2/inquiry` hanya berisi `vaNumber` dinamis milik transaksi itu.
+- Alurnya terbalik: pada Fixed VA, Duitku mengirim **inquiry request ke merchant** (URL milik merchant) untuk menanyakan nama/nominal tagihan, lalu meneruskan hasilnya ke pembeli. Gapura v2 hanya keluar ke Duitku (outbound inquiry), tidak menerima inquiry masuk.
+- SNAP memakai host berbeda (`snap.duitku.com`, `snapdev.duitku.com`), autentikasi berbeda (RSA keypair, bearer token, signature HMAC-SHA512/SHA256withRSA), dan proses onboarding berbeda: merchant harus lulus developer site test + functionality test ASPI dan memperoleh recommendation letter sebelum registrasi SNAP ke Duitku.
+- Karena itu Fixed VA **tidak didukung di v2 dan tidak diimplementasikan di Gapura**. Jangan mengirim `paymentMethod` VA dengan harapan mendapat nomor statis: `VA`, `BC`, `BT`, dan kode VA lain di katalog v2 selalu menghasilkan nomor dinamis per transaksi.
+- Bila kebutuhan Fixed VA muncul, itu pekerjaan terpisah: endpoint inquiry masuk, manajemen key SNAP, pemetaan VA tetap ke project, dan callback SNAP sendiri. Jangan campur dengan route `v2` yang ada.
+
 
 ## Callback Duitku → Gapura
 
@@ -192,9 +250,9 @@ Response: `merchantOrderId`, `reference`, `amount`, `fee`, `statusCode`, `status
 | `getPaymentMethod` | Dipakai lewat `GET /v1/payment-methods`, cache 5 menit per nominal |
 | `expiryPeriod` | Dipakai opsional; divalidasi 1–10080 menit dan batas maksimum channel |
 | `itemDetails`, `customerDetail`, `phoneNumber` | Belum dikirim |
-| `accountLink` (OL/SL) | Belum didukung |
+| `accountLink` (OL/SL) | Dipakai opsional (pass-through) untuk `OL`/`SL`; divalidasi ketat, tidak disimpan/dilog |
 | `creditCardDetail` | Dipakai opsional untuk `VC`; `acquirer` 014/022 dan `binWhitelist` maks 25 |
-| Fixed VA (SNAP API) | Belum didukung |
+| Fixed VA (SNAP API) | Tidak didukung di v2 — SNAP-only, lihat [Fixed VA](#fixed-va--snap-only-tidak-didukung-di-api-v2) |
 | `appUrl` pada response | Belum disimpan |
 | Void transaksi | Belum ada (vendor hanya menandai dukungan void untuk OV/SA) |
 | Redirect `returnUrl` | Diteruskan dari project |

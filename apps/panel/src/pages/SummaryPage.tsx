@@ -4,6 +4,7 @@ import {
   apiGet,
   type Summary,
   type Transaction,
+  type WebhookCounts,
   type WebhookLog,
 } from "../api";
 import {
@@ -32,6 +33,10 @@ export function SummaryPage() {
   const failed = useQuery({
     queryKey: ["admin", "dashboard", "failed"],
     queryFn: () => apiGet<{ items: WebhookLog[] }>("/admin/webhooks?status=FAILED&limit=5"),
+  });
+  const webhookCounts = useQuery({
+    queryKey: ["admin", "webhooks", "counts"],
+    queryFn: () => apiGet<WebhookCounts>("/admin/webhooks/counts"),
   });
 
   if (summary.isPending) {
@@ -90,8 +95,11 @@ export function SummaryPage() {
         </article>
         <article className="kpi">
           <p className="kpi__label">Webhook gagal</p>
-          <p className="kpi__value">{failed.data?.items.length ?? "-"}</p>
-          <p className="kpi__meta">antrean terbaru</p>
+          <p className="kpi__value">{webhookCounts.data?.failed ?? "-"}</p>
+          <p className="kpi__meta">
+            menunggu retry
+            {webhookCounts.data ? ` · ${webhookCounts.data.dead} dead-letter` : ""}
+          </p>
         </article>
       </section>
 
@@ -189,7 +197,7 @@ export function SummaryPage() {
             </Link>
           </div>
           {failed.isPending ? <TableSkeleton rows={4} cols={2} /> : null}
-          <ErrorNote error={failed.error} />
+          <ErrorNote error={failed.error ?? webhookCounts.error} />
           {failed.data ? (
             failed.data.items.length === 0 ? (
               <p className="empty-note">Tidak ada webhook menunggu retry.</p>

@@ -9,6 +9,8 @@ export const SESSION_COOKIE = "__Host-gapura_admin";
 export const REAUTH_WINDOW_MINUTES = REAUTH_WINDOW_MS / 60_000;
 const COOKIE_MAX_AGE = 60 * 60 * 24;
 const CSRF_HEADER = "X-CSRF-Token";
+const DEFAULT_AUDIT_LIMIT = 50;
+const MAX_AUDIT_LIMIT = 100;
 
 export interface AuthRouteDeps {
   auth: AdminAuthService;
@@ -138,6 +140,23 @@ export function registerAuthRoutes(app: Hono<AppEnv>, deps: AuthRouteDeps): void
       admin: { id: found.admin.id, email: found.admin.email, role: found.admin.role },
       expiresAt: found.session.expiresAt,
     });
+  });
+
+  app.get("/admin/auth/audit", async (c) => {
+    const token = getCookie(c, SESSION_COOKIE);
+    const found = token ? await deps.sessions.authenticate(token) : null;
+    if (!found) {
+      return jsonError(c, 401, "UNAUTHORIZED", "Sesi admin tidak valid.");
+    }
+    if (found.admin.role === "viewer") {
+      return jsonError(c, 403, "FORBIDDEN", "Role viewer tidak boleh membaca audit auth.");
+    }
+    const requested = Number(c.req.query("limit") ?? DEFAULT_AUDIT_LIMIT);
+    const limit =
+      Number.isInteger(requested) && requested > 0
+        ? Math.min(requested, MAX_AUDIT_LIMIT)
+        : DEFAULT_AUDIT_LIMIT;
+    return c.json({ items: await deps.auth.listAudit(limit) });
   });
 
   app.post("/admin/auth/reauth", async (c) => {

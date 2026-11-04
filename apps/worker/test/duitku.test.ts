@@ -141,6 +141,54 @@ describe("createInvoice", () => {
     const body = JSON.parse(String(calls[0]?.init?.body)) as Record<string, unknown>;
     expect("expiryPeriod" in body).toBe(false);
     expect("creditCardDetail" in body).toBe(false);
+    expect("accountLink" in body).toBe(false);
+  });
+
+  it("meneruskan accountLink OVO apa adanya untuk channel OL", async () => {
+    const { provider, calls } = setup(() =>
+      response({
+        reference: "REF-1",
+        paymentUrl: "https://sandbox.duitku.com/topup/REF-1",
+        statusCode: "00",
+      }),
+    );
+
+    await provider.createInvoice({
+      ...REQUEST,
+      paymentMethod: "OL",
+      accountLink: {
+        credentialCode: "B3A72721-7FFB-EC11-812D-B4617B397E08",
+        ovo: { paymentDetails: [{ paymentType: "CASH", amount: 150000 }] },
+      },
+    });
+
+    const body = JSON.parse(String(calls[0]?.init?.body)) as Record<string, unknown>;
+    expect(body.accountLink).toEqual({
+      credentialCode: "B3A72721-7FFB-EC11-812D-B4617B397E08",
+      ovo: { paymentDetails: [{ paymentType: "CASH", amount: 150000 }] },
+    });
+  });
+
+  it("mengisi promoId kosong untuk accountLink ShopeePay (SL)", async () => {
+    const { provider, calls } = setup(() =>
+      response({
+        reference: "REF-1",
+        paymentUrl: "https://sandbox.duitku.com/topup/REF-1",
+        statusCode: "00",
+      }),
+    );
+
+    await provider.createInvoice({
+      ...REQUEST,
+      paymentMethod: "SL",
+      accountLink: { credentialCode: "7cXXXXX-XXXX-XXXX-9XXX-944XXXXXXX8", shopee: { useCoin: false } },
+    });
+
+    const body = JSON.parse(String(calls[0]?.init?.body)) as Record<string, unknown>;
+    expect(body.accountLink).toEqual({
+      credentialCode: "7cXXXXX-XXXX-XXXX-9XXX-944XXXXXXX8",
+      shopee: { useCoin: false, promoId: "" },
+    });
   });
 
   it("menolak sebelum memanggil jaringan bila kredensial kosong", async () => {

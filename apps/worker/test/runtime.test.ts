@@ -157,4 +157,35 @@ describe("pemisahan route environment", () => {
     );
     expect(wrong.status).toBe(400);
   });
+
+  it("membaca audit auth dari DB_AUTH, bukan D1 environment", async () => {
+    const { env, runtime, sandboxSession } = await setup();
+    const createdAt = "2026-11-04T10:00:00.000Z";
+    await env.DB_AUTH.prepare(
+      `INSERT INTO admin_audit (actor_email, action, target, detail, created_at)
+       VALUES ('admin@example.com', 'login:success', NULL, NULL, ?)`,
+    )
+      .bind(createdAt)
+      .run();
+    await env.DB_SANDBOX.prepare(
+      `INSERT INTO admin_audit (actor_email, action, target, detail, created_at)
+       VALUES ('lain@example.com', 'webhook:retry', NULL, NULL, ?)`,
+    )
+      .bind(createdAt)
+      .run();
+
+    const response = await runtime.root.request(
+      "/sandbox/admin/auth/audit?limit=1",
+      { headers: readHeaders(sandboxSession) },
+      env,
+    );
+
+    expect(response.status).toBe(200);
+    const body = (await response.json()) as {
+      items: Array<{ actorEmail: string; action: string }>;
+    };
+    expect(body.items).toEqual([
+      { actorEmail: "admin@example.com", action: "login:success", target: null, detail: null, createdAt },
+    ]);
+  });
 });

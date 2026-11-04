@@ -30,7 +30,7 @@ Duitku tidak menerima "sistem pembayaran" di API. Yang dikirim sebagai `paymentM
 | `DM` | Danamon Virtual Account | 1440 | > 1440 |
 | `BV` | BSI Virtual Account | 1440 | > 1440 |
 
-Catatan: Fixed VA (nomor VA statis/kustom) tidak lewat API ini; vendor mengarahkan ke SNAP API.
+Catatan: Fixed VA (nomor VA statis/kustom) tidak lewat API v2 ini; vendor mengarahkan ke SNAP API dan alurnya menerima inquiry dari Duitku, bukan sebaliknya. Gapura tidak mendukungnya — lihat [Fixed VA](duitku-api.md#fixed-va--snap-only-tidak-didukung-di-api-v2).
 
 ### Retail
 
@@ -51,7 +51,7 @@ Catatan: Fixed VA (nomor VA statis/kustom) tidak lewat API ini; vendor mengarahk
 | `SL` | ShopeePay Account Link | 30 | - | Butuh `accountLink.credentialCode`, `shopee` |
 | `OL` | OVO Account Link | 15 | - | Butuh `accountLink.credentialCode`, `ovo` |
 
-Account link: transaksi memakai akun OVO/ShopeePay yang sudah ditautkan. `credentialCode` didapat dari Duitku; untuk OVO wajib `paymentDetails` (`paymentType: CASH`, `amount`), untuk Shopee opsi `useCoin`/`promoId`.
+Account link: transaksi memakai akun OVO/ShopeePay yang sudah ditautkan. `credentialCode` didapat dari alur account-linking Duitku; untuk OVO wajib `paymentDetails` (`paymentType: CASH`, `amount` = nominal transaksi), untuk Shopee wajib `useCoin` dan opsi `promoId`. Gapura menerima objek ini sebagai pass-through opsional (lihat [duitku-api.md](duitku-api.md#account-link-ovo-dan-shopeepay)); Gapura tidak menyimpan `credentialCode`.
 
 ### Credit Card
 
@@ -156,7 +156,8 @@ Daftar ini bisa berubah kapan saja; selalu ambil ulang dari API.
 
 - **VA**: response berisi `vaNumber` + `paymentUrl`; nominal harus sama persis.
 - **QRIS**: response berisi `qrString`; render sendiri menjadi QR. `NQ`/`SP`/`SQ` beda issuer.
-- **E-Wallet account link (`OL`/`SL`)**: tidak bisa dipakai tanpa `accountLink` dari Duitku.
+- **E-Wallet account link (`OL`/`SL`)**: tidak bisa dipakai tanpa `accountLink`; Gapura mewajibkan objek itu untuk kedua channel dan menolak detail channel yang salah. `credentialCode` harus berasal dari alur account-linking Duitku (butuh kredensial merchant Gapura), jadi fitur ini pass-through, bukan penautan akun.
+- **Fixed VA**: SNAP-only; tidak ada di API v2. VA dinamis (`BC`, `BT`, `VA`, dst.) tetap bisa dipakai.
 - **Credit card (`VC`)**: 3DS; `creditCardDetail` opsional untuk memilih acquirer (`014` BCA, `022` CIMB) dan whitelist BIN maksimal 25.
 - **Retail (`FT`/`IR`)**: pembeli membayar di gerai; expiry default 24 jam.
 - **PayLater (`DN`/`AT`)**: butuh akun/limit pelanggan.
@@ -165,6 +166,7 @@ Daftar ini bisa berubah kapan saja; selalu ambil ulang dari API.
 ## Bagaimana Gapura memperlakukannya
 
 - Project mengirim `paymentMethod` 2 karakter; Gapura memvalidasi bentuk (`^[A-Z0-9]{2}$`) lalu meneruskannya ke Duitku.
+- Untuk `OL`/`SL`, Gapura mewajibkan `accountLink` yang sesuai channel, memvalidasi bentuk `credentialCode`, dan meneruskannya tanpa menyimpan atau mencatatnya. Channel lain yang mengirim `accountLink` ditolak sebelum memanggil Duitku.
 - Gapura **tidak** membatasi ke katalog; channel baru dari vendor tetap bisa dipakai tanpa deploy.
 - Katalog `packages/shared/src/payment-methods.ts` dipakai panel untuk menampilkan nama channel (mis. `BC` → "BCA Virtual Account") dan halaman Dokumentasi.
 - Channel aktif tidak diambil otomatis. Bila project mengirim channel yang tidak aktif, Duitku membalas 404 dan Gapura mengembalikan `502 PROVIDER_ERROR` (baris PENDING dihapus).

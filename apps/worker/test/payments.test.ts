@@ -181,6 +181,50 @@ describe("POST /v1/payments", () => {
     expect(calls).toHaveLength(0);
   });
 
+  it("meneruskan accountLink OL ke provider tanpa membocorkan credentialCode", async () => {
+    const { app, calls } = await setup();
+
+    const accountLink = {
+      credentialCode: "B3A72721-7FFB-EC11-812D-B4617B397E08",
+      ovo: { paymentDetails: [{ paymentType: "CASH", amount: VALID_BODY.amount }] },
+    };
+    const response = await postPayment(app, {
+      ...VALID_BODY,
+      paymentMethod: "OL",
+      accountLink,
+    });
+
+    expect(response.status).toBe(201);
+    expect(calls[0]?.accountLink).toEqual(accountLink);
+    expect(JSON.stringify(await readJson<PaymentBody>(response))).not.toContain("credentialCode");
+  });
+
+  it("menolak accountLink untuk channel yang tidak membutuhkannya", async () => {
+    const { app, calls } = await setup();
+
+    const response = await postPayment(app, {
+      ...VALID_BODY,
+      paymentMethod: "BT",
+      accountLink: {
+        credentialCode: "B3A72721-7FFB-EC11-812D-B4617B397E08",
+        ovo: { paymentDetails: [{ paymentType: "CASH", amount: VALID_BODY.amount }] },
+      },
+    });
+
+    expect(response.status).toBe(400);
+    expect(calls).toHaveLength(0);
+  });
+
+  it("menolak OL/SL tanpa accountLink", async () => {
+    const { app, calls } = await setup();
+
+    for (const paymentMethod of ["OL", "SL"]) {
+      const response = await postPayment(app, { ...VALID_BODY, paymentMethod });
+      expect(response.status).toBe(400);
+    }
+    expect(calls).toHaveLength(0);
+  });
+
   it("menolak orderId yang membuat merchantOrderId melebihi 50 karakter", async () => {
     const { app, calls } = await setup();
 

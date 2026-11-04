@@ -288,6 +288,10 @@ export function LoginPage({
         </form>
         <ErrorNote error={error} />
         <p className="auth__hint">
+          Kehilangan authenticator?{" "}
+          <a href="/recovery">Masuk dengan recovery code</a>
+        </p>
+        <p className="auth__hint">
           Token sesi tidak pernah disimpan di JavaScript; hanya CSRF token untuk header write yang
           disimpan di sessionStorage tab ini.
         </p>
