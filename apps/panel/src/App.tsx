@@ -172,18 +172,18 @@ export default function App() {
 
   return (
     <BrowserRouter>
-      <div className="console" data-environment={environment}>
+      <div className="shell3" data-environment={environment}>
         <a className="skip" href="#main">
           Lewati ke konten
         </a>
 
-        <aside className="console__sidebar">
-          <Link to="/" className="console__brand" aria-label="Gapura Admin, Ringkasan">
-            <span className="console__brand-name">Gapura</span>
-            <span className="console__brand-role">Admin</span>
+        <header className="shell3__bar">
+          <Link to="/" className="shell3__brand" aria-label="Gapura Admin, Dashboard">
+            <span className="shell3__brand-name">Gapura</span>
+            <span className="shell3__brand-role">Admin</span>
           </Link>
 
-          <nav className="console__nav" aria-label="Navigasi utama">
+          <nav className="shell3__nav" aria-label="Navigasi utama">
             {links.map((link) => (
               <NavLink
                 key={link.to}
@@ -196,43 +196,35 @@ export default function App() {
             ))}
           </nav>
 
-          <div className="console__tools">
-            <div className="console__env">
-              <span className="console__label">Environment</span>
-              <span className="console__env-value">{environment}</span>
-              <label className="console__switch">
-                <span className="doc-visually-hidden">Ganti environment</span>
-                <select
-                  value={environment}
-                  onChange={(event) => changeEnvironment(event.target.value as ApiEnvironment)}
-                >
-                  <option value="sandbox">sandbox</option>
-                  <option value="production">production</option>
-                </select>
-              </label>
-            </div>
-
-            <div className="console__account">
-              <span className="console__email" title={identity.email}>
-                {identity.email}
-              </span>
-              <span className="badge role">{identity.role}</span>
-              {canWrite ? null : <span className="account__read">hanya baca</span>}
-            </div>
+          <div className="shell3__tools">
+            <label className="shell3__env">
+              <span className="shell3__env-label">Env</span>
+              <select
+                value={environment}
+                onChange={(event) => changeEnvironment(event.target.value as ApiEnvironment)}
+              >
+                <option value="sandbox">sandbox</option>
+                <option value="production">production</option>
+              </select>
+            </label>
+            <span className="shell3__email" title={identity.email}>
+              {identity.email}
+            </span>
+            <span className="badge role">{identity.role}</span>
             <button
               type="button"
-              className="button button--quiet console__theme"
+              className="button button--quiet"
               onClick={() => setTheme(theme === "dark" ? "light" : "dark")}
             >
               {theme === "dark" ? "Mode terang" : "Mode gelap"}
             </button>
-            <button type="button" className="button button--quiet console__logout" onClick={() => void logout()}>
+            <button type="button" className="button button--quiet" onClick={() => void logout()}>
               Keluar
             </button>
           </div>
-        </aside>
+        </header>
 
-        <main className="console__main" id="main" tabIndex={-1}>
+        <main className="shell3__main" id="main" tabIndex={-1}>
           <Routes>
             <Route path="/" element={<SummaryPage />} />
             <Route path="/projects" element={<ProjectsPage canWrite={canWrite} />} />

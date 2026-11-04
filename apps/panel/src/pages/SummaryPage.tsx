@@ -56,31 +56,33 @@ export function SummaryPage() {
         lede="Uang masuk, transaksi terbaru, dan antrean webhook untuk environment ini."
       />
 
-      <section className="kpi-grid" aria-label="Indikator utama">
-        <article className="kpi kpi--lead">
-          <p className="kpi__label">Pendapatan hari ini</p>
-          <p className="kpi__value num">{formatRupiah(data.today.amount)}</p>
-          <p className="kpi__meta">
+      <section className="band" aria-label="Indikator utama">
+        <div className="band__lead">
+          <p className="band__label">Pendapatan hari ini</p>
+          <p className="band__value num">{formatRupiah(data.today.amount)}</p>
+          <p className="band__meta">
             <span className="num">{data.today.count}</span> transaksi PAID
           </p>
-        </article>
-        <article className="kpi">
-          <p className="kpi__label">Bulan ini</p>
-          <p className="kpi__value num">{formatRupiah(data.month.amount)}</p>
-          <p className="kpi__meta">
-            <span className="num">{data.month.count}</span> transaksi PAID
-          </p>
-        </article>
-        <article className="kpi">
-          <p className="kpi__label">Menunggu pembayaran</p>
-          <p className="kpi__value num">{pending.data?.total ?? "–"}</p>
-          <p className="kpi__meta">transaksi PENDING</p>
-        </article>
-        <article className="kpi">
-          <p className="kpi__label">Webhook gagal</p>
-          <p className="kpi__value num">{failed.data?.items.length ?? "–"}</p>
-          <p className="kpi__meta">menunggu retry</p>
-        </article>
+        </div>
+        <dl className="band__side">
+          <div>
+            <dt>Bulan ini</dt>
+            <dd className="num">{formatRupiah(data.month.amount)}</dd>
+            <dd className="band__sub">
+              <span className="num">{data.month.count}</span> transaksi PAID
+            </dd>
+          </div>
+          <div>
+            <dt>Menunggu pembayaran</dt>
+            <dd className="num">{pending.data?.total ?? "–"}</dd>
+            <dd className="band__sub">transaksi PENDING</dd>
+          </div>
+          <div>
+            <dt>Webhook gagal</dt>
+            <dd className="num">{failed.data?.items.length ?? "–"}</dd>
+            <dd className="band__sub">menunggu retry</dd>
+          </div>
+        </dl>
       </section>
 
       <div className="dash-grid">
