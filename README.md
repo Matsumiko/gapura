@@ -4,6 +4,30 @@ Backend gerbang pembayaran di Cloudflare Workers. Banyak project memakai satu ak
 
 Keputusan arsitektur: [docs/adr](docs/adr).
 
+## Preview
+
+Panel admin dengan data demo — tidak ada kredensial atau data produksi di screenshot.
+
+<img src="preview/dashboard-light.png" alt="Dashboard Gapura: ringkasan pendapatan, komposisi project, transaksi terbaru, dan antrean webhook" width="100%">
+
+| Transaksi | Project |
+|---|---|
+| ![Daftar transaksi dengan filter project dan status](preview/transactions.png) | ![Daftar project, prefix, webhook, dan aksi kredensial](preview/projects.png) |
+
+| Audit | Tema gelap |
+|---|---|
+| ![Audit aksi admin](preview/audit.png) | ![Dashboard tema gelap](preview/dashboard-dark.png) |
+
+## Fitur
+
+- **Satu API untuk banyak project** — setiap project punya prefix order dan API key sendiri; kredensial Duitku tidak dibagikan.
+- **Pembuatan pembayaran idempoten** — retry dengan orderId, amount, dan paymentMethod yang sama mengembalikan transaksi lama tanpa invoice ganda.
+- **Callback aman** — signature HMAC-SHA256, verifikasi nominal, transisi status sekali jalan, lalu webhook bertanda tangan ke project.
+- **Webhook andal** — retry berjadwal, dead-letter, pengiriman ulang dari panel, dan sinkronisasi transaksi PENDING lewat Cron.
+- **Dua environment** — `/sandbox` dan `/production` memakai D1 terpisah; kredensial Duitku disimpan terenkripsi per environment.
+- **Admin yang aman** — sesi opaque + TOTP, RBAC owner/admin/viewer, CSRF, step-up reauth, recovery code, dan audit.
+- **Panel operasional** — dashboard, project, transaksi, webhook, pengaturan kredensial, akun, sesi, admin, audit, dan referensi API in-app.
+
 ## Status
 
 Berjalan di Cloudflare Workers + D1. Dua environment (`/sandbox` dan `/production`) memakai database terpisah; admin auth memakai satu database bersama. Panel React tersedia untuk operasi admin. Jalankan `pnpm verify` untuk memastikan typecheck, test, build panel, dan bundel Worker lolos.
