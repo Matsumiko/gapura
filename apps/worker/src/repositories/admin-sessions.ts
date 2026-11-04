@@ -102,6 +102,10 @@ export function createAdminSessionRepository(db: D1Database): AdminSessionReposi
         .run();
     },
 
+    async setCsrfHash(id: string, hash: string): Promise<void> {
+      await db.prepare("UPDATE admin_sessions SET csrf_hash = ? WHERE id = ?").bind(hash, id).run();
+    },
+
     async deleteExpired(now: string): Promise<void> {
       await db.prepare("DELETE FROM admin_sessions WHERE expires_at <= ?").bind(now).run();
     },

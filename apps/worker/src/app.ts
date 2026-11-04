@@ -5,6 +5,7 @@ import { apiKeyAuth } from "./middleware/auth";
 import { requireAdminAuth, requireAdminOrigin } from "./middleware/admin-auth";
 import { projectRateLimit, resolveDataDatabase } from "./middleware/project-rate-limit";
 import { registerAdminRoutes } from "./routes/admin";
+import { registerAdminAccountRoutes } from "./routes/admin-account";
 import { registerAdminManagementRoutes } from "./routes/admin-management";
 import { registerRecoveryLoginRoute } from "./routes/admin-recovery";
 import { registerAdminSessionRoutes } from "./routes/admin-sessions";
@@ -97,6 +98,7 @@ export function buildApp(deps: AppDeps): Hono<AppEnv> {
     requireAdminAuth({ sessions, now: deps.now }),
   );
   registerAdminRoutes(app, deps);
+  registerAdminAccountRoutes(app, { now: deps.now });
   registerAdminManagementRoutes(app, { now: deps.now, issuer: "Gapura" });
   registerAdminSessionRoutes(app, { now: deps.now });
   registerSettingsRoutes(app, deps);

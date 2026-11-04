@@ -130,6 +130,15 @@ export function registerAuthRoutes(app: Hono<AppEnv>, deps: AuthRouteDeps): void
     return c.json({ ok: true });
   });
 
+  app.get("/admin/auth/csrf", async (c) => {
+    const token = getCookie(c, SESSION_COOKIE);
+    const found = token ? await deps.sessions.authenticate(token) : null;
+    if (!found) {
+      return jsonError(c, 401, "UNAUTHORIZED", "Sesi admin tidak valid.");
+    }
+    return c.json({ csrfToken: await deps.sessions.issueCsrf(found.session.id) });
+  });
+
   app.get("/admin/auth/session", async (c) => {
     const token = getCookie(c, SESSION_COOKIE);
     const found = token ? await deps.sessions.authenticate(token) : null;

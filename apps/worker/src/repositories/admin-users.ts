@@ -76,6 +76,22 @@ export function createAdminUserRepository(db: D1Database): AdminUserRepository {
         .run();
     },
 
+    async updateEmail(id: string, email: string, now: string): Promise<boolean> {
+      const result = await db
+        .prepare("UPDATE admin_users SET email = ?, updated_at = ? WHERE id = ?")
+        .bind(email.toLowerCase(), now, id)
+        .run();
+      return (result.meta.changes ?? 0) === 1;
+    },
+
+    async updatePasswordHash(id: string, hash: string, now: string): Promise<boolean> {
+      const result = await db
+        .prepare("UPDATE admin_users SET password_hash = ?, updated_at = ? WHERE id = ?")
+        .bind(hash, now, id)
+        .run();
+      return (result.meta.changes ?? 0) === 1;
+    },
+
     async recordAttempt(input): Promise<void> {
       await db
         .prepare(

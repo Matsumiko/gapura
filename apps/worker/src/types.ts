@@ -211,6 +211,8 @@ export interface AdminUserRepository {
     now: string;
   }): Promise<boolean>;
   setTotpCounter(id: string, counter: number, now: string): Promise<void>;
+  updateEmail(id: string, email: string, now: string): Promise<boolean>;
+  updatePasswordHash(id: string, hash: string, now: string): Promise<boolean>;
   recordAttempt(input: {
     email: string | null;
     ip: string | null;
@@ -248,6 +250,7 @@ export interface AdminSessionRepository {
   touch(id: string, now: string): Promise<void>;
   revoke(id: string): Promise<void>;
   setReauthenticated(id: string, at: string): Promise<void>;
+  setCsrfHash(id: string, hash: string): Promise<void>;
   deleteExpired(now: string): Promise<void>;
 }
 
@@ -329,6 +332,7 @@ export type AppEnv = {
   Variables: {
     project: ProjectRecord;
     adminActor: string;
+    adminId: string;
     adminRole: AdminRole;
     adminSessionId: string;
     adminReauthenticatedAt: string | null;

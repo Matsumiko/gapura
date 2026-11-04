@@ -81,11 +81,12 @@ wrangler d1 execute gapura-sandbox --remote --json --command \
 
 - `401 ADMIN_UNAUTHORIZED`: sesi kedaluwarsa (TTL 24 jam) atau sudah dicabut. Login lagi dengan email + password + TOTP.
 - `403 CSRF_INVALID`: request write tanpa header `X-CSRF-Token` yang cocok. Muat ulang panel lalu login lagi bila token tab hilang.
-- `403 FORBIDDEN`: role `viewer` mencoba write. Minta owner/admin melakukan perubahan.
+- `403 FORBIDDEN`: role `viewer` mencoba write data. Viewer tetap boleh mengubah kredensial akunnya sendiri di halaman **Akun**.
 - `403 REAUTH_REQUIRED`: aksi sensitif butuh TOTP ulang; panel membuka modal verifikasi. Berlaku 15 menit sejak `reauthenticated_at`.
 - `503 ADMIN_NOT_CONFIGURED`: Worker tidak punya service auth sesi (deploy lama/konfigurasi salah). Deploy versi terbaru; auth sesi selalu aktif.
 - `SETUP_CLOSED`: `admin_users` sudah terisi. Bootstrap hanya sekali; hapus `ADMIN_SETUP_TOKEN` dengan `wrangler secret delete ADMIN_SETUP_TOKEN`.
-- Authenticator hilang: belum ada recovery code. Pulihkan manual di D1 (ganti secret TOTP user lewat prosedur internal) atau buat deployment baru dengan D1 kosong untuk bootstrap ulang.
+- Pengaturan akun sendiri ada di panel **Akun** (`/account`): ubah email, ubah password, dan buat ulang 8 kode pemulihan. Setiap aksi meminta password saat ini; bila sesi belum fresh, panel meminta TOTP ulang (jendela 15 menit). Perubahan email/password mencabut sesi perangkat lain, sesi saat ini tetap aktif.
+- Authenticator hilang: login lewat **/recovery** memakai salah satu kode pemulihan (sekali pakai). Setelah masuk, buka **Akun** untuk membuat set kode baru. Bila kode juga habis, owner dapat mereset TOTP admin tersebut dari halaman Admin; owner tunggal tanpa kode harus dipulihkan manual di D1.
 - Mencabut semua perangkat: `DELETE FROM admin_sessions WHERE admin_id = '<id>';` lewat D1, atau nonaktifkan user (`UPDATE admin_users SET is_active = 0`).
 - Tombol kirim ulang webhook mengubah baris `DEAD`/`FAILED` menjadi jadwal baru (attempt 1, jatuh tempo sekarang); Cron berikutnya mengirim.
 - Alias `your-project.pages.dev` mengalihkan ke `https://admin.example.com` lewat `apps/panel/public/host-guard.js` sebelum panel dimuat. Bila alias tidak mengalihkan, pastikan build Pages memuat file itu (cek `dist/host-guard.js`) dan tidak ada cache lama; domain kanonik tidak terpengaruh.

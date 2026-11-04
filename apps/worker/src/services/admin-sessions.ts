@@ -21,6 +21,7 @@ export interface AdminSessionService {
   authenticate(token: string): Promise<AuthenticatedSession | null>;
   revoke(token: string): Promise<void>;
   reauthenticate(sessionId: string): Promise<string>;
+  issueCsrf(sessionId: string): Promise<string>;
   verifyCsrf(session: AdminSession, csrfToken: string): Promise<boolean>;
   cleanup(): Promise<void>;
 }
@@ -88,6 +89,12 @@ export function createAdminSessionService(deps: {
       const at = deps.now().toISOString();
       await deps.repo.setReauthenticated(sessionId, at);
       return at;
+    },
+
+    async issueCsrf(sessionId: string): Promise<string> {
+      const token = randomToken();
+      await deps.repo.setCsrfHash(sessionId, await sha256Hex(token));
+      return token;
     },
 
     async verifyCsrf(session: AdminSession, csrfToken: string): Promise<boolean> {

@@ -82,3 +82,29 @@ export const adminTransactionFilterSchema = z
   .strict();
 
 export type AdminTransactionFilter = z.infer<typeof adminTransactionFilterSchema>;
+
+export const accountEmailInputSchema = z
+  .object({
+    email: z.email().max(254),
+    password: z.string().min(1).max(200),
+  })
+  .strict();
+
+export type AccountEmailInput = z.infer<typeof accountEmailInputSchema>;
+
+export const accountPasswordInputSchema = z
+  .object({
+    currentPassword: z.string().min(1).max(200),
+    newPassword: z.string().min(12).max(200),
+  })
+  .strict();
+
+export type AccountPasswordInput = z.infer<typeof accountPasswordInputSchema>;
+
+export const accountRecoveryCodesInputSchema = z
+  .object({
+    password: z.string().min(1).max(200),
+  })
+  .strict();
+
+export type AccountRecoveryCodesInput = z.infer<typeof accountRecoveryCodesInputSchema>;

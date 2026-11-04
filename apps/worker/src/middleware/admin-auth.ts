@@ -85,7 +85,9 @@ export function requireAdminAuth(deps: AdminAuthMiddlewareDeps): MiddlewareHandl
     const method = c.req.method.toUpperCase();
     const isWrite = WRITE_METHODS[method] === true;
 
-    if (isWrite && found.admin.role === "viewer") {
+    // Viewer read-only untuk data, tetapi tetap boleh mengelola kredensial akunnya sendiri.
+    const isSelfAccount = c.req.path.startsWith("/admin/account");
+    if (isWrite && found.admin.role === "viewer" && !isSelfAccount) {
       return jsonError(c, 403, "FORBIDDEN", "Role viewer tidak boleh mengubah data.");
     }
 
@@ -109,6 +111,7 @@ export function requireAdminAuth(deps: AdminAuthMiddlewareDeps): MiddlewareHandl
     }
 
     c.set("adminActor", found.admin.email);
+    c.set("adminId", found.admin.id);
     c.set("adminRole", found.admin.role);
     c.set("adminSessionId", found.session.id);
     c.set("adminReauthenticatedAt", found.session.reauthenticatedAt);

@@ -207,6 +207,22 @@ describe("route auth admin", () => {
     });
   });
 
+  it("menerbitkan CSRF baru untuk sesi yang masih valid", async () => {
+    const { app, env, cookie, csrfToken } = await bootstrap();
+
+    const issued = await app.request("/admin/auth/csrf", { headers: { Cookie: cookie } }, env);
+    expect(issued.status).toBe(200);
+    const body = (await issued.json()) as { csrfToken: string };
+    expect(body.csrfToken).not.toBe(csrfToken);
+
+    const logout = await app.request(
+      "/admin/auth/logout",
+      { method: "POST", headers: { Cookie: cookie, "X-CSRF-Token": body.csrfToken } },
+      env,
+    );
+    expect(logout.status).toBe(200);
+  });
+
   it("logout butuh CSRF dan mencabut sesi", async () => {
     const { app, env, cookie, csrfToken } = await bootstrap();
 

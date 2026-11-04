@@ -157,8 +157,27 @@ interface ApiErrorBody {
   error?: { code?: unknown; message?: unknown };
 }
 
+async function ensureCsrfToken(): Promise<void> {
+  if (csrfToken) {
+    return;
+  }
+  const response = await fetch(`${apiBaseUrl}/${getApiEnvironment()}/admin/auth/csrf`, {
+    credentials: "include",
+  });
+  if (!response.ok) {
+    return;
+  }
+  const body = (await response.json().catch(() => null)) as { csrfToken?: unknown } | null;
+  if (typeof body?.csrfToken === "string") {
+    setCsrfToken(body.csrfToken);
+  }
+}
+
 async function request<T>(path: string, init: RequestInit = {}, retried = false): Promise<T> {
   const method = (init.method ?? "GET").toUpperCase();
+  if (WRITE_METHODS[method] === true && !csrfToken) {
+    await ensureCsrfToken();
+  }
   const headers = new Headers(init.headers);
   if (init.body !== undefined) {
     headers.set("Content-Type", "application/json");
@@ -253,6 +272,30 @@ export async function loginAdmin(input: {
   const result = await apiPost<SessionResult>("/admin/auth/login", input);
   setCsrfToken(result.csrfToken);
   return result;
+}
+
+export function fetchAccount(): Promise<{ account: AccountOverview }> {
+  return apiGet<{ account: AccountOverview }>("/admin/account");
+}
+
+export function changeAccountEmail(input: {
+  email: string;
+  password: string;
+}): Promise<AccountEmailResult> {
+  return apiPost<AccountEmailResult>("/admin/account/email", input);
+}
+
+export function changeAccountPassword(input: {
+  currentPassword: string;
+  newPassword: string;
+}): Promise<AccountPasswordResult> {
+  return apiPost<AccountPasswordResult>("/admin/account/password", input);
+}
+
+export function regenerateAccountRecoveryCodes(input: {
+  password: string;
+}): Promise<AccountRecoveryCodesResult> {
+  return apiPost<AccountRecoveryCodesResult>("/admin/account/recovery-codes", input);
 }
 
 export async function logoutAdmin(): Promise<void> {
@@ -354,4 +397,25 @@ export interface WebhookCounts {
   delivered: number;
   dead: number;
   total: number;
+}
+
+export interface AccountOverview {
+  id: string;
+  email: string;
+  role: AdminRole;
+  totpEnabled: boolean;
+  recoveryCodesRemaining: number;
+}
+
+export interface AccountEmailResult {
+  account: AccountOverview;
+  revokedSessions: number;
+}
+
+export interface AccountPasswordResult {
+  revokedSessions: number;
+}
+
+export interface AccountRecoveryCodesResult {
+  codes: string[];
 }

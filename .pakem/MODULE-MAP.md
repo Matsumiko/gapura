@@ -15,7 +15,10 @@ Worker (Cloudflare):
 - `apps/worker/src/routes/callback.ts` — `POST /callback/duitku`: parse form, verifikasi lewat service, jadwalkan forward asinkron.
 - `apps/worker/src/routes/admin.ts` — endpoint `/admin/*`: ringkasan, project, transaksi, webhook retry; menerjemahkan error domain ke HTTP.
 - `apps/worker/src/middleware/admin-auth.ts` — origin panel + sesi cookie `__Host-gapura_admin`, CSRF untuk write, RBAC viewer read-only, step-up `REAUTH_REQUIRED` 15 menit untuk aksi sensitif.
-- `apps/worker/src/routes/auth.ts` — status, bootstrap/start, bootstrap, login, logout, session, reauth; menulis cookie sesi + CSRF.
+- `apps/worker/src/routes/auth.ts` — status, bootstrap/start, bootstrap, login, logout, session, csrf, reauth; menulis cookie sesi + CSRF.
+- `apps/worker/src/routes/admin-account.ts` — pengaturan akun sendiri: email, password, kode pemulihan; password + reauth TOTP.
+- `apps/worker/src/services/admin-account.ts` — verifikasi password, ubah email/password, terbitkan ulang recovery code, cabut sesi lain, audit.
+- `apps/worker/src/repositories/admin-account.ts` — hitung recovery code, cabut sesi selain sesi saat ini, tulis audit akun.
 - `apps/worker/src/services/admin-auth.ts` — bootstrap owner, login password+TOTP, reauth TOTP, rate limit, audit auth.
 - `apps/worker/src/repositories/admin-users.ts` — SQL admin_users dan admin_login_attempts.
 - `apps/worker/src/repositories/admin.ts` — SQL khusus admin: daftar/mutasi project (termasuk edit profil), daftar transaksi + filter, riwayat webhook, ringkasan, audit.

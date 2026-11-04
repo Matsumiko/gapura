@@ -20,6 +20,7 @@ import { TransactionsPage } from "./pages/TransactionsPage";
 import { TransactionDetailPage } from "./pages/TransactionDetailPage";
 import { WebhooksPage } from "./pages/WebhooksPage";
 import { DocsPage } from "./pages/DocsPage";
+import { AccountPage } from "./pages/AccountPage";
 import { SettingsPage } from "./pages/SettingsPage";
 import { AuditPage } from "./pages/AuditPage";
 import { AdminsPage } from "./pages/AdminsPage";
@@ -99,6 +100,18 @@ const linkGroups = [
   {
     label: "Sistem",
     links: [
+      {
+        to: "/account",
+        label: "Akun",
+        end: false,
+        note: "Email, password, recovery",
+        icon: (
+          <svg viewBox="0 0 16 16" fill="none" aria-hidden="true">
+            <circle cx="8" cy="5" r="2.5" stroke="currentColor" strokeWidth="1.3" />
+            <path d="M3 13.5c.55-2.3 2.5-3.6 5-3.6s4.45 1.3 5 3.6" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round" />
+          </svg>
+        ),
+      },
       {
         to: "/sessions",
         label: "Sesi",
@@ -435,6 +448,16 @@ export default function App() {
               <Route path="/transactions/:merchantOrderId" element={<TransactionDetailPage canWrite={canWrite} />} />
               <Route path="/webhooks" element={<WebhooksPage canWrite={canWrite} />} />
               <Route path="/settings" element={<SettingsPage canWrite={canWrite} />} />
+              <Route
+                path="/account"
+                element={
+                  <AccountPage
+                    onEmailChanged={(email) =>
+                      setIdentity((current) => (current ? { ...current, email } : current))
+                    }
+                  />
+                }
+              />
               <Route path="/admins" element={<AdminsPage canWrite={identity.role === "owner"} />} />
               <Route path="/sessions" element={<SessionsPage isOwner={identity.role === "owner"} />} />
               <Route path="/audit" element={<AuditPage canViewAuthAudit={identity.role !== "viewer"} />} />
