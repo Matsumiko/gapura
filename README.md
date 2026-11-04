@@ -1,6 +1,8 @@
 # Gapura
 
-Backend gerbang pembayaran di Cloudflare Workers. Banyak project memakai satu akun merchant Duitku lewat Gapura; kredensial Duitku hanya ada di Gapura.
+Gapura adalah gerbang pembayaran yang memegang satu akun merchant Duitku untuk banyak project. Project hanya berbicara dengan Gapura; kredensial Duitku tidak pernah dibagikan.
+
+> **Cakupan deployment.** Contoh di repo ini memakai Cloudflare Workers + D1 dan dioptimalkan untuk project/bisnis kecil–menengah dengan volume transaksi yang wajar. Cloudflare tetap bisa diskalakan, tetapi ada batas yang perlu diketahui: CPU per invocation, kuota dan latensi D1, serta Cron minimum satu menit. Untuk produksi yang lebih serius, gunakan **Workers Paid** terlebih dahulu; jika volume, kebutuhan proses long-running, atau kepatuhan sudah di luar pola tersebut, pertimbangkan **self-host** di VPS/Kubernetes dengan PostgreSQL/Redis. Self-host bukan sekadar pindah host: lapisan database, scheduler, dan deployment perlu diganti.
 
 Keputusan arsitektur: [docs/adr](docs/adr).
 
