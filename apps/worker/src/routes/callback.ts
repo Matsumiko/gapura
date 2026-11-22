@@ -22,7 +22,17 @@ function formToRecord(body: Record<string, string | File>): Record<string, strin
 export function registerCallbackRoute(app: Hono<AppEnv>, deps: CallbackRouteDeps): void {
   app.post("/callback/duitku", async (c) => {
     const form = await c.req.parseBody();
-    const result = await deps.callbacks.handle(formToRecord(form));
+    const fields = formToRecord(form);
+    const result = await deps.callbacks.handle(fields);
+    console.log(
+      "duitku_callback",
+      JSON.stringify({
+        outcome: result.outcome,
+        merchantOrderId: fields.merchantOrderId ?? null,
+        resultCode: fields.resultCode ?? null,
+        hasSignature: Boolean(fields.signature),
+      }),
+    );
 
     if (result.outcome === "bad_parameter") {
       return jsonError(c, 400, "INVALID_CALLBACK", "Parameter callback tidak lengkap.");
