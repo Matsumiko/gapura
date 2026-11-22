@@ -21,6 +21,7 @@ import { TransactionDetailPage } from "./pages/TransactionDetailPage";
 import { WebhooksPage } from "./pages/WebhooksPage";
 import { DocsPage } from "./pages/DocsPage";
 import { AccountPage } from "./pages/AccountPage";
+import { PlaygroundPage } from "./pages/PlaygroundPage";
 import { SettingsPage } from "./pages/SettingsPage";
 import { AuditPage } from "./pages/AuditPage";
 import { AdminsPage } from "./pages/AdminsPage";
@@ -75,6 +76,17 @@ const linkGroups = [
               strokeLinejoin="round"
             />
             <path d="M5.75 5.25h4.5M5.75 7.75h4.5M5.75 10.25h2.75" stroke="currentColor" strokeWidth="1.3" />
+          </svg>
+        ),
+      },
+      {
+        to: "/playground",
+        label: "Playground",
+        end: false,
+        note: "Uji invoice sandbox",
+        icon: (
+          <svg viewBox="0 0 16 16" fill="none" aria-hidden="true">
+            <path d="M3 12.5 6.5 9M6.5 9l3-3M6.5 9H3m6.5-3H13M9.5 6l3 3" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round" strokeLinejoin="round" />
           </svg>
         ),
       },
@@ -447,6 +459,10 @@ export default function App() {
               <Route path="/transactions" element={<TransactionsPage />} />
               <Route path="/transactions/:merchantOrderId" element={<TransactionDetailPage canWrite={canWrite} />} />
               <Route path="/webhooks" element={<WebhooksPage canWrite={canWrite} />} />
+              <Route
+                path="/playground"
+                element={<PlaygroundPage environment={environment} canWrite={canWrite} />}
+              />
               <Route path="/settings" element={<SettingsPage canWrite={canWrite} />} />
               <Route
                 path="/account"

@@ -15,6 +15,8 @@ Worker (Cloudflare):
 - `apps/worker/src/routes/callback.ts` — `POST /callback/duitku`: parse form, verifikasi lewat service, jadwalkan forward asinkron.
 - `apps/worker/src/routes/admin.ts` — endpoint `/admin/*`: ringkasan, project, transaksi, webhook retry; menerjemahkan error domain ke HTTP.
 - `apps/worker/src/middleware/admin-auth.ts` — origin panel + sesi cookie `__Host-gapura_admin`, CSRF untuk write, RBAC viewer read-only, step-up `REAUTH_REQUIRED` 15 menit untuk aksi sensitif.
+- `apps/worker/src/routes/admin-playground.ts` — endpoint sandbox-only untuk daftar channel dan membuat invoice uji dari panel.
+- `apps/panel/src/pages/PlaygroundPage.tsx` — form invoice sandbox: project, nominal, metode, hasil URL/QR/VA.
 - `apps/worker/src/routes/auth.ts` — status, bootstrap/start, bootstrap, login, logout, session, csrf, reauth; menulis cookie sesi + CSRF.
 - `apps/worker/src/routes/admin-account.ts` — pengaturan akun sendiri: email, password, kode pemulihan; password + reauth TOTP.
 - `apps/worker/src/services/admin-account.ts` — verifikasi password, ubah email/password, terbitkan ulang recovery code, cabut sesi lain, audit.

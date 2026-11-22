@@ -7,6 +7,7 @@ import { projectRateLimit, resolveDataDatabase } from "./middleware/project-rate
 import { registerAdminRoutes } from "./routes/admin";
 import { registerAdminAccountRoutes } from "./routes/admin-account";
 import { registerAdminManagementRoutes } from "./routes/admin-management";
+import { registerAdminPlaygroundRoutes } from "./routes/admin-playground";
 import { registerRecoveryLoginRoute } from "./routes/admin-recovery";
 import { registerAdminSessionRoutes } from "./routes/admin-sessions";
 import { registerCallbackRoute } from "./routes/callback";
@@ -36,6 +37,7 @@ export interface AppDeps extends AuthDeps {
   settings: SettingsService;
   adminAuth?: AdminAuthService;
   adminSessions?: AdminSessionService;
+  environment?: "sandbox" | "production";
   sessionIdleMs?: number;
   now?: () => Date;
 }
@@ -100,6 +102,12 @@ export function buildApp(deps: AppDeps): Hono<AppEnv> {
   registerAdminRoutes(app, deps);
   registerAdminAccountRoutes(app, { now: deps.now });
   registerAdminManagementRoutes(app, { now: deps.now, issuer: "Gapura" });
+  registerAdminPlaygroundRoutes(app, {
+    environment: deps.environment,
+    payments: deps.payments,
+    paymentMethods: deps.paymentMethods,
+    admin: deps.admin,
+  });
   registerAdminSessionRoutes(app, { now: deps.now });
   registerSettingsRoutes(app, deps);
 

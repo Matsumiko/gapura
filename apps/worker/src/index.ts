@@ -109,6 +109,7 @@ function buildEnvironmentRuntime(
     }),
     adminAuth: shared.auth,
     adminSessions: shared.sessions,
+    environment,
     paymentMethods: createPaymentMethodsService({ provider }),
     settings: createSettingsService({
       repo: settingsRepo,
