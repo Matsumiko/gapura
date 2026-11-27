@@ -53,7 +53,7 @@ export function registerPaymentRoutes(app: Hono<AppEnv>, deps: PaymentRouteDeps)
             "Kredensial Duitku atau PUBLIC_BASE_URL belum diset.",
           );
         }
-        return jsonError(c, 502, "PROVIDER_ERROR", "Duitku gagal membuat transaksi.");
+        return jsonError(c, 502, "PROVIDER_ERROR", error.message);
       }
       throw error;
     }

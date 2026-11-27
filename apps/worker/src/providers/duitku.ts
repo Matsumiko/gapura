@@ -237,7 +237,12 @@ export function createDuitkuProvider(config: DuitkuConfig): PaymentProvider {
       }
 
       if (!response.ok) {
-        throw new PaymentProviderError(`HTTP_${response.status}`, "Duitku menolak request.");
+        const detail = await response.text().catch(() => "");
+        console.error("duitku_inquiry_http", response.status, request.merchantOrderId, detail.slice(0, 300));
+        throw new PaymentProviderError(
+          `HTTP_${response.status}`,
+          `Duitku menolak request: ${detail.slice(0, 300)}`,
+        );
       }
 
       const payload = (await response.json().catch(() => null)) as InquiryResponse | null;
@@ -245,6 +250,12 @@ export function createDuitkuProvider(config: DuitkuConfig): PaymentProvider {
         throw new PaymentProviderError("INVALID_RESPONSE", "Respons Duitku bukan JSON.");
       }
       if (payload.statusCode !== "00") {
+        console.error(
+          "duitku_inquiry_status",
+          request.merchantOrderId,
+          String(payload.statusCode),
+          typeof payload.statusMessage === "string" ? payload.statusMessage : "",
+        );
         throw new PaymentProviderError(
           "REJECTED",
           typeof payload.statusMessage === "string" ? payload.statusMessage : "Transaksi ditolak Duitku.",
